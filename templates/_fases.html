@@ -8,7 +8,7 @@
   </div>
   {% for g in resumen.grupos %}
   {% if g.id!='otros' or g.total %}
-  <a class="kpi fase-card{% if g.id=='perdidos' %} perdidos{% endif %}" href="{{ href_base }}#fase-{{ g.id }}">
+  <a class="kpi fase-card fase-{{ g.id }}" href="{{ href_base }}#fase-{{ g.id }}">
     <div class="lbl">{{ g.titulo }}</div>
     <div class="val">{{ g.total }}</div>
     <div class="meta">{% if g.desglose %}{% for k,n in g.desglose %}{{ k }}: {{ n }}{% if not loop.last %} · {% endif %}{% endfor %}{% elif g.total==0 %}<span class="muted">Sin clientes</span>{% endif %}</div>
@@ -27,7 +27,7 @@
 {% else %}
 {% for g in grupos %}
 {% if g.clientes %}
-<details class="fase-sec" id="fase-{{ g.id }}" open>
+<details class="fase-sec fase-{{ g.id }}" id="fase-{{ g.id }}" open>
   <summary>{{ g.titulo }} <span class="muted">({{ g.clientes|length }})</span></summary>
   {{ cli_table(g.clientes, csrf, estatus_opciones, '', mostrar_asesor=mostrar_asesor) }}
 </details>

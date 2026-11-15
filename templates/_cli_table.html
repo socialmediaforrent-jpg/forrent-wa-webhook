@@ -19,7 +19,7 @@
           <select name="status">{% for s in estatus_opciones %}<option value="{{ s }}" {{ 'selected' if c.estatus==s else '' }}>{{ s }}</option>{% endfor %}</select>
           <button type="submit" class="btn">Guardar</button>
         </form>
-        {% else %}<span class="pill">{{ c.estatus }}</span>{% endif %}
+        {% else %}<span class="pill pill-fase fase-{{ c.fase or 'otros' }}">{{ c.estatus }}</span>{% endif %}
       </td>
     </tr>
   {% endfor %}
