@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Mensajes WhatsApp · For Rent</title>
+<style>
+:root{
+  --naranja:#E76108;
+  --negro:#111;
+  --fondo:#f4f4f5;
+  --texto:#111;
+  --muted:#5b6475;
+  --linea:#e3e7ef;
+  --in:#fff;
+  --out:#fff3ea;
+  --out-borde:#f0c9a8;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--fondo);color:var(--texto);
+  font-family:Inter,"Helvetica Neue",Arial,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:#fff;border-bottom:4px solid var(--naranja);padding:10px 16px;
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header .brand{font-weight:800;font-size:20px;letter-spacing:.2px}
+header .brand span{color:var(--naranja)}
+header .sub{color:var(--muted);font-size:13px}
+.wrap{display:grid;grid-template-columns:minmax(240px,340px) 1fr;height:calc(100% - 62px);min-height:0}
+.list,.thread{min-height:0;overflow:auto}
+.list{background:#fff;border-right:1px solid var(--linea)}
+.list h2,.thread-head{margin:0;padding:12px 16px;font-size:14px;color:var(--muted);font-weight:600;
+  border-bottom:1px solid var(--linea);background:#fff;position:sticky;top:0;z-index:1}
+.item{display:block;padding:12px 16px;border-bottom:1px solid var(--linea);text-decoration:none;color:inherit}
+.item:hover{background:#fff8f3}
+.item.on{background:#fff3ea;border-left:4px solid var(--naranja);padding-left:12px}
+.item .who{font-weight:700;font-size:15px}
+.item .num,.item .time{color:var(--muted);font-size:12px}
+.item .preview{color:#333;font-size:13px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thread{display:flex;flex-direction:column;background:#ece7e0}
+.thread-head{display:flex;align-items:center;gap:10px}
+.thread-head a{color:var(--naranja);text-decoration:none;font-weight:700;display:none}
+.thread-head .who{color:var(--negro);font-size:16px;font-weight:800}
+.thread-head .num{color:var(--muted);font-size:12px;font-weight:500}
+.msgs{flex:1;overflow:auto;padding:16px 12px 24px;display:flex;flex-direction:column;gap:8px}
+.day{align-self:center;background:rgba(0,0,0,.06);color:#333;font-size:11px;font-weight:600;
+  padding:3px 10px;border-radius:999px;margin:6px 0}
+.bub{max-width:min(520px,86%);padding:8px 12px;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:15px;line-height:1.4}
+.bub.in{align-self:flex-start;background:var(--in);border-top-left-radius:4px}
+.bub.out{align-self:flex-end;background:var(--out);border:1px solid var(--out-borde);border-top-right-radius:4px}
+.bub .meta{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:4px;
+  color:var(--muted);font-size:11px}
+.bub .tipo{display:inline-block;background:#111;color:#fff;border-radius:5px;padding:1px 6px;font-size:10px;margin-bottom:4px}
+.bub .st.leido{color:#0a6cff}
+.bub .st.fallo{color:#b91c1c;font-weight:700}
+.empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:15px}
+@media (max-width:720px){
+  .wrap{grid-template-columns:1fr;height:calc(100% - 78px)}
+  body.con .list, body:not(.con) .thread{display:none}
+  .thread-head a{display:inline}
+}
+</style>
+</head>
+<body class="{{ 'con' if current else '' }}">
+<header>
+  <div class="brand">For Rent <span>Mensajes</span></div>
+  <div class="sub">WhatsApp · solo lectura · hora de Caracas · se actualiza cada 30 s</div>
+</header>
+<div class="wrap">
+  <nav class="list" aria-label="Conversaciones">
+    <h2>Conversaciones</h2>
+    {% if not conversations %}
+    <div class="empty">Aún no hay conversaciones.</div>
+    {% endif %}
+    {% for c in conversations %}
+    <a class="item {{ 'on' if c.wa_id == current else '' }}" href="{{ c.href }}">
+      <div class="who">{{ c.name }}</div>
+      <div class="num">{{ c.phone }}</div>
+      <div class="preview">{{ c.preview }}</div>
+      <div class="time">{{ c.time }}</div>
+    </a>
+    {% endfor %}
+  </nav>
+  <section class="thread">
+    {% if current %}
+    <div class="thread-head">
+      <a href="/panel">← Lista</a>
+      <div>
+        <div class="who">{{ thread_name }}</div>
+        <div class="num">{{ thread_phone }}</div>
+      </div>
+    </div>
+    <div class="msgs" id="msgs">
+      {% if not messages %}
+      <div class="empty">No hay mensajes en esta conversación.</div>
+      {% endif %}
+      {% for m in messages %}
+        {% if m.day %}<div class="day">{{ m.day }}</div>{% endif %}
+        <div class="bub {{ m.direction }}">
+          {% if m.type_label %}<div class="tipo">{{ m.type_label }}</div>{% endif %}
+          <div class="txt">{{ m.text }}</div>
+          <div class="meta">
+            {% if m.status %}<span class="st {{ m.status_class }}">{{ m.status }}</span>{% endif %}
+            <span>{{ m.time }}</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">Elige una conversación para ver los mensajes.</div>
+    {% endif %}
+  </section>
+</div>
+<script>
+(function(){
+  const params = new URLSearchParams(location.search);
+  const c = params.get('c') || '';
+  async function refresh(){
+    try{
+      const r = await fetch('/panel/data' + (c ? ('?c=' + encodeURIComponent(c)) : ''), {credentials:'same-origin', cache:'no-store'});
+      if (r.status === 401) { location.reload(); return; }
+      if (!r.ok) return;
+      const d = await r.json();
+      /* Re-pinta de forma segura (solo textContent / createElement). */
+      const list = document.querySelector('.list');
+      const h2 = list.querySelector('h2');
+      list.querySelectorAll('.item, .empty').forEach(n => n.remove());
+      if (!d.conversations.length){
+        const e = document.createElement('div'); e.className='empty'; e.textContent='Aún no hay conversaciones.'; list.appendChild(e);
+      }
+      d.conversations.forEach(conv => {
+        const a = document.createElement('a');
+        a.className = 'item' + (conv.wa_id === d.current ? ' on' : '');
+        a.href = '/panel?c=' + encodeURIComponent(conv.wa_id);
+        const who = document.createElement('div'); who.className='who'; who.textContent=conv.name; a.appendChild(who);
+        const num = document.createElement('div'); num.className='num'; num.textContent=conv.phone; a.appendChild(num);
+        const pv = document.createElement('div'); pv.className='preview'; pv.textContent=conv.preview; a.appendChild(pv);
+        const tm = document.createElement('div'); tm.className='time'; tm.textContent=conv.time; a.appendChild(tm);
+        list.appendChild(a);
+      });
+      if (!d.current) return;
+      const msgs = document.getElementById('msgs');
+      if (!msgs) return;
+      const headWho = document.querySelector('.thread-head .who');
+      const headNum = document.querySelector('.thread-head .num');
+      if (headWho) headWho.textContent = d.thread_name;
+      if (headNum) headNum.textContent = d.thread_phone;
+      msgs.replaceChildren();
+      if (!d.messages.length){
+        const e = document.createElement('div'); e.className='empty'; e.textContent='No hay mensajes en esta conversación.'; msgs.appendChild(e);
+        return;
+      }
+      d.messages.forEach(m => {
+        if (m.day){ const day=document.createElement('div'); day.className='day'; day.textContent=m.day; msgs.appendChild(day); }
+        const bub=document.createElement('div'); bub.className='bub '+m.direction;
+        if (m.type_label){ const t=document.createElement('div'); t.className='tipo'; t.textContent=m.type_label; bub.appendChild(t); }
+        const txt=document.createElement('div'); txt.className='txt'; txt.textContent=m.text; bub.appendChild(txt);
+        const meta=document.createElement('div'); meta.className='meta';
+        if (m.status){ const st=document.createElement('span'); st.className='st '+(m.status_class||''); st.textContent=m.status; meta.appendChild(st); }
+        const tm=document.createElement('span'); tm.textContent=m.time; meta.appendChild(tm);
+        bub.appendChild(meta);
+        msgs.appendChild(bub);
+      });
+    }catch(e){}
+  }
+  setInterval(refresh, 30000);
+})();
+</script>
+</body>
+</html>

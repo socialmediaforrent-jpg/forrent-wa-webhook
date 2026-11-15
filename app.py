@@ -7,6 +7,8 @@ Endpoints
   GET  /api/events?since_id=N        -> (Bearer WA_READ_KEY) mensajes/estados nuevos para los scripts de la caja
   POST /api/outbound                 -> (Bearer WA_READ_KEY) registra una respuesta enviada desde la caja
   GET  /api/last_inbound?wa_id=...   -> (Bearer WA_READ_KEY) último mensaje entrante de un número
+  GET  /panel                        -> bandeja de entrada (HTTP Basic, usuario jose)
+  GET  /panel/data                   -> JSON de la bandeja (misma autenticación; para auto-actualizar)
 
 Variables de entorno
   DATABASE_URL                Postgres (Render). Si falta, usa SQLite local (solo pruebas).
@@ -15,12 +17,16 @@ Variables de entorno
   META_APP_SECRET             secreto de la app de Meta. Sin él NO se valida la firma (se registra un aviso).
   AUTO_REPLY_ENABLED=1        respuesta automática fuera de horario (apagada por defecto)
   AUTO_REPLY_TEXT, META_WA_TOKEN, WA_PHONE_NUMBER_ID, GRAPH_VERSION  (solo si AUTO_REPLY_ENABLED=1)
+  PANEL_PASSWORD_SHA256       sha256 hex de la contraseña del panel (usuario fijo: jose). También acepta PANEL_PASSWORD.
 """
 import hashlib, hmac, json, logging, os, sqlite3, threading, time, urllib.request
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from flask import Flask, abort, jsonify, request
+from functools import wraps
+from urllib.parse import quote
+
+from flask import Flask, Response, abort, jsonify, make_response, render_template, request
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('wa')
@@ -235,6 +241,234 @@ def api_last_inbound():
     rows = q("SELECT id, wamid, ts, name, text FROM wa_events WHERE kind='message' AND wa_id=%s ORDER BY ts DESC LIMIT 1",
              (wa,), fetch=True)
     return jsonify(last_inbound=rows[0] if rows else None)
+
+
+# ---------------------------------------------------------------- panel de entrada (solo lectura)
+PANEL_USER = 'jose'
+MESES = ('enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+         'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre')
+MESES_CORTOS = ('ene', 'feb', 'mar', 'abr', 'may', 'jun',
+                'jul', 'ago', 'sep', 'oct', 'nov', 'dic')
+TIPO_ETIQUETA = {
+    'text': '', 'image': 'Imagen', 'audio': 'Audio', 'video': 'Video',
+    'document': 'Documento', 'sticker': 'Sticker', 'location': 'Ubicación',
+    'reaction': 'Reacción', 'button': 'Botón', 'interactive': 'Interactivo',
+    'contacts': 'Contacto', 'unsupported': 'No soportado',
+}
+STATUS_ETIQUETA = {
+    'sent': 'Enviado', 'delivered': 'Entregado', 'read': 'Leído',
+    'failed': 'Falló', 'deleted': 'Eliminado',
+}
+
+
+def require_panel_auth(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        auth = request.authorization
+        ok = bool(
+            auth
+            and hmac.compare_digest(auth.username or '', PANEL_USER)
+            and _secret_matches(auth.password or '', 'PANEL_PASSWORD', 'PANEL_PASSWORD_SHA256')
+        )
+        if not ok:
+            return Response(
+                'Se necesita usuario y contraseña.\n',
+                401,
+                {'WWW-Authenticate': 'Basic realm="For Rent Mensajes", charset="UTF-8"'},
+            )
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+def _parse_caracas(iso):
+    if not iso:
+        return None
+    try:
+        dt = datetime.fromisoformat(iso.replace('Z', '+00:00'))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(CARACAS)
+    except Exception:
+        return None
+
+
+def _fmt_time(iso):
+    dt = _parse_caracas(iso)
+    if not dt:
+        return ''
+    h = dt.hour % 12 or 12
+    ap = 'a. m.' if dt.hour < 12 else 'p. m.'
+    clock = f'{h}:{dt.strftime("%M")} {ap}'
+    now = datetime.now(CARACAS)
+    if dt.date() == now.date():
+        return clock
+    if dt.year == now.year:
+        return f'{dt.day} {MESES_CORTOS[dt.month - 1]}, {clock}'
+    return f'{dt.day} {MESES_CORTOS[dt.month - 1]} {dt.year}, {clock}'
+
+
+def _fmt_day(iso):
+    dt = _parse_caracas(iso)
+    if not dt:
+        return ''
+    now = datetime.now(CARACAS)
+    if dt.date() == now.date():
+        return 'Hoy'
+    if dt.date() == now.date() - timedelta(days=1):
+        return 'Ayer'
+    if dt.year == now.year:
+        return f'{dt.day} de {MESES[dt.month - 1]}'
+    return f'{dt.day} de {MESES[dt.month - 1]} de {dt.year}'
+
+
+def _fmt_phone(wa_id):
+    d = ''.join(c for c in (wa_id or '') if c.isdigit())
+    if d.startswith('58') and len(d) >= 12:
+        return f'+58 {d[2:5]}-{d[5:]}'
+    if d:
+        return '+' + d
+    return wa_id or ''
+
+
+def _event_ts(row):
+    return row.get('ts') or row.get('received_at') or ''
+
+
+def _display_name(wa_id, fallback=None):
+    return (fallback or '').strip() or _fmt_phone(wa_id) or wa_id or 'Desconocido'
+
+
+def _preview(row):
+    tipo = TIPO_ETIQUETA.get(row.get('msg_type') or '', '')
+    text = (row.get('text') or '').strip() or (tipo and f'[{tipo}]') or 'Mensaje'
+    if row.get('direction') == 'outbound':
+        return 'Tú: ' + text
+    return text
+
+
+def _names_by_wa():
+    rows = q(
+        """SELECT wa_id, name FROM (
+               SELECT wa_id, name,
+                      ROW_NUMBER() OVER (PARTITION BY wa_id ORDER BY id DESC) AS rn
+               FROM wa_events
+               WHERE name IS NOT NULL AND name <> ''
+           ) t WHERE rn = 1""",
+        fetch=True,
+    ) or []
+    return {r['wa_id']: r['name'] for r in rows}
+
+
+def panel_conversations():
+    latest = q(
+        """SELECT wa_id, name, text, ts, received_at, direction, msg_type FROM (
+               SELECT wa_id, name, text, ts, received_at, direction, msg_type,
+                      ROW_NUMBER() OVER (
+                          PARTITION BY wa_id
+                          ORDER BY COALESCE(ts, received_at) DESC, id DESC
+                      ) AS rn
+               FROM wa_events
+               WHERE wa_id IS NOT NULL AND wa_id <> ''
+                 AND kind IN ('message', 'outbound')
+           ) t WHERE rn = 1""",
+        fetch=True,
+    ) or []
+    names = _names_by_wa()
+    out = []
+    for r in latest:
+        wa = r['wa_id']
+        out.append({
+            'wa_id': wa,
+            'href': '/panel?c=' + quote(wa, safe=''),
+            'name': _display_name(wa, names.get(wa) or r.get('name')),
+            'phone': _fmt_phone(wa),
+            'preview': _preview(r),
+            'time': _fmt_time(_event_ts(r)),
+            'sort': _event_ts(r),
+        })
+    out.sort(key=lambda x: x['sort'] or '', reverse=True)
+    for c in out:
+        c.pop('sort', None)
+    return out
+
+
+def panel_thread(wa_id):
+    rows = q(
+        """SELECT id, kind, wamid, wa_id, name, direction, msg_type, text, ts, status, auto, source, received_at
+           FROM wa_events
+           WHERE wa_id=%s AND kind IN ('message', 'outbound', 'status')
+           ORDER BY COALESCE(ts, received_at) ASC, id ASC""",
+        (wa_id,),
+        fetch=True,
+    ) or []
+    statuses = {}
+    for r in rows:
+        if r.get('kind') == 'status' and r.get('wamid') and r.get('status'):
+            statuses[r['wamid']] = r['status']
+    names = _names_by_wa()
+    msgs = []
+    last_day = None
+    for r in rows:
+        if r.get('kind') not in ('message', 'outbound'):
+            continue
+        iso = _event_ts(r)
+        day = _fmt_day(iso)
+        typ = r.get('msg_type') or ''
+        typ_label = TIPO_ETIQUETA.get(typ, typ if typ and typ != 'text' else '')
+        body = (r.get('text') or '').strip() or (typ_label and f'[{typ_label}]') or 'Mensaje'
+        st_raw = (r.get('status') or '') or statuses.get(r.get('wamid') or '', '')
+        st_label = STATUS_ETIQUETA.get(st_raw, st_raw)
+        if st_raw == 'read':
+            st_class = 'leido'
+        elif st_raw in ('failed', 'deleted'):
+            st_class = 'fallo'
+        else:
+            st_class = ''
+        msgs.append({
+            'direction': 'out' if r.get('direction') == 'outbound' else 'in',
+            'text': body,
+            'type_label': typ_label if typ != 'text' else '',
+            'status': st_label,
+            'status_class': st_class,
+            'time': _fmt_time(iso),
+            'day': day if day != last_day else '',
+        })
+        last_day = day
+    thread_name = _display_name(wa_id, names.get(wa_id) or next((r.get('name') for r in rows if r.get('name')), None))
+    return msgs, thread_name, _fmt_phone(wa_id)
+
+
+def _panel_payload(wa_id):
+    convos = panel_conversations()
+    current = wa_id or ''
+    msgs, name, phone = panel_thread(current) if current else ([], '', '')
+    return {
+        'conversations': convos,
+        'current': current,
+        'messages': msgs,
+        'thread_name': name,
+        'thread_phone': phone,
+    }
+
+
+def _panel_headers(resp):
+    resp = make_response(resp)
+    resp.headers['Cache-Control'] = 'private, no-store'
+    resp.headers['X-Frame-Options'] = 'DENY'
+    return resp
+
+
+@app.get('/panel')
+@require_panel_auth
+def panel():
+    data = _panel_payload(request.args.get('c') or '')
+    return _panel_headers(render_template('panel.html', **data))
+
+
+@app.get('/panel/data')
+@require_panel_auth
+def panel_data():
+    return _panel_headers(jsonify(_panel_payload(request.args.get('c') or '')))
 
 
 # ---------------------------------------------------------------- respuesta fuera de horario (APAGADA por defecto)
