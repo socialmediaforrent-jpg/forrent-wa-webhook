@@ -978,10 +978,19 @@ def _nombre_asesor(slug):
 
 
 def _asesor_clientes(user):
-    """Lista unificada: propios del asesor (editables) y asignados por For Rent (solo lectura)."""
-    mine = user['user']
-    asignados, actualizado, _fuente = portal_lib.load_asignados(slug=mine)
-    propios = _db_propios([mine])
+    """Lista unificada: propios del asesor (editables) y asignados por For Rent (solo lectura).
+
+    Admin (José): todos los asignados del ejercicio vigente (corte 31-oct-2026),
+    con el asesor de cada cliente. Líder y asesora: solo los suyos (filtro en servidor).
+    """
+    es_admin = user.get('role') == 'admin'
+    if es_admin:
+        asignados, actualizado, _fuente = portal_lib.load_asignados()
+        propios = []
+    else:
+        mine = user['user']
+        asignados, actualizado, _fuente = portal_lib.load_asignados(slug=mine)
+        propios = _db_propios([mine])
     out = []
     for r in propios:
         out.append({
@@ -992,14 +1001,19 @@ def _asesor_clientes(user):
             'busca': _busca(r), 'inmueble': '', 'editable': True,
         })
     for r in asignados:
-        out.append({
+        rec = {
             'id': r.get('id'), 'nombre': r.get('nombre') or 'Cliente', 'telefono': '',
             'estatus': r.get('estatus') or 'Sin estatus',
             'estado': r.get('estado') or '', 'situacion': r.get('situacion') or '',
             'origen': 'Asignado por For Rent',
             'origen_nota': '', 'busca': r.get('operacion') or '',
             'inmueble': r.get('inmueble') or '', 'editable': False,
-        })
+        }
+        if es_admin:
+            slug = (r.get('asesor') or '').strip()
+            rec['asesor'] = slug
+            rec['asesor_nombre'] = _nombre_asesor(slug) if slug else ''
+        out.append(rec)
     return out, actualizado
 
 
@@ -1032,6 +1046,7 @@ def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200):
         cli_fecha=portal_lib.fmt_fecha(cli_fecha) if cli_fecha else 'fecha no disponible',
         estatus_opciones=portal_lib.ESTATUS_OPCIONES,
         csrf=portal_lib.csrf_token(user), puede_agregar=user['role'] != 'admin',
+        mostrar_asesor=user.get('role') == 'admin',
         flash_ok=flash_ok, flash_err=flash_err, form=form or {},
     ))
     resp.status_code = status

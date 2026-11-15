@@ -41,7 +41,7 @@
     </form>
   </details>
   {% endif %}
-  {{ cli_por_fase(fases.grupos, csrf, estatus_opciones, 'No tienes clientes en esta lista todavía.') }}
+  {{ cli_por_fase(fases.grupos, csrf, estatus_opciones, 'No tienes clientes en esta lista todavía.', mostrar_asesor=mostrar_asesor|default(false)) }}
 </main>
 </body>
 </html>

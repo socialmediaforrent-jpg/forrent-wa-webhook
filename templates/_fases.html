@@ -19,7 +19,7 @@
 <p class="fase-corte">Solo clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí.</p>
 {% endmacro %}
 
-{% macro cli_por_fase(grupos, csrf, estatus_opciones, vacio) %}
+{% macro cli_por_fase(grupos, csrf, estatus_opciones, vacio, mostrar_asesor=False) %}
 {% from '_cli_table.html' import cli_table %}
 {% set hay = grupos|selectattr('clientes')|list %}
 {% if not hay %}
@@ -29,7 +29,7 @@
 {% if g.clientes %}
 <details class="fase-sec" id="fase-{{ g.id }}" open>
   <summary>{{ g.titulo }} <span class="muted">({{ g.clientes|length }})</span></summary>
-  {{ cli_table(g.clientes, csrf, estatus_opciones, '') }}
+  {{ cli_table(g.clientes, csrf, estatus_opciones, '', mostrar_asesor=mostrar_asesor) }}
 </details>
 {% endif %}
 {% endfor %}

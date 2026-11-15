@@ -1,11 +1,12 @@
-{% macro cli_table(clientes, csrf, estatus_opciones, vacio) %}
+{% macro cli_table(clientes, csrf, estatus_opciones, vacio, mostrar_asesor=False) %}
 {% if not clientes %}<div class="empty">{{ vacio }}</div>{% else %}
 <table class="inv">
-  <thead><tr><th>Cliente</th><th>Origen</th><th>Busca</th><th>Estatus</th></tr></thead>
+  <thead><tr><th>Cliente</th>{% if mostrar_asesor %}<th>Asesor</th>{% endif %}<th>Origen</th><th>Busca</th><th>Estatus</th></tr></thead>
   <tbody>
   {% for c in clientes %}
     <tr>
       <td data-label="Cliente"><b>{{ c.nombre }}</b>{% if c.telefono %}<div class="muted">{{ c.telefono }}</div>{% endif %}</td>
+      {% if mostrar_asesor %}<td data-label="Asesor">{% if c.asesor_nombre %}{{ c.asesor_nombre }}{% else %}<span class="muted">—</span>{% endif %}</td>{% endif %}
       <td data-label="Origen">
         {% if c.origen=='Propio del asesor' %}<span class="pill prop">Propio del asesor</span>{% else %}<span class="pill asig">Asignado por For Rent</span>{% endif %}
         {% if c.origen_nota %}<div class="muted">{{ c.origen_nota }}</div>{% endif %}
