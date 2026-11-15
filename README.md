@@ -16,3 +16,8 @@ Los asesores entran al mismo `/portal` con su usuario. Contraseñas en la caja (
 Los clientes propios se guardan en Postgres de este servicio, no en GHL.
 La respuesta automática fuera de horario existe pero está apagada (`AUTO_REPLY_ENABLED=0`).
 El inventario es una foto sanitizada (`data/inventario.json`): título, operación, tipo, zona, precio y código interno; sin captadores ni enlaces de Rex/Wasi.
+
+## Correos del portal (rama redesign-v1)
+Se registran en la tabla `email_outbox` (pantalla /admin/correos). `EMAIL_MODE=log` (por defecto) no envía nada;
+`test` envía solo a `EMAIL_TEST_TO`; `smtp` envía de verdad (requiere `SMTP_USER` y `SMTP_APP_PASSWORD`, contraseña de aplicación de Gmail).
+`ASSIGN_EMAIL_MODE=omitir` (por defecto) evita duplicar el aviso de asignación que ya envía la rutina de la caja.

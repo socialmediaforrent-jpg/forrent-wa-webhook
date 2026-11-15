@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% set nav='perfil' %}{% block title %}Perfiles{% endblock %}
+{% block body %}
+
+<h1 class="page">Perfiles de asesoras</h1>
+<p class="lead">Solo lectura. Cada asesora edita el suyo.</p>
+<table class="inv"><thead><tr><th>Asesora</th><th>Correo</th><th>Teléfono</th><th>Zonas</th><th>Foto</th><th>Actualizado</th></tr></thead><tbody>
+{% for a in filas %}<tr><td data-label="Asesora"><b>{{ a.name }}</b></td><td data-label="Correo">{{ a.email or '—' }}</td><td data-label="Teléfono">{{ a.telefono or '—' }}</td>
+<td data-label="Zonas">{{ a.zonas or '—' }}</td><td data-label="Foto">{% if a.foto %}<img class="pfoto sm" src="/perfil/foto/{{ a.user }}" alt="" width="36" height="36">{% else %}—{% endif %}</td>
+<td data-label="Actualizado">{{ a.updated or '—' }}</td></tr>{% endfor %}</tbody></table>
+{% endblock %}

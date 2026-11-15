@@ -1,22 +1,39 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex, nofollow">
-<title>Mis Captaciones · For Rent Online</title>
-{% include '_head_icons.html' %}
-{% include '_brand.css.html' %}
-</head>
-<body>
+{% extends 'base.html' %}{% set nav='captaciones' %}{% block title %}Mis Captaciones{% endblock %}
+{% block body %}
+
 {% from '_cap_table.html' import cap_table %}
-{% set nav='captaciones' %}
-{% include '_top.html' %}
-<main class="wrap-page">
-  <h1 class="page">Mis Captaciones</h1>
-  <p class="lead">Solo donde figuras como captadora. Inventario del {{ inv_fecha }}.</p>
-  <section class="sec"><h2>Propias de For Rent ({{ propias|length }})</h2>{{ cap_table(propias, 'No hay captaciones propias a tu nombre en esta copia.') }}</section>
-  <section class="sec"><h2>Aliados ({{ alianzas|length }})</h2>{{ cap_table(alianzas, 'No hay captaciones en alianza a tu nombre en esta copia.') }}</section>
-</main>
-</body>
-</html>
+<h1 class="page">Mis Captaciones</h1>
+<p class="lead">Solo donde figuras como captadora. Inventario del {{ inv_fecha }}. <a href="/inventario">Ver Inventario General →</a></p>
+<nav class="tabs" aria-label="Filtro">
+  <a href="/mis-captaciones?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propias ({{ n_prop }})</a>
+  <a href="/mis-captaciones?f=aliadas" class="{{ 'on' if f=='aliadas' else '' }}">Aliadas ({{ n_ali }})</a>
+  <a href="/mis-captaciones?f=todas" class="{{ 'on' if f=='todas' else '' }}">Todas ({{ n_prop + n_ali }})</a>
+</nav>
+{{ cap_table(filas, 'No hay captaciones a tu nombre en este filtro.') }}
+{% if puede %}
+<section class="sec">
+  <h2>Agregar o retirar una captación</h2>
+  <p class="muted">Se registra como solicitud; el inventario cambia cuando administración la aprueba. Te llega un aviso por correo.</p>
+  <details {{ 'open' if err else '' }}><summary class="btn-sum">+ Solicitar agregar</summary>
+  <form class="grid" method="post" action="/mis-captaciones" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="alta">
+    <div class="wide"><label>Título o dirección <input name="titulo" required maxlength="160"></label></div>
+    <div><label>Operación <select name="operacion"><option>Venta</option><option>Alquiler</option></select></label></div>
+    <div><label>Origen <select name="origen"><option value="propio">Propia</option><option value="alianza">Aliada</option></select></label></div>
+    <div><label>Tipo <input name="tipo" maxlength="60"></label></div><div><label>Zona <input name="zona" maxlength="120"></label></div>
+    <div><label>Precio <input name="precio" maxlength="60" placeholder="US$ …"></label></div><div><label>Código (si lo tiene) <input name="codigo" maxlength="40"></label></div>
+    <div class="wide"><label>Nota <textarea name="nota" maxlength="400"></textarea></label></div>
+    <div><button type="submit">Enviar solicitud</button></div>
+  </form></details>
+  {% if n_prop + n_ali %}
+  <form class="grid" method="post" action="/mis-captaciones" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="baja">
+    <div class="wide"><label>Solicitar retiro de <select name="codigo" required>{% for it in filas %}<option value="{{ it.codigo }}">{{ it.codigo }} · {{ it.titulo[:60] }}</option>{% endfor %}</select></label></div>
+    <div class="wide"><label>Motivo <textarea name="nota" maxlength="400"></textarea></label></div>
+    <div><button type="submit" class="btn-sec">Solicitar retiro</button></div>
+  </form>{% endif %}
+  {% if solicitudes %}<h2>Tus solicitudes</h2>
+  <table class="inv"><thead><tr><th>Fecha</th><th>Acción</th><th>Inmueble</th><th>Estado</th></tr></thead><tbody>
+  {% for s in solicitudes %}<tr><td data-label="Fecha">{{ s.created_at[:10] }}</td><td data-label="Acción">{{ 'Agregar' if s.accion=='alta' else 'Retirar' }}</td>
+  <td data-label="Inmueble">{{ s.titulo or s.codigo }}{% if s.codigo %} <span class="muted">· {{ s.codigo }}</span>{% endif %}</td><td data-label="Estado"><span class="pill">{{ s.estado|capitalize }}</span></td></tr>{% endfor %}
+  </tbody></table>{% endif %}
+</section>{% endif %}
+{% endblock %}

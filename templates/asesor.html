@@ -16,29 +16,13 @@
   <h1 class="page">Tu resumen</h1>
   <p class="lead">Solo tus datos. Cada tarjeta indica la fecha de su copia.</p>
   {% include '_dash.html' %}
-  <section class="sec" id="cierres">
-    <h2>Cierres</h2>
-    {% if viewer.role == 'asesor' %}<p class="muted">Tu comisión, la parte de For Rent y, si aplica, la inmobiliaria aliada.</p>{% endif %}
-    {% if not cierres %}
-    <div class="empty">No hay cierres a tu nombre en las fuentes actuales.</div>
-    {% else %}
-    <table class="inv">
-      <thead><tr><th>Fecha</th><th>Operación</th><th>Inmueble</th><th>Comisión del asesor</th><th>Parte For Rent</th><th>Inmobiliaria aliada</th></tr></thead>
-      <tbody>
-      {% for c in cierres %}
-        <tr>
-          <td data-label="Fecha">{{ c.fecha_fmt }}</td>
-          <td data-label="Operación">{{ c.operacion or '—' }}</td>
-          <td data-label="Inmueble">{{ c.inmueble or '—' }}{% if c.codigo %}<div class="muted">{{ c.codigo }}</div>{% endif %}</td>
-          <td data-label="Comisión del asesor"><b>{{ c.asesor_fmt }}</b></td>
-          <td data-label="Parte For Rent">{{ c.forrent_fmt }}</td>
-          <td data-label="Inmobiliaria aliada">{{ c.inmobiliaria_fmt }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    {% endif %}
-  </section>
+  <div class="cards">
+    <a class="card" href="/perfil"><h2>Mi Perfil</h2><p>Datos y foto.</p></a>
+    <a class="card" href="/visitas"><h2>Visitas</h2><p>Agendadas y registradas.</p></a>
+    <a class="card" href="/ofertas"><h2>Ofertas</h2><p>Recibidas y realizadas.</p></a>
+    <a class="card" href="/cierres"><h2>Cierres</h2><p>Pendientes y realizados.</p></a>
+    <a class="card" href="/actividades"><h2>Actividades</h2><p>Reuniones programadas.</p></a>
+  </div>
 </main>
 </body>
 </html>

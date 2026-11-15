@@ -1,0 +1,22 @@
+{% extends 'base.html' %}{% set nav='perfil' %}{% block title %}Mi Perfil{% endblock %}
+{% block body %}
+
+<h1 class="page">Mi Perfil</h1>
+<p class="lead">Solo tú puedes editar estos datos. Al guardar te llega un aviso por correo.</p>
+<form class="grid" method="post" action="/perfil" enctype="multipart/form-data">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="wide profile-head">
+    {% if pf.foto_mime %}<img class="pfoto" src="/perfil/foto/{{ viewer.user }}?v={{ pf.updated_at|default('', true)|replace(':','') }}" alt="Tu foto" width="72" height="72">
+    {% else %}<span class="pfoto ph">{{ viewer.name.split(' ')[0][:1] }}</span>{% endif %}
+    <div><b>{{ viewer.name }}</b><div class="muted">{{ role_label }}{% if pf.updated_at %} · actualizado {{ pf.updated_at[:10] }}{% endif %}</div></div>
+  </div>
+  <div class="wide"><label>Foto de perfil (JPG, PNG o WebP, máx. 2 MB) <input type="file" name="foto" accept="image/jpeg,image/png,image/webp"></label></div>
+  <div><label>Nombre <input value="{{ viewer.name }}" disabled></label></div>
+  <div><label>Teléfono <input name="telefono" inputmode="tel" maxlength="40" value="{{ pf.telefono or '' }}"></label></div>
+  <div><label>Correo <input name="email" type="email" maxlength="120" value="{{ pf.email or '' }}"></label></div>
+  <div><label>Cédula (opcional) <input name="cedula" maxlength="20" value="{{ pf.cedula or '' }}"></label></div>
+  <div class="wide"><label>Zonas donde trabajas <input name="zonas" maxlength="200" placeholder="Chacao, Los Palos Grandes…" value="{{ pf.zonas or '' }}"></label></div>
+  <div class="wide"><label>Biografía <textarea name="bio" maxlength="600">{{ pf.bio or '' }}</textarea></label></div>
+  <div><button type="submit">Guardar perfil</button></div>
+</form>
+{% endblock %}

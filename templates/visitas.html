@@ -1,0 +1,22 @@
+{% extends 'base.html' %}{% set nav='visitas' %}{% block title %}Visitas{% endblock %}
+{% block body %}
+
+<h1 class="page">Visitas</h1>
+<p class="lead">Clientes con estatus «Visita agendada» (copia del {{ act }}) y las visitas que registres aquí.</p>
+<section class="sec"><h2>Agendadas por estatus</h2>
+{% if not por_estatus %}<div class="empty">Ningún cliente tuyo tiene «Visita agendada» en la copia actual.</div>{% else %}
+<table class="inv"><thead><tr><th>Cliente</th><th>Inmueble</th><th>Fecha</th><th>Origen</th></tr></thead><tbody>
+{% for c in por_estatus %}<tr><td data-label="Cliente"><b>{{ c.nombre }}</b></td><td data-label="Inmueble">{{ c.inmueble or '—' }}</td><td data-label="Fecha"><span class="muted">sin fecha</span></td><td data-label="Origen">{{ c.origen }}</td></tr>{% endfor %}
+</tbody></table>{% endif %}</section>
+<section class="sec"><h2>Registradas por ti</h2>
+{% if not propias %}<div class="empty">Aún no has registrado visitas.</div>{% else %}
+<table class="inv"><thead><tr><th>Fecha</th><th>Cliente</th><th>Inmueble</th><th>Nota</th></tr></thead><tbody>
+{% for v in propias %}<tr><td data-label="Fecha">{{ v.fecha or 'sin fecha' }}{% if v.hora %} · {{ v.hora }}{% endif %}</td><td data-label="Cliente"><b>{{ v.cliente }}</b></td><td data-label="Inmueble">{{ v.inmueble or '—' }}</td><td data-label="Nota">{{ v.nota or '—' }}</td></tr>{% endfor %}
+</tbody></table>{% endif %}</section>
+{% if puede %}<details class="sec" {{ 'open' if err else '' }}><summary class="btn-sum">+ Registrar visita</summary>
+<form class="grid" method="post" action="/visitas" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <div><label>Fecha <input type="date" name="fecha"></label></div><div><label>Hora <input type="time" name="hora"></label></div>
+  <div><label>Cliente <input name="cliente" required maxlength="120"></label></div><div><label>Inmueble <input name="inmueble" maxlength="160"></label></div>
+  <div class="wide"><label>Nota <textarea name="nota" maxlength="400"></textarea></label></div><div><button type="submit">Guardar visita</button></div>
+</form></details>{% endif %}
+{% endblock %}

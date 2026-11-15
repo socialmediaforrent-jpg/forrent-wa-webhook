@@ -1,0 +1,19 @@
+{% extends 'base.html' %}{% set nav='actividades' %}{% block title %}Actividades{% endblock %}
+{% block body %}
+
+<h1 class="page">Actividades</h1><p class="lead">Crea reuniones; cada destinataria recibe «Tienes una nueva actividad» (ver Correos).</p>
+<details class="sec" {{ 'open' if err or not rows else '' }}><summary class="btn-sum">+ Nueva actividad</summary>
+<form class="grid" method="post" action="/admin/actividades" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="wide"><label>Título <input name="titulo" required maxlength="140"></label></div>
+  <div><label>Fecha <input type="date" name="fecha" required></label></div><div><label>Hora <input type="time" name="hora"></label></div>
+  <div><label>Modalidad <select name="modalidad"><option value="online">En línea</option><option value="presencial">Presencial</option></select></label></div>
+  <div><label>Enlace o lugar <input name="enlace_lugar" maxlength="300" placeholder="https://meet… o dirección"></label></div>
+  <div class="wide"><label>Para <select name="para" id="para"><option value="todas">Todas las asesoras</option><option value="sel">Seleccionar</option></select></label>
+    <div class="checks" id="sel">{% for a in asesoras %}<label class="chk"><input type="checkbox" name="dest" value="{{ a.user }}"> {{ a.name }}</label>{% endfor %}</div></div>
+  <div><button type="submit">Crear y notificar</button></div>
+</form></details>
+<section class="sec"><h2>Programadas</h2>{% if not rows %}<div class="empty">Todavía no hay actividades.</div>{% endif %}
+{% set dest = true %}{% for a in rows %}<article class="act"><div class="act-date"><b>{{ a.fecha[8:10] }}</b><span>{{ a.fecha[5:7] }}/{{ a.fecha[:4] }}</span></div>
+<div><h3>{{ a.titulo }}</h3><div class="muted">{{ icon('video' if a.modalidad=='online' else 'pin', 'i sm') }} {{ 'En línea' if a.modalidad=='online' else 'Presencial' }}{% if a.hora %} · {{ a.hora }}{% endif %}{% if dest %} · {{ a.dest_txt }}{% endif %}</div>
+{% if a.enlace_lugar %}{% if a.modalidad=='online' and a.enlace_lugar.startswith('http') %}<a class="link" href="{{ a.enlace_lugar }}" target="_blank" rel="noopener noreferrer">Abrir enlace →</a>{% else %}<div class="muted">{{ a.enlace_lugar }}</div>{% endif %}{% endif %}</div></article>{% endfor %}</section>
+{% endblock %}

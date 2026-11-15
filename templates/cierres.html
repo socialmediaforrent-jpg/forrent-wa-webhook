@@ -1,0 +1,13 @@
+{% extends 'base.html' %}{% set nav='cierres' %}{% block title %}Cierres{% endblock %}
+{% block body %}
+
+<h1 class="page">Cierres</h1>
+<p class="lead">Copia de cierres del {{ act }}.{% if viewer.role=='asesor' %} Ves tu comisión, la parte de For Rent y, si aplica, la inmobiliaria aliada.{% endif %}</p>
+<nav class="tabs"><a href="/cierres?t=pendientes" class="{{ 'on' if t=='pendientes' else '' }}">Pendientes ({{ n_pend }})</a><a href="/cierres?t=realizados" class="{{ 'on' if t=='realizados' else '' }}">Realizados ({{ n_real }})</a></nav>
+{% if not filas %}<div class="empty">No hay cierres {{ t }} en la copia actual.</div>{% else %}
+<table class="inv"><thead><tr><th>Fecha</th>{% if viewer.role=='admin' %}<th>Asesor</th>{% endif %}<th>Operación</th><th>Inmueble</th><th>Comisión del asesor</th><th>Parte For Rent</th><th>Inmobiliaria aliada</th></tr></thead><tbody>
+{% for c in filas %}<tr><td data-label="Fecha">{{ c.fecha_fmt }}</td>{% if viewer.role=='admin' %}<td data-label="Asesor">{{ c.asesor_nombre }}</td>{% endif %}
+<td data-label="Operación">{{ c.operacion or '—' }}</td><td data-label="Inmueble">{{ c.inmueble or '—' }}{% if c.codigo %}<div class="muted">{{ c.codigo }}</div>{% endif %}</td>
+<td data-label="Comisión del asesor"><b>{{ c.asesor_fmt }}</b></td><td data-label="Parte For Rent">{{ c.forrent_fmt }}</td><td data-label="Inmobiliaria aliada">{{ c.inmobiliaria_fmt }}</td></tr>{% endfor %}
+</tbody></table>{% endif %}
+{% endblock %}

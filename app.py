@@ -35,6 +35,7 @@ from urllib.parse import quote
 
 from flask import Flask, Response, abort, g, jsonify, make_response, redirect, render_template, request, session
 
+import notif
 import portal_lib
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -109,6 +110,28 @@ def init_db():
         status TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""")
     q("CREATE UNIQUE INDEX IF NOT EXISTS asesor_clientes_uniq ON asesor_clientes (asesor_slug, telefono)")
     q("CREATE INDEX IF NOT EXISTS asesor_clientes_slug ON asesor_clientes (asesor_slug, id)")
+    BLOBT = 'BYTEA' if IS_PG else 'BLOB'
+    q(f"""CREATE TABLE IF NOT EXISTS asesor_perfil (
+        asesor_slug TEXT PRIMARY KEY, telefono TEXT, email TEXT, cedula TEXT, bio TEXT, zonas TEXT,
+        foto {BLOBT}, foto_mime TEXT, updated_at TEXT)""")
+    q(f"""CREATE TABLE IF NOT EXISTS captacion_solicitudes (
+        id {SERIAL}, asesor_slug TEXT NOT NULL, accion TEXT NOT NULL, codigo TEXT, titulo TEXT, operacion TEXT,
+        tipo TEXT, zona TEXT, precio TEXT, origen TEXT, nota TEXT, estado TEXT NOT NULL, created_at TEXT NOT NULL)""")
+    q(f"""CREATE TABLE IF NOT EXISTS asesor_visitas (
+        id {SERIAL}, asesor_slug TEXT NOT NULL, fecha TEXT, hora TEXT, cliente TEXT NOT NULL, inmueble TEXT,
+        nota TEXT, created_at TEXT NOT NULL)""")
+    q(f"""CREATE TABLE IF NOT EXISTS asesor_ofertas (
+        id {SERIAL}, asesor_slug TEXT NOT NULL, tipo TEXT NOT NULL, cliente TEXT NOT NULL, inmueble TEXT,
+        monto TEXT, fecha TEXT, nota TEXT, created_at TEXT NOT NULL)""")
+    q(f"""CREATE TABLE IF NOT EXISTS actividades (
+        id {SERIAL}, titulo TEXT NOT NULL, fecha TEXT NOT NULL, hora TEXT, modalidad TEXT NOT NULL,
+        enlace_lugar TEXT, destinatarios TEXT NOT NULL, creado_por TEXT, created_at TEXT NOT NULL)""")
+    q(f"""CREATE TABLE IF NOT EXISTS email_outbox (
+        id {SERIAL}, to_slug TEXT, to_addr TEXT, asunto TEXT, cuerpo TEXT, evento TEXT, estado TEXT,
+        motivo TEXT, created_at TEXT NOT NULL)""")
+    q("""CREATE TABLE IF NOT EXISTS asignaciones_notificadas (
+        asesor_slug TEXT NOT NULL, cliente_id TEXT NOT NULL, created_at TEXT NOT NULL,
+        PRIMARY KEY (asesor_slug, cliente_id))""")
 
 
 # ---------------------------------------------------------------- utilidades
@@ -381,22 +404,34 @@ def _portal_nav():
         return {'nav_main': [], 'nav_more': [], 'nav_more_keys': [], 'viewer': None, 'role_label': ''}
     role = u['role']
     links = _portal_links()
-    main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'}]
-    main.append({'href': '/mis-clientes', 'label': 'Mis Clientes', 'short': 'Clientes', 'key': 'clientes', 'icon': 'users'})
-    main.append({'href': '/inventario', 'label': 'Inventario General', 'short': 'Inventario', 'key': 'inventario', 'icon': 'building'})
+    main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'},
+            {'href': '/mis-clientes', 'label': 'Mis Clientes', 'short': 'Clientes', 'key': 'clientes', 'icon': 'users'}]
     if role == 'admin':
+        main.append({'href': '/inventario', 'label': 'Inventario General', 'short': 'Inventario', 'key': 'inventario', 'icon': 'building'})
         main.append({'href': '/panel', 'label': 'Mensajes', 'key': 'mensajes', 'icon': 'chat'})
-    more = [{'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'key': 'captaciones', 'icon': 'key'}]
+    else:
+        main.append({'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'short': 'Captaciones', 'key': 'captaciones', 'icon': 'key'})
+        main.append({'href': '/visitas', 'label': 'Visitas', 'key': 'visitas', 'icon': 'calendar'})
+    more = []
+    if role != 'admin':
+        more.append({'href': '/perfil', 'label': 'Mi Perfil', 'key': 'perfil', 'icon': 'user'})
     if role in ('admin', 'lider'):
-        more.insert(0, {'href': '/mi-equipo', 'label': 'Mi Equipo', 'key': 'equipo', 'icon': 'users'})
+        more.append({'href': '/mi-equipo', 'label': 'Mi Equipo' if role == 'lider' else 'Equipos', 'key': 'equipo', 'icon': 'users'})
     if role == 'admin':
+        more.append({'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'key': 'captaciones', 'icon': 'key'})
+    else:
+        more.append({'href': '/inventario', 'label': 'Inventario General', 'key': 'inventario', 'icon': 'building'})
+    more.append({'href': '/ofertas', 'label': 'Ofertas', 'key': 'ofertas', 'icon': 'tag'})
+    more.append({'href': '/cierres', 'label': 'Cierres', 'key': 'cierres', 'icon': 'cash'})
+    if role == 'admin':
+        more.append({'href': '/admin/actividades', 'label': 'Actividades', 'key': 'actividades', 'icon': 'calendar'})
+        more.append({'href': '/admin/correos', 'label': 'Correos', 'key': 'correos', 'icon': 'mail'})
         if links['cierres_url']:
-            more.append({'href': links['cierres_url'], 'label': 'Cierres', 'key': 'cierres', 'icon': 'cash', 'external': True})
+            more.append({'href': links['cierres_url'], 'label': 'Sistema Contable', 'key': 'contable', 'icon': 'cash', 'external': True})
         if links['estatus_url']:
             more.append({'href': links['estatus_url'], 'label': 'Sistema de Clientes', 'key': 'estatus', 'icon': 'clipboard', 'external': True})
     else:
-        more.append({'href': '/portal#cierres', 'label': 'Cierres', 'key': 'cierres', 'icon': 'cash'})
-        more.append({'href': '/mis-clientes#agregar', 'label': 'Agregar cliente', 'key': 'agregar', 'icon': 'userplus'})
+        more.append({'href': '/actividades', 'label': 'Actividades', 'key': 'actividades', 'icon': 'calendar'})
     if role in ('admin', 'lider'):
         more.append({'href': '/clientes-propios', 'label': 'Clientes propios' if role == 'admin' else 'Clientes del equipo',
                      'key': 'propios_more', 'icon': 'users'})
@@ -767,7 +802,7 @@ def _dashboard(user):
             _kpi('Negociaciones activas', None, vacio),
             _kpi('Reservas', reservas, f'Reserva agendada o firmada · copia del {f_asig}'),
             _kpi('Cierres del mes', cierres_mes, f'{MESES[hoy.month - 1].capitalize()} · copia de cierres del {f_ci}',
-                 '/portal#cierres' if role != 'admin' else ''),
+                 '/cierres'),
         ]),
         ('Productividad', 'chart', [
             _kpi('Actividad de las asesoras' if role != 'asesor' else 'Tu actividad', None, vacio),
@@ -973,17 +1008,393 @@ def inventario():
     ))
 
 
-@app.get('/mis-captaciones')
+
+# ---------------------------------------------------------------- portal de asesoras (fase 2)
+FOTO_MAX = 2 * 1024 * 1024
+FOTO_TIPOS = {b'\xff\xd8\xff': 'image/jpeg', b'\x89PNG\r\n\x1a\n': 'image/png'}
+
+
+def _foto_mime(data):
+    for sig, mime in FOTO_TIPOS.items():
+        if data.startswith(sig):
+            return mime
+    if data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+        return 'image/webp'
+    return None
+
+
+def _txt(form, k, n):
+    import re as _re
+    return _re.sub(r'\s+', ' ', (form.get(k) or '').strip())[:n]
+
+
+def _perfil(slug):
+    rows = q('SELECT asesor_slug, telefono, email, cedula, bio, zonas, foto_mime, updated_at FROM asesor_perfil WHERE asesor_slug=%s',
+             (slug,), fetch=True) or []
+    return rows[0] if rows else {}
+
+
+def _email_de(slug):
+    return (_perfil(slug).get('email') or '').strip()
+
+
+def _correo(slug, asunto, cuerpo, evento, **kw):
+    return notif.queue(q, now_iso, to_slug=slug, to_addr=_email_de(slug), subject=asunto, body=cuerpo, evento=evento, **kw)
+
+
+def _csrf_ok():
+    return portal_lib.csrf_ok(g.user, request.form.get('csrf'))
+
+
+def _hdr(html, status=200):
+    r = _panel_headers(html)
+    r.status_code = status
+    return r
+
+
+def _forbidden():
+    return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
+
+
+# --- Mi Perfil
+@app.route('/perfil', methods=['GET', 'POST'])
 @require_login
-def mis_captaciones():
-    cap = portal_lib.load_captaciones(slug=g.user['user'])
+def perfil():
+    u = g.user
+    if u['role'] == 'admin':
+        filas = []
+        for a in portal_lib.asesores_meta():
+            pf = _perfil(a['user'])
+            filas.append({'user': a['user'], 'name': a.get('name'), 'email': pf.get('email') or '', 'telefono': pf.get('telefono') or '',
+                          'zonas': pf.get('zonas') or '', 'foto': bool(pf.get('foto_mime')), 'updated': _fecha_corta(pf.get('updated_at') or '') if pf else ''})
+        return _hdr(render_template('perfiles_admin.html', filas=filas))
+    ok, err = '', ''
+    if request.method == 'POST':
+        if not _csrf_ok():
+            err = 'La sesión expiró. Vuelve a intentar.'
+        elif (request.content_length or 0) > FOTO_MAX + 64 * 1024:
+            err = 'La foto supera 2 MB.'
+        else:
+            f = request.form
+            email = _txt(f, 'email', 120)
+            if email and ('@' not in email or ' ' in email):
+                err = 'El correo no es válido.'
+            tel_raw = _txt(f, 'telefono', 40)
+            tel, tel_err = portal_lib.normalizar_telefono(tel_raw) if tel_raw else ('', None)
+            if tel_err:
+                err = tel_err
+            foto = request.files.get('foto')
+            data = mime = None
+            if foto and foto.filename:
+                data = foto.read(FOTO_MAX + 1)
+                if len(data) > FOTO_MAX:
+                    err = 'La foto supera 2 MB.'
+                else:
+                    mime = _foto_mime(data)
+                    if not mime:
+                        err = 'La foto debe ser JPG, PNG o WebP.'
+            if not err:
+                prev = _perfil(u['user'])
+                vals = (tel or '', email, _txt(f, 'cedula', 20), (f.get('bio') or '').strip()[:600], _txt(f, 'zonas', 200), now_iso())
+                if prev:
+                    q('UPDATE asesor_perfil SET telefono=%s, email=%s, cedula=%s, bio=%s, zonas=%s, updated_at=%s WHERE asesor_slug=%s',
+                      vals + (u['user'],))
+                else:
+                    q('INSERT INTO asesor_perfil (telefono, email, cedula, bio, zonas, updated_at, asesor_slug) VALUES (%s,%s,%s,%s,%s,%s,%s)',
+                      vals + (u['user'],))
+                if data:
+                    q('UPDATE asesor_perfil SET foto=%s, foto_mime=%s WHERE asesor_slug=%s', (data, mime, u['user']))
+                _correo(u['user'], 'Tu perfil fue actualizado',
+                        f"Hola {u['name'].split(' ')[0]},\n\nTu perfil en For Rent Online fue actualizado el {_fmt_actualizado(now_iso())}.\n"
+                        "Si no fuiste tú, avísale a José.\n\nFor Rent Online", 'perfil_actualizado')
+                return redirect('/perfil?ok=1')
+    if request.args.get('ok') == '1':
+        ok = 'Perfil guardado. Te enviamos un aviso por correo.'
+    return _hdr(render_template('perfil.html', pf=_perfil(u['user']), ok=ok, err=err, csrf=portal_lib.csrf_token(u)), 400 if err else 200)
+
+
+@app.get('/perfil/foto/<slug>')
+@require_login
+def perfil_foto(slug):
+    slug = (slug or '').lower()
+    if not (g.user['role'] == 'admin' or g.user['user'] == slug):
+        return _forbidden()
+    rows = q('SELECT foto, foto_mime FROM asesor_perfil WHERE asesor_slug=%s', (slug,), fetch=True) or []
+    if not rows or not rows[0].get('foto'):
+        abort(404)
+    r = make_response(bytes(rows[0]['foto']))
+    r.headers['Content-Type'] = rows[0]['foto_mime'] or 'application/octet-stream'
+    r.headers['Cache-Control'] = 'private, max-age=300'
+    r.headers['X-Content-Type-Options'] = 'nosniff'
+    return r
+
+
+# --- Mis Captaciones (filtros) + solicitudes de alta/baja
+@app.route('/mis-captaciones', methods=['GET', 'POST'], endpoint='mis_captaciones2')
+@require_login
+def mis_captaciones2():
+    u = g.user
+    err, ok = '', ''
+    if request.method == 'POST':
+        if u['role'] == 'admin':
+            return _forbidden()
+        if not _csrf_ok():
+            err = 'La sesión expiró. Vuelve a intentar.'
+        else:
+            f = request.form
+            accion = f.get('accion')
+            if accion not in ('alta', 'baja'):
+                err = 'Acción no válida.'
+            else:
+                mias = {x.get('codigo') for x in portal_lib.load_captaciones(slug=u['user'])}
+                codigo = _txt(f, 'codigo', 40)
+                titulo = _txt(f, 'titulo', 160)
+                origen = f.get('origen') if f.get('origen') in ('propio', 'alianza') else ''
+                if accion == 'baja' and codigo not in mias:
+                    err = 'Solo puedes pedir el retiro de tus propias captaciones.'
+                elif accion == 'alta' and len(titulo) < 4:
+                    err = 'Indica el título o la dirección del inmueble.'
+                if not err:
+                    q('INSERT INTO captacion_solicitudes (asesor_slug, accion, codigo, titulo, operacion, tipo, zona, precio, origen, nota, estado, created_at) '
+                      'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+                      (u['user'], accion, codigo, titulo, _txt(f, 'operacion', 20), _txt(f, 'tipo', 60), _txt(f, 'zona', 120),
+                       _txt(f, 'precio', 60), origen, (f.get('nota') or '').strip()[:400], 'pendiente', now_iso()))
+                    que = 'agregar' if accion == 'alta' else 'retirar'
+                    det = f"{titulo or codigo}" + (f" (código {codigo})" if codigo else '')
+                    _correo(u['user'], f"Solicitud para {que} una captación",
+                            f"Hola {u['name'].split(' ')[0]},\n\nRegistramos tu solicitud para {que} la captación: {det}.\n"
+                            "La revisará administración; el inventario no cambia hasta que se apruebe.\n\nFor Rent Online", f'captacion_{accion}')
+                    notif.queue(q, now_iso, to_slug='jose', to_addr=notif.ADMIN_NOTIFY,
+                                subject=f"{u['name']} pidió {que} una captación", body=f"Asesora: {u['name']}\nAcción: {que}\nInmueble: {det}\n",
+                                evento=f'captacion_{accion}_admin')
+                    return redirect('/mis-captaciones?ok=1')
+    f = request.args.get('f') or 'todas'
+    if f not in ('propias', 'aliadas', 'todas'):
+        f = 'todas'
+    cap = portal_lib.load_captaciones(slug=u['user'])
+    prop = [x for x in cap if x.get('origen') == 'propio']
+    ali = [x for x in cap if x.get('origen') == 'alianza']
+    filas = prop if f == 'propias' else ali if f == 'aliadas' else prop + ali
+    sol = q('SELECT * FROM captacion_solicitudes WHERE asesor_slug=%s ORDER BY id DESC', (u['user'],), fetch=True) or []
+    if request.args.get('ok') == '1':
+        ok = 'Solicitud registrada. Te enviamos un aviso por correo.'
     inv = _inventario()
-    return _panel_headers(render_template(
-        'captaciones.html',
-        propias=[x for x in cap if x.get('origen') == 'propio'],
-        alianzas=[x for x in cap if x.get('origen') == 'alianza'],
-        inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''),
-    ))
+    return _hdr(render_template('captaciones.html', filas=filas, f=f, n_prop=len(prop), n_ali=len(ali), solicitudes=sol,
+                                inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''), ok=ok, err=err,
+                                csrf=portal_lib.csrf_token(u), puede=u['role'] != 'admin'), 400 if err else 200)
+
+
+# --- Visitas
+def _clientes_estatus(slug):
+    asig, act, _ = portal_lib.load_asignados(slug=slug)
+    out = [{'nombre': c.get('nombre') or 'Cliente', 'estatus': c.get('estatus') or '', 'inmueble': c.get('inmueble') or '', 'origen': 'Asignado'} for c in asig]
+    out += [{'nombre': r['nombre'], 'estatus': r['status'], 'inmueble': _busca(r), 'origen': 'Propio'} for r in _db_propios([slug])]
+    return out, act
+
+
+@app.route('/visitas', methods=['GET', 'POST'])
+@require_login
+def visitas():
+    u = g.user
+    err = ''
+    if request.method == 'POST':
+        if u['role'] == 'admin':
+            return _forbidden()
+        f = request.form
+        cliente = _txt(f, 'cliente', 120)
+        fecha = _txt(f, 'fecha', 10)
+        hora = _txt(f, 'hora', 5)
+        if not _csrf_ok():
+            err = 'La sesión expiró. Vuelve a intentar.'
+        elif len(cliente) < 2:
+            err = 'Indica el cliente.'
+        elif fecha and not _fecha_valida(fecha):
+            err = 'La fecha no es válida.'
+        else:
+            q('INSERT INTO asesor_visitas (asesor_slug, fecha, hora, cliente, inmueble, nota, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s)',
+              (u['user'], fecha, hora, cliente, _txt(f, 'inmueble', 160), (f.get('nota') or '').strip()[:400], now_iso()))
+            return redirect('/visitas?ok=1')
+    cli, act = _clientes_estatus(u['user'])
+    por_estatus = [c for c in cli if c['estatus'] == 'Visita agendada']
+    propias = q('SELECT * FROM asesor_visitas WHERE asesor_slug=%s ORDER BY fecha DESC, hora DESC, id DESC', (u['user'],), fetch=True) or []
+    return _hdr(render_template('visitas.html', por_estatus=por_estatus, propias=propias, act=_fecha_corta(act), err=err,
+                                ok='Visita registrada.' if request.args.get('ok') == '1' else '', csrf=portal_lib.csrf_token(u),
+                                puede=u['role'] != 'admin'), 400 if err else 200)
+
+
+def _fecha_valida(s):
+    try:
+        datetime.strptime(s, '%Y-%m-%d')
+        return True
+    except ValueError:
+        return False
+
+
+# --- Ofertas
+@app.route('/ofertas', methods=['GET', 'POST'])
+@require_login
+def ofertas():
+    u = g.user
+    err = ''
+    if request.method == 'POST':
+        if u['role'] == 'admin':
+            return _forbidden()
+        f = request.form
+        tipo = f.get('tipo')
+        cliente = _txt(f, 'cliente', 120)
+        fecha = _txt(f, 'fecha', 10)
+        if not _csrf_ok():
+            err = 'La sesión expiró. Vuelve a intentar.'
+        elif tipo not in ('recibida', 'realizada'):
+            err = 'Indica si la oferta es recibida o realizada.'
+        elif len(cliente) < 2:
+            err = 'Indica el cliente.'
+        elif fecha and not _fecha_valida(fecha):
+            err = 'La fecha no es válida.'
+        else:
+            q('INSERT INTO asesor_ofertas (asesor_slug, tipo, cliente, inmueble, monto, fecha, nota, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)',
+              (u['user'], tipo, cliente, _txt(f, 'inmueble', 160), _txt(f, 'monto', 40), fecha, (f.get('nota') or '').strip()[:400], now_iso()))
+            return redirect(f'/ofertas?t={tipo}&ok=1')
+    t = request.args.get('t') or 'recibidas'
+    t = 'realizada' if t.startswith('realizada') else 'recibida'
+    regs = q('SELECT * FROM asesor_ofertas WHERE asesor_slug=%s AND tipo=%s ORDER BY fecha DESC, id DESC', (u['user'], t), fetch=True) or []
+    cli, act = _clientes_estatus(u['user'])
+    de_estatus = [c for c in cli if c['estatus'] in ('Oferta realizada', 'Oferta aceptada')] if t == 'realizada' else []
+    return _hdr(render_template('ofertas.html', t=t, regs=regs, de_estatus=de_estatus, act=_fecha_corta(act), err=err,
+                                ok='Oferta registrada.' if request.args.get('ok') == '1' else '', csrf=portal_lib.csrf_token(u),
+                                puede=u['role'] != 'admin'), 400 if err else 200)
+
+
+# --- Cierres (Pendientes / Realizados), mismas reglas de comisión
+@app.get('/cierres')
+@require_login
+def cierres():
+    u = g.user
+    if u['role'] == 'admin':
+        items = portal_lib.load_cierres(full=True)
+        for c in items:
+            c['fecha_fmt'] = portal_lib.fmt_fecha(c.get('fecha') or '')
+            calc = c.get('calc') or {}
+            c['asesor_fmt'] = portal_lib.money(calc.get('asesor'))
+            c['forrent_fmt'] = portal_lib.money(calc.get('forrent'))
+            c['inmobiliaria_fmt'] = portal_lib.money(calc.get('inmobiliaria')) if 'inmobiliaria' in calc else '—'
+            c['asesor_nombre'] = _nombre_asesor(c.get('asesor')) if c.get('asesor') else 'Sin asesor'
+    else:
+        items = _cierres_vista(u, full=u['role'] == 'lider')
+    t = 'realizados' if request.args.get('t') == 'realizados' else 'pendientes'
+    pend = [c for c in items if (c.get('estado_pago') or '') == 'pendiente']
+    real = [c for c in items if (c.get('estado_pago') or '') in ('realizada', 'realizado', 'pagado', 'pagada', 'cobrado')]
+    act = portal_lib._load('cierres.json', {}).get('actualizado') or ''
+    return _hdr(render_template('cierres.html', t=t, filas=real if t == 'realizados' else pend, n_pend=len(pend), n_real=len(real),
+                                act=_fecha_corta(act)))
+
+
+# --- Actividades
+def _destinatarios(row):
+    d = (row.get('destinatarios') or '').strip()
+    return [a['user'] for a in portal_lib.asesores_meta()] if d == '*' else [x for x in d.split(',') if x]
+
+
+def _actividades_para(slug):
+    rows = q('SELECT * FROM actividades ORDER BY fecha DESC, hora DESC, id DESC', fetch=True) or []
+    return [r for r in rows if slug in _destinatarios(r)]
+
+
+@app.get('/actividades')
+@require_login
+def actividades():
+    u = g.user
+    if u['role'] == 'admin':
+        return redirect('/admin/actividades')
+    hoy = _hoy_caracas().isoformat()
+    rows = _actividades_para(u['user'])
+    return _hdr(render_template('actividades.html', proximas=[r for r in rows if (r['fecha'] or '') >= hoy][::-1],
+                                pasadas=[r for r in rows if (r['fecha'] or '') < hoy]))
+
+
+@app.route('/admin/actividades', methods=['GET', 'POST'])
+@require_admin
+def admin_actividades():
+    err = ''
+    asesoras = portal_lib.asesores_meta()
+    if request.method == 'POST':
+        f = request.form
+        titulo, fecha, hora = _txt(f, 'titulo', 140), _txt(f, 'fecha', 10), _txt(f, 'hora', 5)
+        modalidad = f.get('modalidad')
+        para = f.get('para')
+        sel = [s for s in f.getlist('dest') if portal_lib.asesor_by_user(s)]
+        if not _csrf_ok():
+            err = 'La sesión expiró. Vuelve a intentar.'
+        elif len(titulo) < 3:
+            err = 'Indica el título.'
+        elif not _fecha_valida(fecha):
+            err = 'Indica una fecha válida.'
+        elif modalidad not in ('online', 'presencial'):
+            err = 'Indica la modalidad.'
+        elif para != 'todas' and not sel:
+            err = 'Elige al menos una asesora.'
+        else:
+            dest = '*' if para == 'todas' else ','.join(sel)
+            lugar = _txt(f, 'enlace_lugar', 300)
+            q('INSERT INTO actividades (titulo, fecha, hora, modalidad, enlace_lugar, destinatarios, creado_por, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)',
+              (titulo, fecha, hora, modalidad, lugar, dest, g.user['user'], now_iso()))
+            fecha_txt = portal_lib.fmt_fecha(fecha) + (f' a las {hora}' if hora else '')
+            for s in _destinatarios({'destinatarios': dest}):
+                nombre = (portal_lib.asesor_by_user(s) or {}).get('name', s).split(' ')[0]
+                _correo(s, 'Tienes una nueva actividad',
+                        f"Hola {nombre},\n\nTienes una nueva actividad: {titulo}\nFecha: {fecha_txt} (Caracas)\n"
+                        f"Modalidad: {'En línea' if modalidad == 'online' else 'Presencial'}\n"
+                        + (f"{'Enlace' if modalidad == 'online' else 'Lugar'}: {lugar}\n" if lugar else '')
+                        + "\nLa ves en For Rent Online › Actividades.\n\nFor Rent Online", 'actividad_nueva')
+            return redirect('/admin/actividades?ok=1')
+    rows = q('SELECT * FROM actividades ORDER BY fecha DESC, hora DESC, id DESC', fetch=True) or []
+    for r in rows:
+        r['dest_txt'] = 'Todas' if r['destinatarios'] == '*' else ', '.join(_nombre_asesor(s).split(' ')[0] for s in _destinatarios(r))
+    return _hdr(render_template('admin_actividades.html', rows=rows, asesoras=asesoras, err=err, csrf=portal_lib.csrf_token(g.user),
+                                ok='Actividad creada; avisos registrados en Correos.' if request.args.get('ok') == '1' else ''), 400 if err else 200)
+
+
+# --- Asignaciones nuevas -> correo (sin duplicar la rutina existente)
+def revisar_asignaciones_nuevas():
+    """Compara la copia de asignados con las ya notificadas. La primera vez solo marca la base (sin correos).
+    ASSIGN_EMAIL_MODE=omitir (por defecto): registra 'omitido' porque la rutina de la caja ya avisa por Gmail."""
+    asig, _, _ = portal_lib.load_asignados()
+    vistos = {(r['asesor_slug'], r['cliente_id']) for r in (q('SELECT asesor_slug, cliente_id FROM asignaciones_notificadas', fetch=True) or [])}
+    base = not vistos
+    modo = (os.environ.get('ASSIGN_EMAIL_MODE') or 'omitir').lower()
+    nuevos = 0
+    for c in asig:
+        key = (c.get('asesor') or '', str(c.get('id') or ''))
+        if not all(key) or key in vistos:
+            continue
+        q('INSERT INTO asignaciones_notificadas (asesor_slug, cliente_id, created_at) VALUES (%s,%s,%s)', key + (now_iso(),))
+        vistos.add(key)
+        if base:
+            continue
+        nuevos += 1
+        nombre = (portal_lib.asesor_by_user(key[0]) or {}).get('name', key[0]).split(' ')[0]
+        cuerpo = (f"Hola {nombre},\n\nTienes una nueva asignación: {c.get('nombre') or 'cliente'}"
+                  + (f" ({c.get('operacion')})" if c.get('operacion') else '') + ".\nLa ves en For Rent Online › Mis Clientes.\n\nFor Rent Online")
+        if modo == 'enviar':
+            _correo(key[0], 'Tienes una nueva asignación', cuerpo, 'asignacion_nueva')
+        else:
+            _correo(key[0], 'Tienes una nueva asignación', cuerpo, 'asignacion_nueva', estado='omitido',
+                    motivo='la rutina de asignación ya envía este aviso por Gmail')
+    return {'base': base, 'nuevos': nuevos}
+
+
+@app.route('/admin/correos', methods=['GET', 'POST'])
+@require_admin
+def admin_correos():
+    res = None
+    if request.method == 'POST':
+        if not _csrf_ok():
+            abort(400)
+        res = revisar_asignaciones_nuevas()
+    rows = q('SELECT id, to_slug, to_addr, asunto, evento, estado, motivo, created_at FROM email_outbox ORDER BY id DESC LIMIT 200', fetch=True) or []
+    for r in rows:
+        r['cuando'] = _fmt_time(r['created_at'])
+    return _hdr(render_template('admin_correos.html', rows=rows, modo=notif.mode(), res=res, csrf=portal_lib.csrf_token(g.user)))
 
 
 def _fuera_de_horario(dt_caracas):

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}{% set nav='correos' %}{% block title %}Correos{% endblock %}
+{% block body %}
+
+<h1 class="page">Correos</h1>
+<p class="lead">Bandeja de salida del portal. Modo actual: <b>{{ modo }}</b>{% if modo=='log' %} — solo se registran, no se envían.{% endif %}</p>
+<form method="post" action="/admin/correos" style="margin:0 0 14px"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn" type="submit">Revisar asignaciones nuevas</button></form>
+{% if res %}<div class="alert ok">{% if res.base %}Primera revisión: se marcó la base actual sin enviar avisos.{% else %}{{ res.nuevos }} asignaciones nuevas detectadas.{% endif %}</div>{% endif %}
+{% if not rows %}<div class="empty">Todavía no hay correos registrados.</div>{% else %}
+<table class="inv"><thead><tr><th>Cuándo</th><th>Para</th><th>Asunto</th><th>Evento</th><th>Estado</th></tr></thead><tbody>
+{% for r in rows %}<tr><td data-label="Cuándo">{{ r.cuando }}</td><td data-label="Para">{{ r.to_slug }}<div class="muted">{{ r.to_addr or 'sin correo' }}</div></td>
+<td data-label="Asunto">{{ r.asunto }}</td><td data-label="Evento">{{ r.evento }}</td><td data-label="Estado"><span class="pill">{{ r.estado }}</span>{% if r.motivo %}<div class="muted">{{ r.motivo }}</div>{% endif %}</td></tr>{% endfor %}
+</tbody></table>{% endif %}
+{% endblock %}
