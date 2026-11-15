@@ -161,6 +161,8 @@ def init_db():
     # Restore point taken once, before the GHL history import. Never overwritten.
     q("CREATE TABLE IF NOT EXISTS bak_pre_ghl_import_wa_events AS SELECT * FROM wa_events")
     q("CREATE TABLE IF NOT EXISTS bak_pre_ghl_import_raw_events AS SELECT * FROM raw_events")
+    q(f"""CREATE TABLE IF NOT EXISTS portal_datos (
+        nombre TEXT PRIMARY KEY, datos {JSONT}, actualizado TEXT)""")
     seed_emails_perfil()
 
 
@@ -1151,6 +1153,14 @@ def _fecha_corta(iso):
     return f'{dt.day} {MESES_CORTOS[dt.month - 1]} {dt.year}'
 
 
+def _fecha_hora(iso):
+    dt = _parse_caracas(iso)
+    if not dt:
+        return 'fecha no disponible'
+    h = dt.hour % 12 or 12
+    return f"{dt.day} {MESES_CORTOS[dt.month - 1]}, {h}:{dt.minute:02d} {'a. m.' if dt.hour < 12 else 'p. m.'}"
+
+
 def _kpi(label, value=None, meta='', href=''):
     return {'label': label, 'value': value, 'meta': meta, 'href': href}
 
@@ -1188,7 +1198,7 @@ def _dashboard(user):
     cierres = portal_lib.load_cierres(slugs=slugs, full=(role != 'asesor')) if slugs else portal_lib.load_cierres(full=True)
     ci_act = portal_lib._load('cierres.json', {}).get('actualizado') or ''
     hoy = _hoy_caracas()
-    f_asig, f_inv, f_ci = _fecha_corta(asig_act), _fecha_corta(inv.get('actualizado') or ''), _fecha_corta(ci_act)
+    f_asig, f_inv, f_ci = _fecha_hora(asig_act), _fecha_corta(inv.get('actualizado') or ''), _fecha_hora(ci_act)
 
     def es_hoy(iso):
         dt = _parse_caracas(iso) if iso and ('+' in iso[10:] or iso.endswith('Z')) else None
@@ -1202,7 +1212,7 @@ def _dashboard(user):
     reservas = sum(1 for s in est if s in ('Reserva agendada', 'Reserva firmada'))
     mes = hoy.strftime('%Y-%m')
     cierres_mes = sum(1 for c in cierres if (c.get('fecha') or '').startswith(mes))
-    vacio = f'Sin dato todavía · copia del {f_asig}'
+    vacio = f'Sin dato todavía · actualizado {f_asig}'
     mis = 'tuyos' if role != 'admin' else 'del equipo'
     grupos = inv.get('grupos') or {}
     n_prop_inv, n_ali_inv = len(grupos.get('propio') or []), len(grupos.get('alianza') or [])
@@ -1211,8 +1221,8 @@ def _dashboard(user):
 
     secciones = [
         ('Clientes', 'users', [
-            _kpi('Nuevos del día', nuevos, f'Asignados hoy (copia del {f_asig}) + propios registrados hoy'),
-            _kpi('Asignados', len(asig), f'{"Tus asignados" if role != "admin" else "Todos"} · copia del {f_asig}',
+            _kpi('Nuevos del día', nuevos, f'Asignados hoy (actualizado {f_asig}) + propios registrados hoy'),
+            _kpi('Asignados', len(asig), f'{"Tus asignados" if role != "admin" else "Todos"} · actualizado {f_asig}',
                  '/mis-clientes'),
             _kpi('Contactos pendientes', None, vacio),
             _kpi('Seguimientos vencidos', None, vacio),
@@ -1228,20 +1238,105 @@ def _dashboard(user):
             _kpi('Nuevas incorporadas', None, f'Sin dato todavía · inventario del {f_inv}'),
         ]),
         ('Operaciones', 'calendar', [
-            _kpi('Visitas programadas', visitas, f'Estatus «Visita agendada» · copia del {f_asig}'),
+            _kpi('Visitas programadas', visitas, f'Estatus «Visita agendada» · actualizado {f_asig}'),
             _kpi('Negociaciones activas', None, vacio),
-            _kpi('Reservas', reservas, f'Reserva agendada o firmada · copia del {f_asig}'),
-            _kpi('Cierres del mes', cierres_mes, f'{MESES[hoy.month - 1].capitalize()} · copia de cierres del {f_ci}',
+            _kpi('Reservas', reservas, f'Reserva agendada o firmada · actualizado {f_asig}'),
+            _kpi('Cierres del mes', cierres_mes, f'{MESES[hoy.month - 1].capitalize()} · cierres actualizados {f_ci}',
                  '/cierres'),
         ]),
         ('Productividad', 'chart', [
             _kpi('Actividad de las asesoras' if role != 'asesor' else 'Tu actividad', None, vacio),
             _kpi('Clientes contactados', None, vacio),
             _kpi('Seguimientos realizados', None, vacio),
-            _kpi('Resultados comerciales', None, f'Sin dato todavía · cierres del {f_ci}'),
+            _kpi('Resultados comerciales', None, f'Sin dato todavía · cierres actualizados {f_ci}'),
         ]),
     ]
     return secciones
+
+
+# ---------------------------------------------------------------- datos vivos del portal
+# La caja lee las fuentes reales (registro de asignaciones GHL, Sistema de Clientes, cierres)
+# y las empuja aquí con una llave propia. Sin llave configurada, el endpoint queda cerrado.
+PORTAL_SYNC_NOMBRES = ('clientes_asignados.json', 'cierres.json', 'clientes_telefonos.json')
+_live_cache = {'t': 0.0, 'd': {}}
+
+
+def _portal_live(nombre):
+    if nombre not in PORTAL_SYNC_NOMBRES:
+        return None
+    import time as _t
+    now = _t.time()
+    if now - _live_cache['t'] > 30:
+        try:
+            rows = q('SELECT nombre, datos FROM portal_datos', fetch=True) or []
+            d = {}
+            for r in rows:
+                v = r['datos']
+                if isinstance(v, str):
+                    v = json.loads(v)
+                d[r['nombre']] = v
+            _live_cache['d'] = d
+        except Exception:
+            pass
+        _live_cache['t'] = now
+    return _live_cache['d'].get(nombre)
+
+
+portal_lib.set_live_loader(_portal_live)
+
+
+def _sync_key_ok():
+    k = os.environ.get('PORTAL_SYNC_KEY', '')
+    g = request.headers.get('X-Portal-Sync-Key', '')
+    return bool(k) and hmac.compare_digest(g.encode(), k.encode())
+
+
+def _sync_resumen():
+    out = {}
+    for n in PORTAL_SYNC_NOMBRES:
+        d = _portal_live(n) or {}
+        lista = d.get('clientes') if 'clientes' in d else d.get('cierres')
+        out[n] = {'actualizado': d.get('actualizado') or d.get('generado_at') or '', 'n': len(lista or [])}
+    return out
+
+
+@app.post('/admin/portal-sync')
+def portal_sync():
+    if not os.environ.get('PORTAL_SYNC_KEY'):
+        return jsonify({'error': 'sync no configurado'}), 503
+    if not _sync_key_ok():
+        return jsonify({'error': 'forbidden'}), 403
+    body = request.get_json(silent=True) or {}
+    guardados = {}
+    for n in PORTAL_SYNC_NOMBRES:
+        d = body.get(n)
+        if d is None:
+            continue
+        key = 'cierres' if n == 'cierres.json' else 'clientes'
+        if not isinstance(d, dict) or not isinstance(d.get(key), list):
+            return jsonify({'error': f'formato inválido: {n}'}), 400
+        prev = _portal_live(n) or portal_lib._load(n, {})
+        n_prev = len(prev.get(key) or [])
+        # Defensa: no aceptar una lista vacía o que caiga a menos de la mitad de golpe.
+        if key == 'clientes' and (not d[key] or (n_prev and len(d[key]) < n_prev // 2)):
+            return jsonify({'error': f'{n}: {len(d[key])} filas contra {n_prev}; rechazado'}), 409
+        act = d.get('actualizado') or d.get('generado_at') or datetime.now(timezone.utc).isoformat()
+        if IS_PG:
+            q("""INSERT INTO portal_datos (nombre, datos, actualizado) VALUES (%s, %s, %s)
+                 ON CONFLICT (nombre) DO UPDATE SET datos = EXCLUDED.datos, actualizado = EXCLUDED.actualizado""", (n, d, act))
+        else:
+            q('INSERT OR REPLACE INTO portal_datos (nombre, datos, actualizado) VALUES (%s, %s, %s)', (n, d, act))
+        guardados[n] = len(d[key])
+    _live_cache['t'] = 0.0
+    return jsonify({'ok': True, 'guardados': guardados, 'estado': _sync_resumen()})
+
+
+@app.get('/admin/portal-sync')
+def portal_sync_estado():
+    if not _sync_key_ok():
+        return jsonify({'error': 'forbidden'}), 403
+    _live_cache['t'] = 0.0
+    return jsonify(_sync_resumen())
 
 
 @app.route('/login', methods=['GET', 'POST'])

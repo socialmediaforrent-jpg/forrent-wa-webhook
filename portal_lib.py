@@ -122,7 +122,24 @@ def norm(s):
     return ''.join(c for c in unicodedata.normalize('NFD', s or '').lower() if unicodedata.category(c) != 'Mn').strip()
 
 
+# Datos vivos: app.py registra un lector (tabla portal_datos, sincronizada desde la caja).
+# Si no hay dato vivo, se usa la copia empaquetada en data/.
+_LIVE_LOADER = None
+
+
+def set_live_loader(fn):
+    global _LIVE_LOADER
+    _LIVE_LOADER = fn
+
+
 def _load(name, default):
+    if _LIVE_LOADER is not None:
+        try:
+            d = _LIVE_LOADER(name)
+            if d is not None:
+                return d
+        except Exception:
+            pass
     path = os.path.join(DATA, name)
     try:
         with open(path, encoding='utf-8') as f:

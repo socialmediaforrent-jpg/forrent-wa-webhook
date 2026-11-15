@@ -52,7 +52,15 @@ def norm_phone(s):
 def _iter_client_phone_rows():
     """Filas con id, nombre, asesor, asignado_at, telefonos. No borra nada."""
     rows = []
-    if TELEFONOS_SIDECAR.exists():
+    try:
+        import portal_lib as _pl
+        if _pl._LIVE_LOADER is not None:
+            live = _pl._LIVE_LOADER('clientes_telefonos.json')
+            if live:
+                rows = list(live.get('clientes') or [])
+    except Exception:
+        rows = []
+    if not rows and TELEFONOS_SIDECAR.exists():
         try:
             data = json.loads(TELEFONOS_SIDECAR.read_text(encoding='utf-8'))
             for c in (data.get('clientes') or []):
