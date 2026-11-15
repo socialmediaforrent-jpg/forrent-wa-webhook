@@ -936,6 +936,9 @@ INV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'inv
 
 
 def _inventario():
+    live = portal_lib._load('inventario.json', None) if portal_lib._LIVE_LOADER else None
+    if isinstance(live, dict) and isinstance(live.get('grupos'), dict):
+        return live
     try:
         with open(INV_PATH, encoding='utf-8') as f:
             return json.load(f)
@@ -1213,6 +1216,25 @@ def _dashboard(user):
     mes = hoy.strftime('%Y-%m')
     cierres_mes = sum(1 for c in cierres if (c.get('fecha') or '').startswith(mes))
     vacio = f'Sin dato todavía · actualizado {f_asig}'
+    prod = portal_lib._load('productividad.json', {}) or {}
+    pa = prod.get('por_asesor') if isinstance(prod.get('por_asesor'), dict) else None
+    p_act = p_cont = p_seg = None
+    p_act_meta = p_cont_meta = p_seg_meta = 'Sin dato'
+    if pa is not None:
+        f_p = _fecha_hora(prod.get('actualizado') or '')
+        vis = {k: v for k, v in pa.items() if slugs is None or k in slugs}
+        p_cont = sum(v.get('contactados', 0) for v in vis.values())
+        p_seg = sum(v.get('seguimientos_7d', 0) for v in vis.values())
+        tot = sum(v.get('clientes', 0) for v in vis.values())
+        p_cont_meta = f'De {tot} en ejercicio · Sistema de Clientes · {f_p}'
+        p_seg_meta = f'Actualizaciones de estatus, últimos 7 días · {f_p}'
+        if role == 'asesor':
+            p_act = p_seg
+            p_act_meta = f'Tus actualizaciones, últimos 7 días · {f_p}'
+        else:
+            act = sum(1 for v in vis.values() if v.get('seguimientos_7d', 0) > 0)
+            p_act = f'{act}/{len(vis)}' if vis else None
+            p_act_meta = f'Asesoras con actualizaciones en 7 días · {f_p}' if vis else 'Sin dato'
     mis = 'tuyos' if role != 'admin' else 'del equipo'
     grupos = inv.get('grupos') or {}
     n_prop_inv, n_ali_inv = len(grupos.get('propio') or []), len(grupos.get('alianza') or [])
@@ -1245,9 +1267,9 @@ def _dashboard(user):
                  '/cierres'),
         ]),
         ('Productividad', 'chart', [
-            _kpi('Actividad de las asesoras' if role != 'asesor' else 'Tu actividad', None, vacio),
-            _kpi('Clientes contactados', None, vacio),
-            _kpi('Seguimientos realizados', None, vacio),
+            _kpi('Actividad de las asesoras' if role != 'asesor' else 'Tu actividad', p_act, p_act_meta),
+            _kpi('Clientes contactados', p_cont, p_cont_meta, '/mis-clientes'),
+            _kpi('Seguimientos realizados', p_seg, p_seg_meta),
             _kpi('Resultados comerciales', None, f'Sin dato todavía · cierres actualizados {f_ci}'),
         ]),
     ]
@@ -1257,7 +1279,10 @@ def _dashboard(user):
 # ---------------------------------------------------------------- datos vivos del portal
 # La caja lee las fuentes reales (registro de asignaciones GHL, Sistema de Clientes, cierres)
 # y las empuja aquí con una llave propia. Sin llave configurada, el endpoint queda cerrado.
-PORTAL_SYNC_NOMBRES = ('clientes_asignados.json', 'cierres.json', 'clientes_telefonos.json')
+PORTAL_SYNC_NOMBRES = ('clientes_asignados.json', 'cierres.json', 'clientes_telefonos.json',
+                       'inventario.json', 'captaciones.json', 'productividad.json')
+_SYNC_LISTA = {'clientes_asignados.json': 'clientes', 'clientes_telefonos.json': 'clientes', 'cierres.json': 'cierres',
+               'inventario.json': 'grupos', 'captaciones.json': 'items', 'productividad.json': 'por_asesor'}
 _live_cache = {'t': 0.0, 'd': {}}
 
 
@@ -1295,7 +1320,9 @@ def _sync_resumen():
     out = {}
     for n in PORTAL_SYNC_NOMBRES:
         d = _portal_live(n) or {}
-        lista = d.get('clientes') if 'clientes' in d else d.get('cierres')
+        lista = d.get(_SYNC_LISTA[n])
+        if isinstance(lista, dict) and n == 'inventario.json':
+            lista = [x for g in lista.values() for x in g]
         out[n] = {'actualizado': d.get('actualizado') or d.get('generado_at') or '', 'n': len(lista or [])}
     return out
 
@@ -1312,21 +1339,26 @@ def portal_sync():
         d = body.get(n)
         if d is None:
             continue
-        key = 'cierres' if n == 'cierres.json' else 'clientes'
-        if not isinstance(d, dict) or not isinstance(d.get(key), list):
+        key = _SYNC_LISTA[n]
+        tipo = dict if key in ('grupos', 'por_asesor') else list
+        if not isinstance(d, dict) or not isinstance(d.get(key), tipo):
             return jsonify({'error': f'formato inválido: {n}'}), 400
-        prev = _portal_live(n) or portal_lib._load(n, {})
-        n_prev = len(prev.get(key) or [])
-        # Defensa: no aceptar una lista vacía o que caiga a menos de la mitad de golpe.
-        if key == 'clientes' and (not d[key] or (n_prev and len(d[key]) < n_prev // 2)):
-            return jsonify({'error': f'{n}: {len(d[key])} filas contra {n_prev}; rechazado'}), 409
+        prev = _portal_live(n) or portal_lib._load(n, {}) or {}
+
+        def _cuenta(x):
+            v = (x or {}).get(key) or ([] if tipo is list else {})
+            return sum(len(g) for g in v.values()) if key == 'grupos' else len(v)
+        n_new, n_prev = _cuenta(d), _cuenta(prev)
+        # Defensa: no aceptar listas vacías o que caigan a menos de la mitad de golpe.
+        if key in ('clientes', 'grupos', 'items') and (not n_new or (n_prev and n_new < n_prev // 2)):
+            return jsonify({'error': f'{n}: {n_new} filas contra {n_prev}; rechazado'}), 409
         act = d.get('actualizado') or d.get('generado_at') or datetime.now(timezone.utc).isoformat()
         if IS_PG:
             q("""INSERT INTO portal_datos (nombre, datos, actualizado) VALUES (%s, %s, %s)
                  ON CONFLICT (nombre) DO UPDATE SET datos = EXCLUDED.datos, actualizado = EXCLUDED.actualizado""", (n, d, act))
         else:
             q('INSERT OR REPLACE INTO portal_datos (nombre, datos, actualizado) VALUES (%s, %s, %s)', (n, d, act))
-        guardados[n] = len(d[key])
+        guardados[n] = n_new
     _live_cache['t'] = 0.0
     return jsonify({'ok': True, 'guardados': guardados, 'estado': _sync_resumen()})
 
