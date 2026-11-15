@@ -33,6 +33,8 @@ services:
         sync: false
       - key: PORTAL_CIERRES_URL
         sync: false
+      - key: PORTAL_ASESORES_SHA256
+        sync: false
       - key: GRAPH_VERSION
         value: v27.0
       - key: AUTO_REPLY_ENABLED

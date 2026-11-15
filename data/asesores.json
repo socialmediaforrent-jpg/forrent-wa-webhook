@@ -1,0 +1,110 @@
+{
+  "fuente": "estatus_web/equipos.json + TABLA_ASESORES_GHL_WASI.csv",
+  "asesores": [
+    {
+      "user": "ana",
+      "name": "Ana I. Teixeira",
+      "role": "lider",
+      "aliases": [
+        "Ana I. Teixeira",
+        "Ana Teixeira"
+      ],
+      "equipo": [
+        "antonio",
+        "herlinda",
+        "cristina",
+        "maria",
+        "erika"
+      ],
+      "lider": "ana"
+    },
+    {
+      "user": "miriam",
+      "name": "Miriam Margarita Acosta Ascanio",
+      "role": "lider",
+      "aliases": [
+        "Miriam Margarita Acosta Ascanio",
+        "Miriam Acosta"
+      ],
+      "equipo": [
+        "ireida",
+        "luz"
+      ],
+      "lider": "miriam"
+    },
+    {
+      "user": "antonio",
+      "name": "Antonio Pinto De Abreu",
+      "role": "asesor",
+      "aliases": [
+        "Antonio Pinto De Abreu"
+      ],
+      "equipo": [],
+      "lider": "ana"
+    },
+    {
+      "user": "herlinda",
+      "name": "Herlinda Guerrero",
+      "role": "asesor",
+      "aliases": [
+        "Herlinda Guerrero"
+      ],
+      "equipo": [],
+      "lider": "ana"
+    },
+    {
+      "user": "cristina",
+      "name": "Cristina Paiva",
+      "role": "asesor",
+      "aliases": [
+        "Cristina Paiva"
+      ],
+      "equipo": [],
+      "lider": "ana"
+    },
+    {
+      "user": "maria",
+      "name": "Maria Torres",
+      "role": "asesor",
+      "aliases": [
+        "Maria Torres",
+        "María Torres"
+      ],
+      "equipo": [],
+      "lider": "ana"
+    },
+    {
+      "user": "erika",
+      "name": "Erika Nunez De Ornelas",
+      "role": "asesor",
+      "aliases": [
+        "Erika Nunez De Ornelas",
+        "Erika Nunes de De Ornelas",
+        "Erika Nunez"
+      ],
+      "equipo": [],
+      "lider": "ana"
+    },
+    {
+      "user": "ireida",
+      "name": "Ireida Virginia Pozo Fernandez",
+      "role": "asesor",
+      "aliases": [
+        "Ireida Virginia Pozo Fernandez",
+        "Ireida"
+      ],
+      "equipo": [],
+      "lider": "miriam"
+    },
+    {
+      "user": "luz",
+      "name": "Luz Jimenez",
+      "role": "asesor",
+      "aliases": [
+        "Luz Jimenez"
+      ],
+      "equipo": [],
+      "lider": "miriam"
+    }
+  ]
+}

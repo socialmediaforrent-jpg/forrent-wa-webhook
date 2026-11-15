@@ -1,11 +1,13 @@
 <div class="top">
   <div class="row">
     <a class="brand" href="/portal">For Rent <span>Portal</span></a>
-    <div class="sub">{{ subtitle }}</div>
+    <div class="sub">{{ subtitle }}{% if viewer %} · {{ viewer.name }}{% endif %}</div>
   </div>
+  {% if nav_links %}
   <nav class="bar" aria-label="Secciones">
-    <a href="/portal" class="{{ 'on' if nav=='portal' else '' }}">Inicio</a>
-    <a href="/panel" class="{{ 'on' if nav=='mensajes' else '' }}">Mensajes</a>
-    <a href="/inventario" class="{{ 'on' if nav=='inventario' else '' }}">Inventario</a>
+    {% for href, label, key in nav_links %}
+    <a href="{{ href }}" class="{{ 'on' if nav==key else '' }}">{{ label }}</a>
+    {% endfor %}
   </nav>
+  {% endif %}
 </div>

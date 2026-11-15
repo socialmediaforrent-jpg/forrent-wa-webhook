@@ -1,0 +1,89 @@
+{
+  "actualizado": "2026-10-27T09:04:27",
+  "fuente": "LIBRO_COMISIONES_FORRENT.xlsx, cierres_seguimiento.json y reportes locales del Sistema Contable",
+  "cierres": [
+    {
+      "id": "libro-2025-11-11-Sin Numero",
+      "fuente": "LIBRO_COMISIONES_FORRENT.xlsx",
+      "asesor": "ana",
+      "fecha": "2025-11-11",
+      "operacion": "alquiler",
+      "inmueble": "Residencias Primavera Apto 6-3, Caracas",
+      "codigo": "Sin Numero",
+      "origen": "alianza",
+      "estado_pago": "pendiente",
+      "calc": {
+        "bruta": 650.0,
+        "enlace": 0.0,
+        "neta": null,
+        "monto_captadora": 650.0,
+        "monto_cerradora": 650.0,
+        "asesor": 520.0,
+        "inmobiliaria": 130.0,
+        "forrent": 650.0,
+        "pct_asesor": 0.8
+      },
+      "prueba": false
+    },
+    {
+      "id": "libro-2026-10-22-Sin Numero",
+      "fuente": "LIBRO_COMISIONES_FORRENT.xlsx",
+      "asesor": "ana",
+      "fecha": "2026-10-22",
+      "operacion": "venta",
+      "inmueble": "Apartamento Residencias Parque Prado Miravila, Parque Caiza, Petare",
+      "codigo": "Sin Numero",
+      "origen": "alianza",
+      "estado_pago": "pendiente",
+      "calc": {
+        "bruta": 2250.0,
+        "enlace": 0.0,
+        "neta": null,
+        "monto_captadora": 1125.0,
+        "monto_cerradora": 1125.0,
+        "asesor": 900.0,
+        "inmobiliaria": 225.0,
+        "forrent": 1125.0,
+        "pct_asesor": 0.8
+      },
+      "prueba": false
+    },
+    {
+      "id": "R-20261015-COCHECITO",
+      "fuente": "cierres_seguimiento.json",
+      "asesor": "ana",
+      "fecha": "2026-10-15",
+      "operacion": "alquiler",
+      "inmueble": "Anexo Coche (Coche)",
+      "codigo": "10437907",
+      "origen": "propio",
+      "estado_pago": "realizada",
+      "cliente": "Jose Manuel Machillanda Torres",
+      "calc": {},
+      "prueba": false
+    },
+    {
+      "id": "C-20261027-125904-4cbf",
+      "fuente": "cierres_seguimiento.json",
+      "asesor": null,
+      "fecha": "2026-10-27",
+      "operacion": "alquiler",
+      "inmueble": "Apartamento (PRUEBA)",
+      "codigo": "Sin Numero For Rent",
+      "origen": "propio",
+      "estado_pago": "reporte_lider",
+      "cliente": "PRUEBA E2E - no real",
+      "calc": {
+        "total": 10.0,
+        "enlace": 0,
+        "neto": 10.0,
+        "por_punta": 5.0,
+        "forrent": 10.0,
+        "asesor": 5.0,
+        "inmobiliaria": 5.0,
+        "pct_asesor": 50.0
+      },
+      "prueba": false
+    }
+  ]
+}

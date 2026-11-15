@@ -30,7 +30,9 @@ from zoneinfo import ZoneInfo
 from functools import wraps
 from urllib.parse import quote
 
-from flask import Flask, Response, abort, jsonify, make_response, render_template, request
+from flask import Flask, Response, abort, g, jsonify, make_response, redirect, render_template, request
+
+import portal_lib
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('wa')
@@ -90,6 +92,12 @@ def init_db():
         phone_number_id TEXT, received_at TEXT NOT NULL, data {JSONT})""")
     q("CREATE UNIQUE INDEX IF NOT EXISTS wa_events_uniq ON wa_events (kind, wamid, status)")
     q("CREATE INDEX IF NOT EXISTS wa_events_waid ON wa_events (wa_id, id)")
+    q(f"""CREATE TABLE IF NOT EXISTS asesor_clientes (
+        id {SERIAL}, asesor_slug TEXT NOT NULL, nombre TEXT NOT NULL, telefono TEXT NOT NULL,
+        operacion TEXT, tipo TEXT, zona TEXT, presupuesto TEXT, origen_nota TEXT,
+        status TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""")
+    q("CREATE UNIQUE INDEX IF NOT EXISTS asesor_clientes_uniq ON asesor_clientes (asesor_slug, telefono)")
+    q("CREATE INDEX IF NOT EXISTS asesor_clientes_slug ON asesor_clientes (asesor_slug, id)")
 
 
 # ---------------------------------------------------------------- utilidades
@@ -265,23 +273,48 @@ STATUS_ETIQUETA = {
 }
 
 
-def require_panel_auth(fn):
+def _auth_401():
+    return Response(
+        'Se necesita usuario y contraseña.\n',
+        401,
+        {'WWW-Authenticate': 'Basic realm="For Rent Portal", charset="UTF-8"'},
+    )
+
+
+def require_login(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         auth = request.authorization
-        ok = bool(
-            auth
-            and hmac.compare_digest(auth.username or '', PANEL_USER)
-            and _secret_matches(auth.password or '', 'PANEL_PASSWORD', 'PANEL_PASSWORD_SHA256')
-        )
-        if not ok:
-            return Response(
-                'Se necesita usuario y contraseña.\n',
-                401,
-                {'WWW-Authenticate': 'Basic realm="For Rent Mensajes", charset="UTF-8"'},
-            )
+        user = portal_lib.identify_user(auth.username if auth else '', auth.password if auth else '')
+        if not user:
+            return _auth_401()
+        g.user = user
         return fn(*args, **kwargs)
     return wrapper
+
+
+def require_admin(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if g.user.get('role') != 'admin':
+            return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
+        return fn(*args, **kwargs)
+    return require_login(wrapper)
+
+
+@app.context_processor
+def _portal_nav():
+    u = getattr(g, 'user', None)
+    if not u:
+        return {'nav_links': [], 'viewer': None}
+    if u['role'] == 'admin':
+        links = [('/portal', 'Inicio', 'portal'), ('/panel', 'Mensajes', 'mensajes'),
+                 ('/inventario', 'Inventario', 'inventario'), ('/clientes-propios', 'Clientes propios', 'propios')]
+    elif u['role'] == 'lider':
+        links = [('/portal', 'Inicio', 'portal'), ('/clientes-propios', 'Clientes del equipo', 'propios')]
+    else:
+        links = [('/portal', 'Inicio', 'portal')]
+    return {'nav_links': links, 'viewer': u}
 
 
 def _parse_caracas(iso):
@@ -463,14 +496,14 @@ def _panel_headers(resp):
 
 
 @app.get('/panel')
-@require_panel_auth
+@require_admin
 def panel():
     data = _panel_payload(request.args.get('c') or '')
     return _panel_headers(render_template('panel.html', **data))
 
 
 @app.get('/panel/data')
-@require_panel_auth
+@require_admin
 def panel_data():
     return _panel_headers(jsonify(_panel_payload(request.args.get('c') or '')))
 
@@ -502,15 +535,155 @@ def _portal_links():
     }
 
 
+def _busca(c):
+    parts = [x for x in (c.get('operacion'), c.get('tipo'), c.get('zona'), c.get('presupuesto')) if x]
+    return ' · '.join(parts)
+
+
+def _db_propios(slugs):
+    rows = []
+    for s in slugs:
+        rows.extend(q('SELECT * FROM asesor_clientes WHERE asesor_slug=%s ORDER BY id DESC', (s,), fetch=True) or [])
+    return rows
+
+
+def _nombre_asesor(slug):
+    m = portal_lib.asesor_by_user(slug)
+    return (m or {}).get('name') or slug
+
+
+def _asesor_clientes(user):
+    """Lista unificada: propios del asesor (editables) y asignados por For Rent (solo lectura)."""
+    mine = user['user']
+    asignados, actualizado, _fuente = portal_lib.load_asignados(slug=mine)
+    propios = _db_propios([mine])
+    out = []
+    for r in propios:
+        out.append({
+            'id': r['id'], 'nombre': r['nombre'], 'telefono': r['telefono'],
+            'estatus': r['status'], 'origen': 'Propio del asesor',
+            'origen_nota': r.get('origen_nota') or '',
+            'busca': _busca(r), 'inmueble': '', 'editable': True,
+        })
+    for r in asignados:
+        out.append({
+            'id': r.get('id'), 'nombre': r.get('nombre') or 'Cliente', 'telefono': '',
+            'estatus': r.get('estatus') or 'Sin estatus', 'origen': 'Asignado por For Rent',
+            'origen_nota': '', 'busca': r.get('operacion') or '',
+            'inmueble': r.get('inmueble') or '', 'editable': False,
+        })
+    return out, actualizado
+
+
+def _cierres_vista(user, *, full):
+    items = portal_lib.load_cierres(slug=user['user'], full=full)
+    for c in items:
+        c['fecha_fmt'] = portal_lib.fmt_fecha(c.get('fecha') or '')
+        calc = c.get('calc') or {}
+        c['asesor_fmt'] = portal_lib.money(calc.get('asesor'))
+        c['forrent_fmt'] = portal_lib.money(calc.get('forrent'))
+        c['inmobiliaria_fmt'] = portal_lib.money(calc.get('inmobiliaria')) if 'inmobiliaria' in calc else '—'
+    return items
+
+
+def _render_asesor(user, flash_ok='', flash_err='', form=None):
+    cap = portal_lib.load_captaciones(slug=user['user'])
+    propias = [x for x in cap if x.get('origen') == 'propio']
+    alianzas = [x for x in cap if x.get('origen') == 'alianza']
+    clientes, cli_fecha = _asesor_clientes(user)
+    full = user['role'] in ('admin', 'lider')
+    cierres = _cierres_vista(user, full=full)
+    inv = _inventario()
+    return _panel_headers(render_template(
+        'asesor.html',
+        propias=propias, alianzas=alianzas,
+        n_propias=len(propias), n_alianza=len(alianzas),
+        clientes=clientes, n_clientes=len(clientes),
+        cli_fecha=portal_lib.fmt_fecha(cli_fecha) if cli_fecha else 'fecha no disponible',
+        inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''),
+        cierres=cierres, n_cierres=len(cierres),
+        estatus_opciones=portal_lib.ESTATUS_OPCIONES,
+        csrf=portal_lib.csrf_token(user),
+        flash_ok=flash_ok, flash_err=flash_err, form=form or {},
+    ))
+
+
 @app.get('/')
 @app.get('/portal')
-@require_panel_auth
+@require_login
 def portal():
+    if g.user['role'] != 'admin':
+        ok = request.args.get('ok')
+        flash_ok = 'Cliente guardado.' if ok == '1' else ('Estatus actualizado.' if ok == 'estatus' else '')
+        return _render_asesor(g.user, flash_ok=flash_ok)
     return _panel_headers(render_template('portal.html', **_portal_links()))
 
 
+@app.get('/clientes-propios')
+@require_login
+def clientes_propios():
+    if g.user['role'] not in ('admin', 'lider'):
+        return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
+    slugs = portal_lib.visible_slugs(g.user)
+    filas = []
+    for r in _db_propios(slugs):
+        filas.append({
+            'asesor_nombre': _nombre_asesor(r['asesor_slug']),
+            'nombre': r['nombre'], 'telefono': r['telefono'],
+            'busca': _busca(r), 'origen_nota': r.get('origen_nota') or '',
+            'status': r['status'],
+        })
+    return _panel_headers(render_template('propios.html', filas=filas))
+
+
+@app.post('/asesor/clientes')
+@require_login
+def asesor_nuevo_cliente():
+    if g.user['role'] == 'admin':
+        return _panel_headers(Response('Los clientes propios los registra cada asesor en su portal.\n', 403))
+    if not portal_lib.csrf_ok(g.user, request.form.get('csrf')):
+        return _render_asesor(g.user, flash_err='La sesión expiró. Vuelve a intentar.')
+    datos, errores = portal_lib.validar_cliente(request.form)
+    if errores:
+        return _render_asesor(g.user, flash_err=' '.join(errores), form=datos)
+    now = now_iso()
+    try:
+        q(
+            "INSERT INTO asesor_clientes "
+            "(asesor_slug, nombre, telefono, operacion, tipo, zona, presupuesto, origen_nota, status, created_at, updated_at) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (g.user['user'], datos['nombre'], datos['telefono'], datos['operacion'], datos['tipo'],
+             datos['zona'], datos['presupuesto'], datos['origen_nota'], datos['status'], now, now),
+        )
+    except Exception as e:
+        msg = str(e).lower()
+        if 'unique' in msg or 'duplicate' in msg:
+            return _render_asesor(g.user, flash_err='Ya tienes un cliente con ese teléfono.', form=datos)
+        log.error('No se pudo guardar cliente propio: %s', type(e).__name__)
+        return _render_asesor(g.user, flash_err='No se pudo guardar. Inténtalo de nuevo.', form=datos)
+    return redirect('/portal?ok=1#clientes')
+
+
+@app.post('/asesor/clientes/<int:cid>/estatus')
+@require_login
+def asesor_estatus_cliente(cid):
+    if not portal_lib.csrf_ok(g.user, request.form.get('csrf')):
+        return _render_asesor(g.user, flash_err='La sesión expiró. Vuelve a intentar.')
+    status = (request.form.get('status') or '').strip()
+    if status not in portal_lib.ESTATUS_OPCIONES:
+        return _render_asesor(g.user, flash_err='El estatus no es válido.')
+    rows = q('SELECT id, asesor_slug FROM asesor_clientes WHERE id=%s', (cid,), fetch=True) or []
+    if not rows:
+        return _render_asesor(g.user, flash_err='No encontramos ese cliente.')
+    if not portal_lib.can_edit_propio(g.user, rows[0]['asesor_slug']):
+        return _panel_headers(Response('No puedes editar este cliente.\n', 403))
+    q('UPDATE asesor_clientes SET status=%s, updated_at=%s WHERE id=%s', (status, now_iso(), cid))
+    return redirect('/portal?ok=estatus#clientes')
+
+
+
 @app.get('/inventario')
-@require_panel_auth
+@require_admin
 def inventario():
     data = _inventario()
     grupos = data.get('grupos') or {}

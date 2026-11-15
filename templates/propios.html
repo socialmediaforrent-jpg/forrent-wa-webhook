@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Clientes propios de asesores · For Rent</title>
+{% include '_brand.css.html' %}
+</head>
+<body>
+{% set nav='propios' %}
+{% set subtitle='clientes que cada asesor registró por su cuenta' %}
+{% include '_top.html' %}
+<main class="wrap-page">
+  <h1 class="page">Clientes propios de asesores</h1>
+  <p class="lead">Clientes que un asesor captó por su cuenta y registró en este portal. No pasan por GHL. {% if viewer.role=='lider' %}Ves los de tu equipo y los tuyos.{% endif %}</p>
+  {% if not filas %}
+  <div class="empty">Todavía no hay clientes propios registrados.</div>
+  {% else %}
+  <table class="inv">
+    <thead><tr><th>Asesor</th><th>Cliente</th><th>Teléfono</th><th>Busca</th><th>Origen / nota</th><th>Estatus</th></tr></thead>
+    <tbody>
+    {% for c in filas %}
+      <tr>
+        <td data-label="Asesor">{{ c.asesor_nombre }}</td>
+        <td data-label="Cliente"><b>{{ c.nombre }}</b></td>
+        <td data-label="Teléfono">{{ c.telefono }}</td>
+        <td data-label="Busca">{{ c.busca or '—' }}</td>
+        <td data-label="Origen / nota">{{ c.origen_nota or '—' }}</td>
+        <td data-label="Estatus"><span class="pill">{{ c.status }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</main>
+</body>
+</html>

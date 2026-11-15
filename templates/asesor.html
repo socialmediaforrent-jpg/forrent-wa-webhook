@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Portal · {{ viewer.name }} · For Rent</title>
+{% include '_brand.css.html' %}
+</head>
+<body>
+{% set nav='portal' %}
+{% set subtitle='tu portal · solo tus datos' %}
+{% include '_top.html' %}
+<main class="wrap-page">
+  <h1 class="page">Hola, {{ viewer.name.split(' ')[0] }}</h1>
+  <p class="lead">Aquí ves solo tus captaciones, tus clientes y tus cierres. Los clientes que registres tú quedan en For Rent (no en GHL).</p>
+  <div class="stat">
+    <b>Captaciones propias {{ n_propias }}</b>
+    <b>Captaciones en alianza {{ n_alianza }}</b>
+    <b>Clientes {{ n_clientes }}</b>
+    <b>Cierres {{ n_cierres }}</b>
+  </div>
+
+  <section class="sec" id="captaciones-propias">
+    <h2>Captaciones activas</h2>
+    <p class="muted">Inmuebles propios de For Rent donde figuras como captadora. Foto del inventario de Mónica al {{ inv_fecha }}.</p>
+    {% if not propias %}
+    <div class="empty">No hay captaciones propias a tu nombre en esta foto del inventario.</div>
+    {% else %}
+    <table class="inv">
+      <thead><tr><th>Título</th><th>Operación</th><th>Tipo</th><th>Zona</th><th>Precio</th><th>Código</th></tr></thead>
+      <tbody>
+      {% for it in propias %}
+        <tr>
+          <td data-label="Título">{{ it.titulo }}{% if it.solo_cliente_directo %} <span class="badge">Solo cliente directo</span>{% endif %}</td>
+          <td data-label="Operación"><span class="op {{ 'alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span></td>
+          <td data-label="Tipo">{{ it.tipo }}</td>
+          <td data-label="Zona">{{ it.zona }}</td>
+          <td data-label="Precio">{{ it.precio }}</td>
+          <td data-label="Código"><b>{{ it.codigo }}</b></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+
+  <section class="sec" id="captaciones-alianza">
+    <h2>Captaciones en alianza</h2>
+    <p class="muted">Inmuebles en alianza donde figuras como captadora.</p>
+    {% if not alianzas %}
+    <div class="empty">No hay captaciones en alianza a tu nombre en esta foto del inventario.</div>
+    {% else %}
+    <table class="inv">
+      <thead><tr><th>Título</th><th>Operación</th><th>Tipo</th><th>Zona</th><th>Precio</th><th>Código</th></tr></thead>
+      <tbody>
+      {% for it in alianzas %}
+        <tr>
+          <td data-label="Título">{{ it.titulo }}{% if it.solo_cliente_directo %} <span class="badge">Solo cliente directo</span>{% endif %}</td>
+          <td data-label="Operación"><span class="op {{ 'alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span></td>
+          <td data-label="Tipo">{{ it.tipo }}</td>
+          <td data-label="Zona">{{ it.zona }}</td>
+          <td data-label="Precio">{{ it.precio }}</td>
+          <td data-label="Código"><b>{{ it.codigo }}</b></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+
+  <section class="sec" id="clientes">
+    <h2>Clientes</h2>
+    <p class="muted">Los asignados por For Rent salen del Sistema de Clientes ({{ cli_fecha }}). El estatus de esos lo actualizas en ese sistema. Los que registres aquí se etiquetan «Propio del asesor» y el estatus sí se edita en este portal.</p>
+    {% if flash_ok %}<div class="alert ok">{{ flash_ok }}</div>{% endif %}
+    {% if flash_err %}<div class="alert err">{{ flash_err }}</div>{% endif %}
+
+    <h3 style="font-size:16px;margin:14px 0 8px">Agregar cliente</h3>
+    <form class="grid" method="post" action="/asesor/clientes" autocomplete="on">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div><label>Nombre <input name="nombre" required maxlength="120" value="{{ form.nombre if form else '' }}"></label></div>
+      <div><label>Teléfono <input name="telefono" required maxlength="40" inputmode="tel" value="{{ form.telefono if form else '' }}"></label></div>
+      <div><label>Operación
+        <select name="operacion">
+          <option value="">—</option>
+          <option value="Venta" {{ 'selected' if form and form.operacion=='Venta' else '' }}>Venta</option>
+          <option value="Alquiler" {{ 'selected' if form and form.operacion=='Alquiler' else '' }}>Alquiler</option>
+        </select></label></div>
+      <div><label>Tipo de inmueble <input name="tipo" maxlength="80" placeholder="Apartamento, casa, local…" value="{{ form.tipo if form else '' }}"></label></div>
+      <div><label>Zona <input name="zona" maxlength="120" value="{{ form.zona if form else '' }}"></label></div>
+      <div><label>Presupuesto <input name="presupuesto" maxlength="80" placeholder="US$ …" value="{{ form.presupuesto if form else '' }}"></label></div>
+      <div class="wide"><label>Origen / nota <textarea name="origen_nota" maxlength="400">{{ form.origen_nota if form else '' }}</textarea></label></div>
+      <div><label>Estatus
+        <select name="status">
+          {% for s in estatus_opciones %}
+          <option value="{{ s }}" {{ 'selected' if (form and form.status==s) or (not form and s=='Nuevo') else '' }}>{{ s }}</option>
+          {% endfor %}
+        </select></label></div>
+      <div style="align-self:end"><button type="submit">Guardar cliente</button></div>
+    </form>
+
+    {% if not clientes %}
+    <div class="empty">No tienes clientes en esta lista todavía.</div>
+    {% else %}
+    <table class="inv" style="margin-top:14px">
+      <thead><tr><th>Cliente</th><th>Origen</th><th>Busca</th><th>Estatus</th></tr></thead>
+      <tbody>
+      {% for c in clientes %}
+        <tr>
+          <td data-label="Cliente">
+            <b>{{ c.nombre }}</b>
+            {% if c.telefono %}<div class="muted">{{ c.telefono }}</div>{% endif %}
+          </td>
+          <td data-label="Origen">
+            {% if c.origen=='Propio del asesor' %}<span class="pill prop">Propio del asesor</span>
+            {% else %}<span class="pill asig">Asignado por For Rent</span>{% endif %}
+            {% if c.origen_nota %}<div class="muted">{{ c.origen_nota }}</div>{% endif %}
+          </td>
+          <td data-label="Busca">
+            {% if c.busca %}{{ c.busca }}{% else %}<span class="muted">—</span>{% endif %}
+            {% if c.inmueble %}<div class="muted">{{ c.inmueble }}</div>{% endif %}
+          </td>
+          <td data-label="Estatus">
+            {% if c.editable %}
+            <form method="post" action="/asesor/clientes/{{ c.id }}/estatus" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <select name="status">{% for s in estatus_opciones %}<option value="{{ s }}" {{ 'selected' if c.estatus==s else '' }}>{{ s }}</option>{% endfor %}</select>
+              <button type="submit" class="btn">Guardar</button>
+            </form>
+            {% else %}
+            <span class="pill">{{ c.estatus }}</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+
+  <section class="sec" id="cierres">
+    <h2>Cierres</h2>
+    <p class="muted">Solo tu comisión, la parte de For Rent y, si aplica, la de la inmobiliaria aliada. No se muestra la parte del líder.</p>
+    {% if not cierres %}
+    <div class="empty">No hay cierres a tu nombre en las fuentes actuales (libro de comisiones y Sistema Contable).</div>
+    {% else %}
+    <table class="inv">
+      <thead><tr><th>Fecha</th><th>Operación</th><th>Inmueble</th><th>Comisión del asesor</th><th>Parte For Rent</th><th>Inmobiliaria aliada</th></tr></thead>
+      <tbody>
+      {% for c in cierres %}
+        <tr>
+          <td data-label="Fecha">{{ c.fecha_fmt }}</td>
+          <td data-label="Operación">{{ c.operacion or '—' }}</td>
+          <td data-label="Inmueble">{{ c.inmueble or '—' }}{% if c.codigo %}<div class="muted">{{ c.codigo }}</div>{% endif %}</td>
+          <td data-label="Comisión del asesor"><b>{{ c.asesor_fmt }}</b></td>
+          <td data-label="Parte For Rent">{{ c.forrent_fmt }}</td>
+          <td data-label="Inmobiliaria aliada">{{ c.inmobiliaria_fmt }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+</main>
+</body>
+</html>

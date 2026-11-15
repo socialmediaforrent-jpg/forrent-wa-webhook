@@ -11,6 +11,8 @@ y los expone, con llave Bearer, a los scripts de la caja (`scripts/cloudapi/wa_i
 
 Secretos: solo por variables de entorno en Render (`WA_VERIFY_TOKEN` o `WA_VERIFY_TOKEN_SHA256`,
 `WA_READ_KEY` o `WA_READ_KEY_SHA256`, `META_APP_SECRET`, `PANEL_PASSWORD_SHA256`,
-`PORTAL_ESTATUS_URL`, `PORTAL_CIERRES_URL`). Nada de secretos en este repo.
+`PORTAL_ESTATUS_URL`, `PORTAL_CIERRES_URL`, `PORTAL_ASESORES_SHA256`). Nada de secretos en este repo.
+Los asesores entran al mismo `/portal` con su usuario. Contraseñas en la caja (`secrets/portal_asesores/`); en Render solo el SHA256.
+Los clientes propios se guardan en Postgres de este servicio, no en GHL.
 La respuesta automática fuera de horario existe pero está apagada (`AUTO_REPLY_ENABLED=0`).
 El inventario es una foto sanitizada (`data/inventario.json`): título, operación, tipo, zona, precio y código interno; sin captadores ni enlaces de Rex/Wasi.
