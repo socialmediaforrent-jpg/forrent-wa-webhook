@@ -1332,12 +1332,12 @@ def inventario():
     f = request.args.get('f') or 'propias'
     if f not in ('propias', 'aliados', 'todos'):
         f = 'propias'
-    filas = prop if f == 'propias' else ali if f == 'aliados' else (prop + ali + red)
+    filas = prop if f == 'propias' else ali if f == 'aliados' else (prop + ali)
     return _panel_headers(render_template(
         'inventario.html',
         actualizado=_fmt_actualizado(data.get('actualizado') or ''),
         filas=filas, f=f,
-        n_propio=len(prop), n_alianza=len(ali), n_red=len(red), n_todos=len(prop) + len(ali) + len(red),
+        n_propio=len(prop), n_alianza=len(ali), n_red=len(red), n_todos=len(prop) + len(ali),
     ))
 
 
