@@ -10,7 +10,7 @@ Endpoints
   GET  /login                        -> inicio de sesión (cookie de sesión firmada)
   POST /login, GET|POST /logout      -> entrar / cerrar sesión
   GET  / y /portal                   -> portal For Rent (sesión; redirige a /login)
-  GET  /panel                        -> bandeja de entrada (sesión, solo José)
+  GET  /panel                        -> bandeja de entrada (sesión; José ve todas, asesores solo las suyas, solo lectura)
   GET  /panel/data                   -> JSON de la bandeja (para auto-actualizar)
   GET  /inventario                   -> inventario propios / alianza / red (solo lectura)
 
@@ -38,6 +38,7 @@ from flask import Flask, Response, abort, g, jsonify, make_response, redirect, r
 
 import notif
 import portal_lib
+import mensajes
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('wa')
@@ -122,6 +123,9 @@ def init_db():
         phone_number_id TEXT, received_at TEXT NOT NULL, data {JSONT})""")
     q("CREATE UNIQUE INDEX IF NOT EXISTS wa_events_uniq ON wa_events (kind, wamid, status)")
     q("CREATE INDEX IF NOT EXISTS wa_events_waid ON wa_events (wa_id, id)")
+    q("""CREATE TABLE IF NOT EXISTS mensajes_last_seen (
+        user_slug TEXT NOT NULL, wa_id TEXT NOT NULL, seen_at TEXT NOT NULL,
+        PRIMARY KEY (user_slug, wa_id))""")
     q(f"""CREATE TABLE IF NOT EXISTS asesor_clientes (
         id {SERIAL}, asesor_slug TEXT NOT NULL, nombre TEXT NOT NULL, telefono TEXT NOT NULL,
         operacion TEXT, tipo TEXT, zona TEXT, presupuesto TEXT, origen_nota TEXT,
@@ -506,10 +510,11 @@ def _portal_nav():
         main.append({'href': '/inventario', 'label': 'Inventario General', 'short': 'Inventario', 'key': 'inventario', 'icon': 'building'})
         main.append({'href': '/panel', 'label': 'Mensajes', 'key': 'mensajes', 'icon': 'chat'})
     else:
-        main.append({'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'short': 'Captaciones', 'key': 'captaciones', 'icon': 'key'})
+        main.append({'href': '/panel', 'label': 'Mensajes', 'key': 'mensajes', 'icon': 'chat'})
         main.append({'href': '/visitas', 'label': 'Visitas', 'key': 'visitas', 'icon': 'calendar'})
     more = []
     if role != 'admin':
+        more.append({'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'key': 'captaciones', 'icon': 'key'})
         more.append({'href': '/perfil', 'label': 'Mi Perfil', 'key': 'perfil', 'icon': 'user'})
     if role in ('admin', 'lider'):
         more.append({'href': '/mi-equipo', 'label': 'Mi Equipo' if role == 'lider' else 'Equipos', 'key': 'equipo', 'icon': 'users'})
@@ -587,7 +592,12 @@ def _fmt_phone(wa_id):
 
 
 def _event_ts(row):
-    return row.get('ts') or row.get('received_at') or ''
+    ts = row.get('ts') or ''
+    rec = row.get('received_at') or ''
+    # Algunos eventos de prueba llegan con un ts centinela (epoch / 2026-01-01 00:00Z).
+    if ts.startswith(('1970-01-01', '2026-01-01T00:00:00')):
+        return rec or ts
+    return ts or rec
 
 
 def _display_name(wa_id, fallback=None):
@@ -615,10 +625,56 @@ def _names_by_wa():
     return {r['wa_id']: r['name'] for r in rows}
 
 
-def panel_conversations():
+def _last_seen_map(user):
+    rows = q('SELECT wa_id, seen_at FROM mensajes_last_seen WHERE user_slug=%s', (user.get('user') or '',), fetch=True) or []
+    return {r['wa_id']: r['seen_at'] or '' for r in rows}
+
+
+def _marcar_visto(user, wa_id):
+    slug, wa, now = user.get('user') or '', wa_id, now_iso()
+    if IS_PG:
+        q("""INSERT INTO mensajes_last_seen (user_slug, wa_id, seen_at) VALUES (%s,%s,%s)
+             ON CONFLICT (user_slug, wa_id) DO UPDATE SET seen_at=EXCLUDED.seen_at""", (slug, wa, now))
+    else:
+        q("INSERT OR REPLACE INTO mensajes_last_seen (user_slug, wa_id, seen_at) VALUES (%s,%s,%s)", (slug, wa, now))
+
+
+def _conteo_no_leidos(user, wa_ids):
+    """Inbound después del último outbound o del last_seen del usuario."""
+    if not wa_ids:
+        return {}
+    seen = _last_seen_map(user)
+    outs = q(
+        """SELECT wa_id, MAX(COALESCE(ts, received_at)) AS t
+           FROM wa_events
+           WHERE kind IN ('message','outbound') AND direction='outbound'
+             AND wa_id IS NOT NULL
+           GROUP BY wa_id""",
+        fetch=True,
+    ) or []
+    last_out = {r['wa_id']: r['t'] or '' for r in outs}
+    ins = q(
+        """SELECT wa_id, COALESCE(ts, received_at) AS t
+           FROM wa_events
+           WHERE kind IN ('message','outbound') AND direction='inbound'
+             AND wa_id IS NOT NULL""",
+        fetch=True,
+    ) or []
+    counts = {w: 0 for w in wa_ids}
+    for r in ins:
+        wa = r['wa_id']
+        if wa not in counts:
+            continue
+        corte = max(last_out.get(wa) or '', seen.get(wa) or '')
+        if (r['t'] or '') > corte:
+            counts[wa] += 1
+    return counts
+
+
+def panel_conversations(user):
     latest = q(
-        """SELECT wa_id, name, text, ts, received_at, direction, msg_type FROM (
-               SELECT wa_id, name, text, ts, received_at, direction, msg_type,
+        """SELECT wa_id, name, text, ts, received_at, direction, msg_type, source, data FROM (
+               SELECT wa_id, name, text, ts, received_at, direction, msg_type, source, data,
                       ROW_NUMBER() OVER (
                           PARTITION BY wa_id
                           ORDER BY COALESCE(ts, received_at) DESC, id DESC
@@ -630,18 +686,33 @@ def panel_conversations():
         fetch=True,
     ) or []
     names = _names_by_wa()
+    visibles = mensajes.telefonos_visibles_de(user, db_propios=_db_propios)
+    ocultos = mensajes.telefonos_ocultos()
     out = []
     for r in latest:
         wa = r['wa_id']
+        if not mensajes.puede_ver(user, wa, visibles=visibles, ocultos=ocultos):
+            continue
+        nombre = _display_name(wa, names.get(wa) or r.get('name'))
+        canal = mensajes.canal_de(r)
         out.append({
             'wa_id': wa,
             'href': '/panel?c=' + quote(wa, safe=''),
-            'name': _display_name(wa, names.get(wa) or r.get('name')),
+            'name': nombre,
             'phone': _fmt_phone(wa),
             'preview': _preview(r),
-            'time': _fmt_time(_event_ts(r)),
+            'time': mensajes.hora_lista(_event_ts(r), _parse_caracas),
+            'time_full': _fmt_time(_event_ts(r)),
             'sort': _event_ts(r),
+            'canal': canal,
+            'canal_label': mensajes.canal_etiqueta(canal),
+            'iniciales': mensajes.iniciales(nombre, wa),
+            'color': mensajes.color_avatar(nombre or wa),
+            'unread': 0,
         })
+    counts = _conteo_no_leidos(user, [c['wa_id'] for c in out])
+    for c in out:
+        c['unread'] = counts.get(c['wa_id'] or '', 0)
     out.sort(key=lambda x: x['sort'] or '', reverse=True)
     for c in out:
         c.pop('sort', None)
@@ -694,9 +765,15 @@ def panel_thread(wa_id):
     return msgs, thread_name, _fmt_phone(wa_id)
 
 
-def _panel_payload(wa_id):
-    convos = panel_conversations()
+def _panel_payload(user, wa_id, *, marcar=False):
+    convos = panel_conversations(user)
     current = wa_id or ''
+    if current and not mensajes.puede_ver(user, current):
+        return None
+    if current and marcar:
+        _marcar_visto(user, current)
+        # refresca unread de esa conversación
+        convos = panel_conversations(user)
     msgs, name, phone = panel_thread(current) if current else ([], '', '')
     return {
         'conversations': convos,
@@ -704,6 +781,8 @@ def _panel_payload(wa_id):
         'messages': msgs,
         'thread_name': name,
         'thread_phone': phone,
+        'solo_lectura': True,
+        'es_admin': user.get('role') == 'admin',
     }
 
 
@@ -715,16 +794,23 @@ def _panel_headers(resp):
 
 
 @app.get('/panel')
-@require_admin
+@require_login
 def panel():
-    data = _panel_payload(request.args.get('c') or '')
+    wa = request.args.get('c') or ''
+    data = _panel_payload(g.user, wa, marcar=bool(wa))
+    if data is None:
+        return _panel_headers(Response('No tienes acceso a esta conversación.\n', 403))
     return _panel_headers(render_template('panel.html', **data))
 
 
 @app.get('/panel/data')
-@require_admin
+@require_login
 def panel_data():
-    return _panel_headers(jsonify(_panel_payload(request.args.get('c') or '')))
+    wa = request.args.get('c') or ''
+    data = _panel_payload(g.user, wa, marcar=bool(wa))
+    if data is None:
+        return _panel_headers(Response('No tienes acceso a esta conversación.\n', 403))
+    return _panel_headers(jsonify(data))
 
 
 INV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'inventario.json')
