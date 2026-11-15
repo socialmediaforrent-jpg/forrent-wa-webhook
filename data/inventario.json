@@ -1,0 +1,1077 @@
+{
+  "actualizado": "2026-11-15T07:29:04.293631-05:00",
+  "fuente": "inventario_para_monica_20261115.csv (inventario de Mónica; Wasi y disponibilidad del 15 nov 2026)",
+  "conteos": {
+    "propio": 24,
+    "alianza": 22,
+    "red": 60
+  },
+  "grupos": {
+    "propio": [
+      {
+        "titulo": "Local Comercial En Alquiler Av. Urdaneta C.C. Casa Bera 7 m2",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Av. Urdaneta",
+        "precio": "US$ 300",
+        "codigo": "10542820",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Boleita Sur, Local En Alquiler",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Boleita Sur",
+        "precio": "US$ 300",
+        "codigo": "10421721",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Local Boleita Sur En Alquiler 53m2",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Boleita Sur",
+        "precio": "US$ 400",
+        "codigo": "10421726",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Centro Comercial San Ignacio, Local En Alquiler",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "C.C. San Ignacio",
+        "precio": "US$ 450",
+        "codigo": "10421727",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Alquiler para uso de oficina El Marqués",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "El Marqués",
+        "precio": "US$ 950",
+        "codigo": "10419846",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Apartamento en La Boyera",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "La Boyera",
+        "precio": "US$ 1.100",
+        "codigo": "2051293926",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Local Comercial En Alquiler En Catia",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Los Magallanes de Catia",
+        "precio": "US$ 700",
+        "codigo": "10421691",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Local Comercial En Alquiler Catia",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Los Magallanes de Catia",
+        "precio": "US$ 550",
+        "codigo": "10421702",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Alquiler De Local Comercial A Pie De Calle San Bernardino",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "San Bernardino",
+        "precio": "US$ 800",
+        "codigo": "10421687",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Alquiler de Local Ubicación en Santa Monica",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Santa Mónica",
+        "precio": "US$ 1.600",
+        "codigo": "10419907",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "En Venta Apartamento En Las Palmeras De Aguasal. Higuerote",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Aguasal",
+        "precio": "US$ 90.000",
+        "codigo": "10421710",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Venta de Apartamento en Colinas de Bello Monte Amoblado",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Colinas de Bello Monte",
+        "precio": "US$ 175.000",
+        "codigo": "10422670",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "En Venta Casa Urbanizacion La Niebla. El Junquito",
+        "operacion": "Venta",
+        "tipo": "Casa",
+        "zona": "El Junquito",
+        "precio": "US$ 90.000",
+        "codigo": "10421699",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Terreno en venta en Guarenas (Zona Industrial)",
+        "operacion": "Venta",
+        "tipo": "Terreno",
+        "zona": "Guarenas",
+        "precio": "US$ 150.000",
+        "codigo": "10424354",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Casa En Venta En Hoyo De La Puerta",
+        "operacion": "Venta",
+        "tipo": "Casa",
+        "zona": "Hoyo de la Puerta",
+        "precio": "US$ 65.000",
+        "codigo": "10421696",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Galpon En Venta La Candelaria",
+        "operacion": "Venta",
+        "tipo": "Galpón",
+        "zona": "La Candelaria",
+        "precio": "US$ 268.000",
+        "codigo": "10421703",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Galpon en venta la candelaria",
+        "operacion": "Venta",
+        "tipo": "Galpón",
+        "zona": "La Candelaria",
+        "precio": "US$ 360.000",
+        "codigo": "10422780",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Apartamento en venta en los Chorros",
+        "operacion": "Venta",
+        "tipo": "Anexo",
+        "zona": "Los Chorros",
+        "precio": "US$ 150.000",
+        "codigo": "10419935",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Local Comercial En Venta Los Cortijos De Lourdes",
+        "operacion": "Venta",
+        "tipo": "Local",
+        "zona": "Los Cortijos de Lourdes",
+        "precio": "US$ 1.000.000",
+        "codigo": "10421685",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Venta De Local, Centro Comercial Caracas De Montalbán",
+        "operacion": "Venta",
+        "tipo": "Local",
+        "zona": "Montalban III",
+        "precio": "US$ 25.000",
+        "codigo": "10421715",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Venta Local, Centro Comercial Caracas De Montalbán",
+        "operacion": "Venta",
+        "tipo": "Local",
+        "zona": "Montalban III",
+        "precio": "US$ 19.000",
+        "codigo": "10421722",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Venta De Local Centro Comercial Caracas De Montalbán",
+        "operacion": "Venta",
+        "tipo": "Local",
+        "zona": "Montalban III",
+        "precio": "US$ 21.500",
+        "codigo": "10421725",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Casa En Venta En Río Chico",
+        "operacion": "Venta",
+        "tipo": "Casa",
+        "zona": "Río Chico",
+        "precio": "US$ 22.500",
+        "codigo": "10421717",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      },
+      {
+        "titulo": "Apartamento en Santa Mónica",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Santa Mónica",
+        "precio": "US$ 172.000",
+        "codigo": "—",
+        "origen": "propio",
+        "solo_cliente_directo": false
+      }
+    ],
+    "alianza": [
+      {
+        "titulo": "Cubículo en El Rosal",
+        "operacion": "Alquiler",
+        "tipo": "Cubículo",
+        "zona": "El Rosal",
+        "precio": "US$ 400",
+        "codigo": "2327223429",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Oficina en La Lagunita",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "La Lagunita",
+        "precio": "US$ 700",
+        "codigo": "2327295734",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Local en Los Chaguaramos",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Los Chaguaramos",
+        "precio": "US$ 2.500",
+        "codigo": "4602894646",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Caricuao UD4 Canagua",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Caricuao UD4 Canagua",
+        "precio": "US$ 55.000",
+        "codigo": "—",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Caricuao UD4 Queseras del Medio",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Caricuao UD4 Queseras del Medio",
+        "precio": "US$ 43.000",
+        "codigo": "—",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Posada en Chuspa, La Guaira",
+        "operacion": "Venta",
+        "tipo": "Posada",
+        "zona": "Chuspa, La Guaira",
+        "precio": "US$ 240.000",
+        "codigo": "—",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en El Encantado",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "El Encantado",
+        "precio": "US$ 75.000",
+        "codigo": "—",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Townhouse en Guatire",
+        "operacion": "Venta",
+        "tipo": "Townhouse",
+        "zona": "Guatire",
+        "precio": "US$ 63.500",
+        "codigo": "—",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "PH en La Boyera",
+        "operacion": "Venta",
+        "tipo": "PH",
+        "zona": "La Boyera",
+        "precio": "US$ 159.000",
+        "codigo": "2327545534",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en La Candelaria",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "La Candelaria",
+        "precio": "US$ 75.000",
+        "codigo": "3169912523",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Quinta en La Floresta, Chacao",
+        "operacion": "Venta",
+        "tipo": "Quinta",
+        "zona": "La Floresta, Chacao",
+        "precio": "US$ 680.000",
+        "codigo": "3927862619",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en La Tahona",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "La Tahona",
+        "precio": "US$ 240.000",
+        "codigo": "232735410",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "PH en Las Esmeraldas, Baruta",
+        "operacion": "Venta",
+        "tipo": "PH",
+        "zona": "Las Esmeraldas, Baruta",
+        "precio": "US$ 240.000",
+        "codigo": "3927771111",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Quinta en Los Chorros",
+        "operacion": "Venta",
+        "tipo": "Quinta",
+        "zona": "Los Chorros",
+        "precio": "US$ 150.000",
+        "codigo": "—",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Casa en Los Naranjos del Cafetal",
+        "operacion": "Venta",
+        "tipo": "Casa",
+        "zona": "Los Naranjos del Cafetal",
+        "precio": "US$ 420.000",
+        "codigo": "10406194",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Los Palos Grandes",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Los Palos Grandes",
+        "precio": "US$ 170.000",
+        "codigo": "—",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Los Palos Grandes",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Los Palos Grandes",
+        "precio": "US$ 147.000",
+        "codigo": "—",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Quinta en Los Teques",
+        "operacion": "Venta",
+        "tipo": "Quinta",
+        "zona": "Los Teques",
+        "precio": "US$ 90.000",
+        "codigo": "—",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Casa en Potro Redondo",
+        "operacion": "Venta",
+        "tipo": "Casa",
+        "zona": "Potro Redondo",
+        "precio": "US$ 150.000",
+        "codigo": "5712510401",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Townhouse en Río Chico",
+        "operacion": "Venta",
+        "tipo": "Townhouse",
+        "zona": "Río Chico",
+        "precio": "US$ 45.000",
+        "codigo": "—",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Sabana Grande",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Sabana Grande",
+        "precio": "US$ 95.000",
+        "codigo": "JF-AP97",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Terrazas de Guaicoco",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Terrazas de Guaicoco",
+        "precio": "US$ 68.000",
+        "codigo": "3461633300",
+        "origen": "alianza",
+        "solo_cliente_directo": true
+      }
+    ],
+    "red": [
+      {
+        "titulo": "Oficina en Altamira, Chacao, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "Altamira, Chacao, Caracas",
+        "precio": "US$ 2.000",
+        "codigo": "4395491228",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Alto Prado, Baruta, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Alto Prado, Baruta, Caracas",
+        "precio": "US$ 1.000",
+        "codigo": "10562676",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Oficina en Av. Fuerzas Armadas, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "Av. Fuerzas Armadas, Caracas",
+        "precio": "US$ 2.000",
+        "codigo": "410994739",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Oficina en Boleíta Norte, Sucre, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "Boleíta Norte, Sucre, Caracas",
+        "precio": "US$ 2.000",
+        "codigo": "9991289",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Oficina en C.C. Paseo El Hatillo, El Hatillo, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "C.C. Paseo El Hatillo, El Hatillo, Caracas",
+        "precio": "US$ 2.500",
+        "codigo": "4888593727",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Oficina en C.C.C.T., Las Mercedes, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "C.C.C.T., Las Mercedes, Caracas",
+        "precio": "US$ 2.100",
+        "codigo": "10534633",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Local en Campo Alegre, Chacao, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Campo Alegre, Chacao, Caracas",
+        "precio": "US$ 2.000",
+        "codigo": "8253831",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Colinas de Bello Monte, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Colinas de Bello Monte, Caracas",
+        "precio": "US$ 900",
+        "codigo": "5931772253",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Cumbres de Curumo, Baruta, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Cumbres de Curumo, Baruta, Caracas",
+        "precio": "US$ 1.200",
+        "codigo": "10508819",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en El Bosque, Chacao, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "El Bosque, Chacao, Caracas",
+        "precio": "US$ 1.000",
+        "codigo": "10544696",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en El Rosal, Chacao, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "El Rosal, Chacao, Caracas",
+        "precio": "US$ 1.000",
+        "codigo": "10556332",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Local en El Rosal, Chacao, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "El Rosal, Chacao, Caracas",
+        "precio": "US$ 5.000",
+        "codigo": "5092762320",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en La Boyera, El Hatillo, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "La Boyera, El Hatillo, Caracas",
+        "precio": "US$ 800",
+        "codigo": "10505812",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en La Boyera, El Hatillo, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "La Boyera, El Hatillo, Caracas",
+        "precio": "US$ 800",
+        "codigo": "10530580",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en La Candelaria, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "La Candelaria, Caracas",
+        "precio": "US$ 800",
+        "codigo": "5824755037",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Oficina en La Castellana, Chacao, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "La Castellana, Chacao, Caracas",
+        "precio": "US$ 2.400",
+        "codigo": "10512332",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Oficina en La Castellana, Chacao, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "La Castellana, Chacao, Caracas",
+        "precio": "US$ 2.500",
+        "codigo": "9623485",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en La Florida, Libertador, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "La Florida, Libertador, Caracas",
+        "precio": "US$ 950",
+        "codigo": "10495636",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Local en La Hoyada, Catedral, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "La Hoyada, Catedral, Caracas",
+        "precio": "US$ 2.500",
+        "codigo": "10467240",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Local en La Urbina, Sucre, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "La Urbina, Sucre, Caracas",
+        "precio": "US$ 2.500",
+        "codigo": "10320770",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Local en Las Acacias, Libertador, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Las Acacias, Libertador, Caracas",
+        "precio": "US$ 2.500",
+        "codigo": "10256735",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Oficina en Las Mercedes, Baruta, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "Las Mercedes, Baruta, Caracas",
+        "precio": "US$ 2.000",
+        "codigo": "10045950",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Oficina en Las Mercedes, Baruta, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "Las Mercedes, Baruta, Caracas",
+        "precio": "US$ 2.000",
+        "codigo": "10244889",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Oficina en Los Dos Caminos, Sucre, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Oficina",
+        "zona": "Los Dos Caminos, Sucre, Caracas",
+        "precio": "US$ 2.000",
+        "codigo": "3810830100",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Los Naranjos, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Los Naranjos, Caracas",
+        "precio": "US$ 1.000",
+        "codigo": "4307510411",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Los Palos Grandes, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Los Palos Grandes, Caracas",
+        "precio": "US$ 1.000",
+        "codigo": "5092383455",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Los Palos Grandes, Chacao, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Los Palos Grandes, Chacao, Caracas",
+        "precio": "US$ 870",
+        "codigo": "10499368",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Los Palos Grandes, Chacao, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Los Palos Grandes, Chacao, Caracas",
+        "precio": "US$ 1.200",
+        "codigo": "10512161",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Los Pinos, El Hatillo, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Los Pinos, El Hatillo, Caracas",
+        "precio": "US$ 850",
+        "codigo": "10545208",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Local en Macaracuay, Sucre, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Macaracuay, Sucre, Caracas",
+        "precio": "US$ 2.200",
+        "codigo": "10449020",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Parque Humboldt, Baruta, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Parque Humboldt, Baruta, Caracas",
+        "precio": "US$ 1.150",
+        "codigo": "10479190",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Local en Prado de María, Libertador, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Prado de María, Libertador, Caracas",
+        "precio": "US$ 2.000",
+        "codigo": "10204548",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en San Bernardino, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "San Bernardino, Caracas",
+        "precio": "US$ 900",
+        "codigo": "5830671103",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Local en Santa Fe Norte, Baruta, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Santa Fe Norte, Baruta, Caracas",
+        "precio": "US$ 2.300",
+        "codigo": "10529372",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Santa Inés, Baruta, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Santa Inés, Baruta, Caracas",
+        "precio": "US$ 1.200",
+        "codigo": "10553486",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Local en Santa Rosalía, Libertador, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Santa Rosalía, Libertador, Caracas",
+        "precio": "US$ 2.500",
+        "codigo": "10549356",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Terrazas del Club Hípico, Baruta, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Terrazas del Club Hípico, Baruta, Caracas",
+        "precio": "US$ 1.200",
+        "codigo": "10499059",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Terrazas del Ávila, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Terrazas del Ávila, Caracas",
+        "precio": "US$ 900",
+        "codigo": "4866695353",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Valle Arriba, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Apartamento",
+        "zona": "Valle Arriba, Caracas",
+        "precio": "US$ 1.200",
+        "codigo": "PB-TP76",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Local en Vizcaya, Baruta, Caracas",
+        "operacion": "Alquiler",
+        "tipo": "Local",
+        "zona": "Vizcaya, Baruta, Caracas",
+        "precio": "US$ 2.500",
+        "codigo": "10510225",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Alto Hatillo, El Hatillo, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Alto Hatillo, El Hatillo, Caracas",
+        "precio": "US$ 295.000",
+        "codigo": "5489192",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Caurimare, Baruta, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Caurimare, Baruta, Caracas",
+        "precio": "US$ 270.000",
+        "codigo": "1873941306",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en El Cafetal, Baruta, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "El Cafetal, Baruta, Caracas",
+        "precio": "US$ 260.000",
+        "codigo": "2897812920",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en El Rosal, Chacao, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "El Rosal, Chacao, Caracas",
+        "precio": "US$ 260.000",
+        "codigo": "4669443429",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en La Boyera, El Hatillo, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "La Boyera, El Hatillo, Caracas",
+        "precio": "US$ 269.000",
+        "codigo": "9962315",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en La Trinidad, Baruta, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "La Trinidad, Baruta, Caracas",
+        "precio": "US$ 265.000",
+        "codigo": "8174955",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Las Esmeraldas, Baruta, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Las Esmeraldas, Baruta, Caracas",
+        "precio": "US$ 265.000",
+        "codigo": "10440128",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Las Mercedes, Baruta, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Las Mercedes, Baruta, Caracas",
+        "precio": "US$ 299.000",
+        "codigo": "10517501",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Dúplex en Loma Linda, El Hatillo, Caracas",
+        "operacion": "Venta",
+        "tipo": "Dúplex",
+        "zona": "Loma Linda, El Hatillo, Caracas",
+        "precio": "US$ 250.000",
+        "codigo": "9860254",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Los Naranjos del Cafetal, El Hatillo, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Los Naranjos del Cafetal, El Hatillo, Caracas",
+        "precio": "US$ 250.000",
+        "codigo": "10130206",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Los Naranjos del Cafetal, El Hatillo, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Los Naranjos del Cafetal, El Hatillo, Caracas",
+        "precio": "US$ 255.000",
+        "codigo": "9784370",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "PH en Los Naranjos del Cafetal, El Hatillo, Caracas",
+        "operacion": "Venta",
+        "tipo": "PH",
+        "zona": "Los Naranjos del Cafetal, El Hatillo, Caracas",
+        "precio": "US$ 295.000",
+        "codigo": "10219291",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Los Palos Grandes, Chacao, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Los Palos Grandes, Chacao, Caracas",
+        "precio": "US$ 275.000",
+        "codigo": "266943751",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Sebucán, Sucre, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Sebucán, Sucre, Caracas",
+        "precio": "US$ 290.000",
+        "codigo": "10542248",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Terrazas de Santa Inés, Baruta, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Terrazas de Santa Inés, Baruta, Caracas",
+        "precio": "US$ 295.000",
+        "codigo": "10001034",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Terrazas del Club Hípico, Baruta, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Terrazas del Club Hípico, Baruta, Caracas",
+        "precio": "US$ 270.000",
+        "codigo": "6888532",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Terrazas del Ávila, Sucre, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Terrazas del Ávila, Sucre, Caracas",
+        "precio": "US$ 250.000",
+        "codigo": "5410360905",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Terrazas del Ávila, Sucre, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Terrazas del Ávila, Sucre, Caracas",
+        "precio": "US$ 260.000",
+        "codigo": "LYS113",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "Apartamento en Urb. Miranda, Sucre, Caracas",
+        "operacion": "Venta",
+        "tipo": "Apartamento",
+        "zona": "Urb. Miranda, Sucre, Caracas",
+        "precio": "US$ 300.000",
+        "codigo": "PB-IB25",
+        "origen": "red",
+        "solo_cliente_directo": true
+      },
+      {
+        "titulo": "PH en Urb. Miranda, Sucre, Caracas",
+        "operacion": "Venta",
+        "tipo": "PH",
+        "zona": "Urb. Miranda, Sucre, Caracas",
+        "precio": "US$ 280.000",
+        "codigo": "9504214",
+        "origen": "red",
+        "solo_cliente_directo": true
+      }
+    ]
+  }
+}

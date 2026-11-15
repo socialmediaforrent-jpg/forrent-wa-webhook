@@ -7,8 +7,10 @@ Endpoints
   GET  /api/events?since_id=N        -> (Bearer WA_READ_KEY) mensajes/estados nuevos para los scripts de la caja
   POST /api/outbound                 -> (Bearer WA_READ_KEY) registra una respuesta enviada desde la caja
   GET  /api/last_inbound?wa_id=...   -> (Bearer WA_READ_KEY) último mensaje entrante de un número
-  GET  /panel                        -> bandeja de entrada (HTTP Basic, usuario jose)
-  GET  /panel/data                   -> JSON de la bandeja (misma autenticación; para auto-actualizar)
+  GET  / y /portal                   -> portal For Rent (HTTP Basic, usuario jose)
+  GET  /panel                        -> bandeja de entrada (misma autenticación)
+  GET  /panel/data                   -> JSON de la bandeja (para auto-actualizar)
+  GET  /inventario                   -> inventario propios / alianza / red (solo lectura)
 
 Variables de entorno
   DATABASE_URL                Postgres (Render). Si falta, usa SQLite local (solo pruebas).
@@ -17,7 +19,9 @@ Variables de entorno
   META_APP_SECRET             secreto de la app de Meta. Sin él NO se valida la firma (se registra un aviso).
   AUTO_REPLY_ENABLED=1        respuesta automática fuera de horario (apagada por defecto)
   AUTO_REPLY_TEXT, META_WA_TOKEN, WA_PHONE_NUMBER_ID, GRAPH_VERSION  (solo si AUTO_REPLY_ENABLED=1)
-  PANEL_PASSWORD_SHA256       sha256 hex de la contraseña del panel (usuario fijo: jose). También acepta PANEL_PASSWORD.
+  PANEL_PASSWORD_SHA256       sha256 hex de la contraseña del portal (usuario fijo: jose). También acepta PANEL_PASSWORD.
+  PORTAL_ESTATUS_URL          enlace del panel admin del Sistema de Clientes
+  PORTAL_CIERRES_URL          enlace del panel admin de Cierres (Sistema Contable)
 """
 import hashlib, hmac, json, logging, os, sqlite3, threading, time, urllib.request
 from datetime import datetime, timedelta, timezone
@@ -469,6 +473,58 @@ def panel():
 @require_panel_auth
 def panel_data():
     return _panel_headers(jsonify(_panel_payload(request.args.get('c') or '')))
+
+
+INV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'inventario.json')
+
+
+def _inventario():
+    try:
+        with open(INV_PATH, encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {'actualizado': '', 'grupos': {'propio': [], 'alianza': [], 'red': []}, 'conteos': {}}
+
+
+def _fmt_actualizado(iso):
+    dt = _parse_caracas(iso)
+    if not dt:
+        return iso or 'fecha no disponible'
+    h = dt.hour % 12 or 12
+    ap = 'a. m.' if dt.hour < 12 else 'p. m.'
+    return f'{dt.day} de {MESES[dt.month - 1]} de {dt.year}, {h}:{dt.strftime("%M")} {ap} (Caracas)'
+
+
+def _portal_links():
+    return {
+        'estatus_url': os.environ.get('PORTAL_ESTATUS_URL', '').strip(),
+        'cierres_url': os.environ.get('PORTAL_CIERRES_URL', '').strip(),
+    }
+
+
+@app.get('/')
+@app.get('/portal')
+@require_panel_auth
+def portal():
+    return _panel_headers(render_template('portal.html', **_portal_links()))
+
+
+@app.get('/inventario')
+@require_panel_auth
+def inventario():
+    data = _inventario()
+    grupos = data.get('grupos') or {}
+    orden = [('propio', grupos.get('propio') or []),
+             ('alianza', grupos.get('alianza') or []),
+             ('red', grupos.get('red') or [])]
+    return _panel_headers(render_template(
+        'inventario.html',
+        actualizado=_fmt_actualizado(data.get('actualizado') or ''),
+        grupos=orden,
+        n_propio=len(orden[0][1]),
+        n_alianza=len(orden[1][1]),
+        n_red=len(orden[2][1]),
+    ))
 
 
 # ---------------------------------------------------------------- respuesta fuera de horario (APAGADA por defecto)

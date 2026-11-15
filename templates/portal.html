@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Portal · For Rent</title>
+{% include '_brand.css.html' %}
+</head>
+<body>
+{% set nav='portal' %}
+{% set subtitle='acceso de José · For Rent Grupo Inmobiliario' %}
+{% include '_top.html' %}
+<main class="wrap-page">
+  <h1 class="page">Portal For Rent</h1>
+  <p class="lead">Elige una sección. Sistema de Clientes y Cierres se abren en las pantallas que ya usamos. Mensajes e Inventario están en este mismo sitio, en solo lectura.</p>
+  <div class="cards">
+    {% if estatus_url %}
+    <a class="card" href="{{ estatus_url }}" target="_blank" rel="noopener noreferrer">
+      <h2>Sistema de Clientes</h2>
+      <p>Panel de estatus de todos los asesores: recorrido, seguimientos y actualizaciones.</p>
+      <div class="go">Abrir panel →</div>
+    </a>
+    {% else %}
+    <div class="card"><h2>Sistema de Clientes</h2><p>El enlace del panel no está configurado en este servidor.</p></div>
+    {% endif %}
+
+    {% if cierres_url %}
+    <a class="card" href="{{ cierres_url }}" target="_blank" rel="noopener noreferrer">
+      <h2>Cierres</h2>
+      <p>Sistema Contable: reportes de cierre recibidos (reservas y comisiones).</p>
+      <div class="go">Abrir reportes →</div>
+    </a>
+    {% else %}
+    <div class="card"><h2>Cierres</h2><p>El enlace del panel de cierres no está configurado en este servidor.</p></div>
+    {% endif %}
+
+    <a class="card" href="/panel">
+      <h2>Mensajes</h2>
+      <p>Conversaciones de WhatsApp que llegan a nuestro servidor. Solo lectura; se actualiza solo.</p>
+      <div class="go">Ver mensajes →</div>
+    </a>
+
+    <a class="card" href="/inventario">
+      <h2>Inventario</h2>
+      <p>Inmuebles propios y de alianza (y la red de reels), con código interno, zona y precio. Sin datos de captadores ni enlaces de Rex o Wasi.</p>
+      <div class="go">Ver inventario →</div>
+    </a>
+  </div>
+</main>
+</body>
+</html>

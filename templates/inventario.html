@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Inventario · For Rent</title>
+{% include '_brand.css.html' %}
+</head>
+<body>
+{% set nav='inventario' %}
+{% set subtitle='solo lectura · sin datos de captadores ni enlaces Rex/Wasi' %}
+{% include '_top.html' %}
+<main class="wrap-page">
+  <h1 class="page">Inventario</h1>
+  <p class="lead">Foto del inventario de Mónica al {{ actualizado }}. Propios {{ n_propio }} · Alianza {{ n_alianza }} · Red {{ n_red }}.</p>
+  <div class="tabs" role="tablist">
+    <button type="button" class="on" data-g="propio">Propios ({{ n_propio }})</button>
+    <button type="button" data-g="alianza">Alianza ({{ n_alianza }})</button>
+    <button type="button" data-g="red">Red ({{ n_red }})</button>
+  </div>
+  <input class="search" id="q" type="search" placeholder="Buscar por zona, tipo, código o título…" autocomplete="off">
+
+  {% for origen, filas in grupos %}
+  <div class="group {{ 'on' if origen=='propio' else '' }}" data-g="{{ origen }}">
+    {% if not filas %}
+    <div class="empty">No hay inmuebles en este grupo.</div>
+    {% else %}
+    <table class="inv">
+      <thead>
+        <tr>
+          <th>Título</th>
+          <th>Operación</th>
+          <th>Tipo</th>
+          <th>Zona</th>
+          <th>Precio</th>
+          <th>Código</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in filas %}
+        <tr>
+          <td data-label="Título">{{ it.titulo }}{% if it.solo_cliente_directo %} <span class="badge">Solo cliente directo</span>{% endif %}</td>
+          <td data-label="Operación"><span class="op {{ 'alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span></td>
+          <td data-label="Tipo">{{ it.tipo }}</td>
+          <td data-label="Zona">{{ it.zona }}</td>
+          <td data-label="Precio">{{ it.precio }}</td>
+          <td data-label="Código"><b>{{ it.codigo }}</b></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% endfor %}
+</main>
+<script>
+(function(){
+  const tabs=[...document.querySelectorAll('.tabs button')];
+  const groups=[...document.querySelectorAll('.group')];
+  const q=document.getElementById('q');
+  tabs.forEach(b=>b.addEventListener('click',()=>{
+    tabs.forEach(x=>x.classList.toggle('on',x===b));
+    groups.forEach(g=>g.classList.toggle('on', g.dataset.g===b.dataset.g));
+    filter();
+  }));
+  function filter(){
+    const s=(q.value||'').trim().toLowerCase();
+    document.querySelectorAll('.group.on tbody tr').forEach(tr=>{
+      tr.style.display = !s || tr.textContent.toLowerCase().includes(s) ? '' : 'none';
+    });
+  }
+  q.addEventListener('input', filter);
+})();
+</script>
+</body>
+</html>

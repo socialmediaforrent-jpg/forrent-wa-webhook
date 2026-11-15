@@ -29,6 +29,10 @@ services:
         sync: false
       - key: PANEL_PASSWORD_SHA256
         sync: false
+      - key: PORTAL_ESTATUS_URL
+        sync: false
+      - key: PORTAL_CIERRES_URL
+        sync: false
       - key: GRAPH_VERSION
         value: v27.0
       - key: AUTO_REPLY_ENABLED
