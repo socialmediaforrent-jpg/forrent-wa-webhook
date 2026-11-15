@@ -780,14 +780,17 @@ def _asesor_clientes(user):
     for r in propios:
         out.append({
             'id': r['id'], 'nombre': r['nombre'], 'telefono': r['telefono'],
-            'estatus': r['status'], 'origen': 'Propio del asesor',
+            'estatus': r['status'], 'estado': '', 'situacion': '',
+            'origen': 'Propio del asesor',
             'origen_nota': r.get('origen_nota') or '',
             'busca': _busca(r), 'inmueble': '', 'editable': True,
         })
     for r in asignados:
         out.append({
             'id': r.get('id'), 'nombre': r.get('nombre') or 'Cliente', 'telefono': '',
-            'estatus': r.get('estatus') or 'Sin estatus', 'origen': 'Asignado por For Rent',
+            'estatus': r.get('estatus') or 'Sin estatus',
+            'estado': r.get('estado') or '', 'situacion': r.get('situacion') or '',
+            'origen': 'Asignado por For Rent',
             'origen_nota': '', 'busca': r.get('operacion') or '',
             'inmueble': r.get('inmueble') or '', 'editable': False,
         })
@@ -808,8 +811,10 @@ def _cierres_vista(user, *, full):
 def _render_asesor(user, flash_ok='', flash_err='', form=None):
     full = user['role'] in ('admin', 'lider')
     cierres = _cierres_vista(user, full=full)
+    clientes, _ = _asesor_clientes(user)
     return _panel_headers(render_template(
         'asesor.html', cierres=cierres, n_cierres=len(cierres), dash=_dashboard(user),
+        fases=_fases_de(clientes),
     ))
 
 
@@ -817,7 +822,7 @@ def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200):
     clientes, cli_fecha = _asesor_clientes(user)
     resp = _panel_headers(render_template(
         'clientes.html',
-        clientes=clientes, n_clientes=len(clientes),
+        clientes=clientes, n_clientes=len(clientes), fases=_fases_de(clientes),
         cli_fecha=portal_lib.fmt_fecha(cli_fecha) if cli_fecha else 'fecha no disponible',
         estatus_opciones=portal_lib.ESTATUS_OPCIONES,
         csrf=portal_lib.csrf_token(user), puede_agregar=user['role'] != 'admin',
@@ -841,6 +846,27 @@ def _fecha_corta(iso):
 
 def _kpi(label, value=None, meta='', href=''):
     return {'label': label, 'value': value, 'meta': meta, 'href': href}
+
+
+def _fases_de(clientes):
+    return portal_lib.resumen_fases(clientes)
+
+
+def _clientes_dashboard(user):
+    """Mismo alcance que el dashboard: José ve a todos; líder y asesora, los suyos."""
+    if user['role'] != 'admin':
+        return _asesor_clientes(user)[0]
+    asignados, _, _ = portal_lib.load_asignados()
+    propios = _db_propios(portal_lib.visible_slugs(user))
+    out = []
+    for r in propios:
+        out.append({'estatus': r.get('status') or 'Sin estatus', 'estado': '', 'situacion': ''})
+    for r in asignados:
+        out.append({
+            'estatus': r.get('estatus') or 'Sin estatus',
+            'estado': r.get('estado') or '', 'situacion': r.get('situacion') or '',
+        })
+    return out
 
 
 def _dashboard(user):
@@ -958,7 +984,7 @@ def logout():
 def portal():
     if g.user['role'] != 'admin':
         return _render_asesor(g.user)
-    return _panel_headers(render_template('portal.html', dash=_dashboard(g.user), **_portal_links()))
+    return _panel_headers(render_template('portal.html', dash=_dashboard(g.user), fases=_fases_de(_clientes_dashboard(g.user)), **_portal_links()))
 
 
 @app.get('/clientes-propios')
@@ -1038,7 +1064,7 @@ def mi_equipo_asesora(slug):
         visitas=visitas_r, visitas_estatus=[c for c in cli_est if c['estatus'] == 'Visita agendada'], ofertas=ofertas_r,
         propias=[x for x in cap if x.get('origen') == 'propio'],
         alianzas=[x for x in cap if x.get('origen') == 'alianza'],
-        clientes=clientes,
+        clientes=clientes, fases=_fases_de(clientes),
         cli_fecha=portal_lib.fmt_fecha(cli_fecha) if cli_fecha else 'fecha no disponible',
         inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''),
     ))

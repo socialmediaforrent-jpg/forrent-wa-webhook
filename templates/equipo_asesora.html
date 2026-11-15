@@ -11,6 +11,7 @@
 <body>
 {% from '_cap_table.html' import cap_table %}
 {% from '_cli_table.html' import cli_table %}
+{% from '_fases.html' import fase_cards, cli_por_fase %}
 {% set nav='equipo' %}
 {% include '_top.html' %}
 <main class="wrap-page">
@@ -33,7 +34,9 @@
   <table class="inv"><thead><tr><th>Tipo</th><th>Fecha</th><th>Cliente</th><th>Inmueble</th><th>Monto</th></tr></thead><tbody>
   {% for o in ofertas %}<tr><td data-label="Tipo"><span class="pill">{{ o.tipo|capitalize }}</span></td><td data-label="Fecha">{{ o.fecha or 'sin fecha' }}</td><td data-label="Cliente"><b>{{ o.cliente }}</b></td><td data-label="Inmueble">{{ o.inmueble or '—' }}</td><td data-label="Monto">{{ o.monto or '—' }}</td></tr>{% endfor %}
   </tbody></table>{% endif %}</section>
-  <section class="sec"><h2>Clientes ({{ clientes|length }})</h2>{{ cli_table(clientes, '', [], 'Sin clientes en esta lista.') }}</section>
+  <section class="sec" id="clientes"><h2>Clientes ({{ clientes|length }})</h2>
+  {% if fases %}{{ fase_cards(fases, '/mi-equipo/' ~ a_slug) }}{% endif %}
+  {{ cli_por_fase(fases.grupos if fases else [], '', [], 'Sin clientes en esta lista.') }}</section>
 </main>
 </body>
 </html>

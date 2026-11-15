@@ -1,0 +1,36 @@
+{% macro fase_cards(resumen, href_base='/mis-clientes') %}
+<section class="fase-kpis" aria-label="Clientes por fase">
+  <div class="kpi fase-pct">
+    <div class="lbl">Con estatus</div>
+    <div class="val">{{ resumen.pct }}%</div>
+    <div class="meta">{{ resumen.con }} de {{ resumen.total }}</div>
+    <div class="bar"><i style="width:{{ resumen.pct }}%"></i></div>
+  </div>
+  {% for g in resumen.grupos %}
+  {% if g.id!='otros' or g.total %}
+  <a class="kpi fase-card{% if g.id=='perdidos' %} perdidos{% endif %}" href="{{ href_base }}#fase-{{ g.id }}">
+    <div class="lbl">{{ g.titulo }}</div>
+    <div class="val">{{ g.total }}</div>
+    <div class="meta">{% if g.desglose %}{% for k,n in g.desglose %}{{ k }}: {{ n }}{% if not loop.last %} · {% endif %}{% endfor %}{% elif g.total==0 %}<span class="muted">Sin clientes</span>{% endif %}</div>
+  </a>
+  {% endif %}
+  {% endfor %}
+</section>
+{% endmacro %}
+
+{% macro cli_por_fase(grupos, csrf, estatus_opciones, vacio) %}
+{% from '_cli_table.html' import cli_table %}
+{% set hay = grupos|selectattr('clientes')|list %}
+{% if not hay %}
+<div class="empty">{{ vacio }}</div>
+{% else %}
+{% for g in grupos %}
+{% if g.clientes %}
+<details class="fase-sec" id="fase-{{ g.id }}" open>
+  <summary>{{ g.titulo }} <span class="muted">({{ g.clientes|length }})</span></summary>
+  {{ cli_table(g.clientes, csrf, estatus_opciones, '') }}
+</details>
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endmacro %}

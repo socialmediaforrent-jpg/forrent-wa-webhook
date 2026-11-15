@@ -15,6 +15,103 @@ ESTATUS_OPCIONES = [
     'Inmueble entregado', 'En espera', 'Recuperado', 'Perdido', 'Sin estatus',
 ]
 
+# Fases del pipeline (solo agrupan; no cambian los valores de estatus).
+FASE_DEFS = [
+    ('f1', 'Fase 1 · Asignación y contacto', ('Sin estatus', 'Nuevo', 'Contactado', 'No contactado')),
+    ('f2', 'Fase 2 · Búsqueda / En proceso', ('Buscando', 'Esperando', 'En espera', 'En proceso')),
+    ('f3', 'Fase 3 · Visitas', ('Visita agendada', 'Visita realizada')),
+    ('f4', 'Fase 4 · Negociación', ('Oferta realizada', 'Oferta aceptada', 'Reserva agendada')),
+    ('f5', 'Fase 5 · Entrega', ('Reserva firmada',)),
+]
+_FASE_KEY = {k: fid for fid, _t, keys in FASE_DEFS for k in keys}
+
+
+def _texto_perdido(s):
+    """Reconoce estatus reales de pérdida/descarte (sin inventar valores)."""
+    n = norm(s)
+    if not n:
+        return False
+    if n in {
+        'perdido', 'descartado', 'no interesado', 'cerrado', 'cerrado sin negocio',
+        'cerrado sin exito', 'busca otra opcion', 'buscando otra propiedad',
+    }:
+        return True
+    if n.startswith('busca otra propiedad') or n.startswith('buscando otra propiedad'):
+        return True
+    if 'desistio' in n or 'cerrado sin' in n:
+        return True
+    return False
+
+
+def es_perdido(estado='', situacion='', estatus='', tg=''):
+    if (estado or '').strip() == 'Perdido':
+        return True
+    return any(_texto_perdido(x) for x in (estado, situacion, estatus, tg))
+
+
+def fase_de(estado='', situacion='', estatus='', tg=''):
+    """((id de fase, etiqueta de desglose)). Prioriza estado=Perdido sobre Buscando/Esperando."""
+    e, si, st = (estado or '').strip(), (situacion or '').strip(), (estatus or '').strip()
+    if es_perdido(e, si, st, tg):
+        if e == 'Perdido' and si:
+            return 'perdidos', f'Perdido · {si}'
+        if e == 'Perdido':
+            return 'perdidos', 'Perdido'
+        return 'perdidos', si or st or (tg or '').strip() or e or 'Perdido'
+    if si in _FASE_KEY:
+        return _FASE_KEY[si], si
+    if e in _FASE_KEY:
+        return _FASE_KEY[e], e
+    if st in _FASE_KEY:
+        return _FASE_KEY[st], st
+    return 'otros', si or e or st or 'Sin clasificar'
+
+
+def tiene_estatus(estado='', situacion='', estatus=''):
+    e, st = (estado or '').strip(), (estatus or '').strip()
+    return (e and e != 'Sin estatus') or (st and st != 'Sin estatus')
+
+
+def resumen_fases(clientes):
+    """Agrupa clientes por fase. Cada ítem puede traer estado, situacion, estatus y tg."""
+    from collections import Counter
+    orden = [fid for fid, _t, _k in FASE_DEFS] + ['perdidos', 'otros']
+    titulos = {fid: t for fid, t, _k in FASE_DEFS}
+    titulos['perdidos'] = 'Perdidos'
+    titulos['otros'] = 'Otros'
+    buckets = {fid: {'id': fid, 'titulo': titulos[fid], 'desglose': Counter(), 'clientes': []} for fid in orden}
+    con = 0
+    for c in clientes:
+        c = dict(c)
+        e, si, st = c.get('estado') or '', c.get('situacion') or '', c.get('estatus') or c.get('status') or ''
+        fid, lab = fase_de(e, si, st, c.get('tg') or '')
+        c['fase'], c['fase_label'] = fid, lab
+        buckets[fid]['clientes'].append(c)
+        buckets[fid]['desglose'][lab] += 1
+        if tiene_estatus(e, si, st):
+            con += 1
+    grupos = []
+    for fid in orden:
+        b = buckets[fid]
+        if fid == 'otros' and not b['clientes']:
+            continue
+        keys = next((k for i, _t, k in FASE_DEFS if i == fid), ())
+        seen = set()
+        des = []
+        for k in keys:
+            # desglose may use the key directly
+            n = b['desglose'].get(k, 0)
+            if n:
+                des.append((k, n)); seen.add(k)
+        for k, n in b['desglose'].most_common():
+            if k not in seen:
+                des.append((k, n))
+        grupos.append({'id': fid, 'titulo': b['titulo'], 'total': len(b['clientes']), 'desglose': des, 'clientes': b['clientes']})
+    total = len(clientes)
+    pct = int(round(100 * con / total)) if total else 0
+    return {'total': total, 'con': con, 'pct': pct, 'grupos': grupos}
+
+
 # Campos de comisión que un asesor SÍ puede ver. Nada de líder ni totales que permitan inferirlo.
 ASESOR_CALC_KEYS = ('asesor', 'forrent', 'inmobiliaria')
 LIDER_KEY_RE = re.compile(r'lider|líder|leader', re.I)

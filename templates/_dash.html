@@ -1,4 +1,11 @@
 {% from '_icons.html' import icon %}
+{% if fases %}
+{% from '_fases.html' import fase_cards %}
+<section class="dash-sec" aria-label="Clientes por fase">
+  <h2>{{ icon('users') }} Clientes por fase</h2>
+  {{ fase_cards(fases, '/mis-clientes') }}
+</section>
+{% endif %}
 {% for titulo, ic, kpis in dash %}
 <section class="dash-sec" aria-label="{{ titulo }}">
   <h2>{{ icon(ic) }} {{ titulo }}</h2>
