@@ -21,3 +21,5 @@ El inventario es una foto sanitizada (`data/inventario.json`): título, operaci�
 Se registran en la tabla `email_outbox` (pantalla /admin/correos). `EMAIL_MODE=log` (por defecto) no envía nada;
 `test` envía solo a `EMAIL_TEST_TO`; `smtp` envía de verdad (requiere `SMTP_USER` y `SMTP_APP_PASSWORD`, contraseña de aplicación de Gmail).
 `ASSIGN_EMAIL_MODE=omitir` (por defecto) evita duplicar el aviso de asignación que ya envía la rutina de la caja.
+Los correos iniciales de `asesor_perfil` se cargan (solo si el perfil no tiene correo) desde `TABLA_ASESORES_GHL_WASI.csv`, `config/asesores_whatsapp.json` y `asesores_emails_iniciales.json`; la asesora puede editarlos después.
+Las solicitudes de captación las aprueba el líder del equipo (José puede aprobar todas) en `/aprobaciones`. Al aprobar se avisa a la asesora y a `socialmediaforrent@gmail.com` para cargar el inventario; el snapshot de inventario no se modifica solo.

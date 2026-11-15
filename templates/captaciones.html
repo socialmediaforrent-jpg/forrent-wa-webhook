@@ -10,10 +10,15 @@
   <a href="/mis-captaciones?f=todas" class="{{ 'on' if f=='todas' else '' }}">Todas ({{ n_prop + n_ali }})</a>
 </nav>
 {{ cap_table(filas, 'No hay captaciones a tu nombre en este filtro.') }}
+{% set aprob = solicitudes|selectattr('estado','equalto','aprobada')|selectattr('accion','equalto','alta')|list %}
+{% if aprob %}<section class="sec"><h2>Aprobadas, pendientes de cargar en inventario ({{ aprob|length }})</h2>
+<table class="inv"><thead><tr><th>Inmueble</th><th>Operación</th><th>Zona</th><th>Precio</th><th>Estado</th></tr></thead><tbody>
+{% for s in aprob %}<tr><td data-label="Inmueble"><b>{{ s.titulo }}</b></td><td data-label="Operación">{{ s.operacion or '—' }}</td><td data-label="Zona">{{ s.zona or '—' }}</td><td data-label="Precio">{{ s.precio or '—' }}</td><td data-label="Estado"><span class="pill">Aprobada, pendiente de cargar en inventario</span></td></tr>{% endfor %}
+</tbody></table></section>{% endif %}
 {% if puede %}
 <section class="sec">
   <h2>Agregar o retirar una captación</h2>
-  <p class="muted">Se registra como solicitud; el inventario cambia cuando administración la aprueba. Te llega un aviso por correo.</p>
+  <p class="muted">Se registra como solicitud y la aprueba tu líder (o José). Te llega un aviso por correo.</p>
   <details {{ 'open' if err else '' }}><summary class="btn-sum">+ Solicitar agregar</summary>
   <form class="grid" method="post" action="/mis-captaciones" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="alta">
     <div class="wide"><label>Título o dirección <input name="titulo" required maxlength="160"></label></div>
@@ -33,7 +38,7 @@
   {% if solicitudes %}<h2>Tus solicitudes</h2>
   <table class="inv"><thead><tr><th>Fecha</th><th>Acción</th><th>Inmueble</th><th>Estado</th></tr></thead><tbody>
   {% for s in solicitudes %}<tr><td data-label="Fecha">{{ s.created_at[:10] }}</td><td data-label="Acción">{{ 'Agregar' if s.accion=='alta' else 'Retirar' }}</td>
-  <td data-label="Inmueble">{{ s.titulo or s.codigo }}{% if s.codigo %} <span class="muted">· {{ s.codigo }}</span>{% endif %}</td><td data-label="Estado"><span class="pill">{{ s.estado|capitalize }}</span></td></tr>{% endfor %}
+  <td data-label="Inmueble">{{ s.titulo or s.codigo }}{% if s.codigo %} <span class="muted">· {{ s.codigo }}</span>{% endif %}</td><td data-label="Estado">{% if s.estado=='aprobada' and s.accion=='alta' %}<span class="pill">Aprobada, pendiente de cargar en inventario</span>{% elif s.estado=='aprobada' %}<span class="pill">Aprobada, pendiente de retirar del inventario</span>{% else %}<span class="pill {{ 'asig' if s.estado=='rechazada' else '' }}">{{ s.estado|capitalize }}</span>{% endif %}{% if s.nota_revision %}<div class="muted">«{{ s.nota_revision }}»</div>{% endif %}</td></tr>{% endfor %}
   </tbody></table>{% endif %}
 </section>{% endif %}
 {% endblock %}

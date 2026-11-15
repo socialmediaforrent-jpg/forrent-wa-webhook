@@ -1,0 +1,21 @@
+{% extends 'base.html' %}{% set nav='aprobaciones' %}{% block title %}Aprobaciones{% endblock %}
+{% block body %}
+<h1 class="page">Aprobaciones</h1>
+<p class="lead">Solicitudes de captación de {{ 'todas las asesoras' if viewer.role=='admin' else 'tu equipo' }}. Al decidir, avisamos a la asesora; si apruebas, también a Inventario para cargarla.</p>
+<nav class="tabs"><a href="/aprobaciones" class="{{ 'on' if t=='pendientes' else '' }}">Pendientes ({{ n_pend }})</a><a href="/aprobaciones?t=historial" class="{{ 'on' if t=='historial' else '' }}">Historial ({{ n_hist }})</a></nav>
+{% if not filas %}<div class="empty">{{ 'No hay solicitudes pendientes.' if t=='pendientes' else 'Todavía no hay solicitudes revisadas.' }}</div>{% endif %}
+{% for r in filas %}
+<article class="req">
+  <div class="req-top"><span class="pill {{ 'prop' if r.accion=='alta' else '' }}">{{ 'Agregar' if r.accion=='alta' else 'Retirar' }}</span><b>{{ r.asesor_nombre }}</b><span class="muted">{{ r.created_at[:10] }}</span></div>
+  <h3>{{ r.titulo or r.codigo }}</h3>
+  <div class="muted">{% if r.codigo %}Código {{ r.codigo }} · {% endif %}{{ r.operacion or '—' }} · {{ r.tipo or '—' }} · {{ r.zona or '—' }} · {{ r.precio or '—' }}{% if r.origen %} · {{ 'Propia' if r.origen=='propio' else 'Aliada' }}{% endif %}</div>
+  {% if r.nota %}<p class="req-note">«{{ r.nota }}»</p>{% endif %}
+  {% if r.estado=='pendiente' %}
+  <form method="post" action="/aprobaciones/{{ r.id }}" class="req-form"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <input name="nota" maxlength="400" placeholder="Nota (opcional)" class="search" style="margin:0">
+    <div class="req-btns"><button class="btn" name="decision" value="aprobada" type="submit">Aprobar</button><button class="btn btn-sec" name="decision" value="rechazada" type="submit">Rechazar</button></div>
+  </form>
+  {% else %}<div class="muted"><span class="pill {{ 'asig' if r.estado=='rechazada' else '' }}">{{ r.estado|capitalize }}</span> por {{ r.revisado_por }} · {{ (r.revisado_at or '')[:10] }}{% if r.nota_revision %} · «{{ r.nota_revision }}»{% endif %}</div>{% endif %}
+</article>
+{% endfor %}
+{% endblock %}

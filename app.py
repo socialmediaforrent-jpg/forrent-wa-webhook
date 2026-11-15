@@ -26,7 +26,8 @@ Variables de entorno
   PORTAL_CIERRES_URL          enlace del panel admin de Cierres (Sistema Contable)
   SECRET_KEY                  firma de la cookie de sesión del portal (no es una contraseña de usuario)
 """
-import hashlib, hmac, json, logging, os, sqlite3, threading, time, urllib.request
+import csv, hashlib, hmac, json, logging, os, sqlite3, threading, time, urllib.request
+from pathlib import Path as _Path
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -94,6 +95,23 @@ SERIAL = 'BIGSERIAL PRIMARY KEY' if IS_PG else 'INTEGER PRIMARY KEY AUTOINCREMEN
 JSONT = 'JSONB' if IS_PG else 'TEXT'
 
 
+def _ensure_col(table, col, typ='TEXT'):
+    """Agrega una columna si la tabla ya existía sin ella (SQLite y Postgres)."""
+    if not IS_PG:
+        cols = q(f'PRAGMA table_info({table})', fetch=True) or []
+        if col in {r['name'] for r in cols}:
+            return
+        q(f'ALTER TABLE {table} ADD COLUMN {col} {typ}')
+        return
+    try:
+        q(f'ALTER TABLE {table} ADD COLUMN {col} {typ}')
+    except Exception as e:
+        if 'already exists' in str(e).lower() or 'duplicate' in str(e).lower():
+            return
+        raise
+
+
+
 def init_db():
     q(f"""CREATE TABLE IF NOT EXISTS raw_events (
         id {SERIAL}, received_at TEXT NOT NULL, signature_ok INTEGER, payload {JSONT})""")
@@ -116,7 +134,11 @@ def init_db():
         foto {BLOBT}, foto_mime TEXT, updated_at TEXT)""")
     q(f"""CREATE TABLE IF NOT EXISTS captacion_solicitudes (
         id {SERIAL}, asesor_slug TEXT NOT NULL, accion TEXT NOT NULL, codigo TEXT, titulo TEXT, operacion TEXT,
-        tipo TEXT, zona TEXT, precio TEXT, origen TEXT, nota TEXT, estado TEXT NOT NULL, created_at TEXT NOT NULL)""")
+        tipo TEXT, zona TEXT, precio TEXT, origen TEXT, nota TEXT, estado TEXT NOT NULL, created_at TEXT NOT NULL,
+        revisado_por TEXT, revisado_at TEXT, nota_revision TEXT)""")
+    _ensure_col('captacion_solicitudes', 'revisado_por')
+    _ensure_col('captacion_solicitudes', 'revisado_at')
+    _ensure_col('captacion_solicitudes', 'nota_revision')
     q(f"""CREATE TABLE IF NOT EXISTS asesor_visitas (
         id {SERIAL}, asesor_slug TEXT NOT NULL, fecha TEXT, hora TEXT, cliente TEXT NOT NULL, inmueble TEXT,
         nota TEXT, created_at TEXT NOT NULL)""")
@@ -132,6 +154,80 @@ def init_db():
     q("""CREATE TABLE IF NOT EXISTS asignaciones_notificadas (
         asesor_slug TEXT NOT NULL, cliente_id TEXT NOT NULL, created_at TEXT NOT NULL,
         PRIMARY KEY (asesor_slug, cliente_id))""")
+    seed_emails_perfil()
+
+
+
+def seed_emails_perfil():
+    """Correos iniciales desde TABLA_ASESORES_GHL_WASI.csv, config/asesores_whatsapp.json,
+    asesores_emails_iniciales.json y PORTAL_ASESORES_EMAILS. Solo rellena perfiles sin correo."""
+    datos = {}
+
+    def poner(slug, email):
+        slug, email = (slug or '').strip().lower(), (email or '').strip()
+        if slug and '@' in email and ' ' not in email and portal_lib.asesor_by_user(slug) and slug not in datos:
+            datos[slug] = email
+
+    def slug_por_nombre(nombre):
+        n = portal_lib.norm(nombre or '')
+        if not n:
+            return None
+        for a in portal_lib.asesores_meta():
+            cand = [a.get('user'), a.get('name'), *(a.get('aliases') or [])]
+            if n in {portal_lib.norm(x) for x in cand if x}:
+                return a['user']
+        return None
+
+    aqui = _Path(__file__).resolve().parent
+    raiz = aqui.parent
+    for path in (raiz / 'TABLA_ASESORES_GHL_WASI.csv', aqui / 'TABLA_ASESORES_GHL_WASI.csv', aqui / 'data' / 'TABLA_ASESORES_GHL_WASI.csv'):
+        if not path.is_file():
+            continue
+        try:
+            with path.open(newline='', encoding='utf-8') as f:
+                for row in csv.DictReader(f):
+                    poner(slug_por_nombre(row.get('nombre_ghl') or row.get('nombre_wasi')), row.get('email'))
+        except Exception:
+            log.warning('No pude leer correos desde %s', path)
+
+    for path in (raiz / 'config' / 'asesores_whatsapp.json', aqui / 'config' / 'asesores_whatsapp.json'):
+        if not path.is_file():
+            continue
+        try:
+            raw = json.loads(path.read_text(encoding='utf-8'))
+            for a in (raw.get('asesores') if isinstance(raw, dict) else raw) or []:
+                if isinstance(a, dict):
+                    poner(a.get('user') or slug_por_nombre(a.get('nombre') or a.get('name')), a.get('email'))
+        except Exception:
+            log.warning('No pude leer correos desde %s', path)
+
+    bundled = aqui / 'asesores_emails_iniciales.json'
+    if bundled.is_file():
+        try:
+            for slug, email in (json.loads(bundled.read_text(encoding='utf-8')) or {}).items():
+                poner(slug, email)
+        except Exception:
+            log.warning('asesores_emails_iniciales.json no es JSON válido')
+
+    raw = os.environ.get('PORTAL_ASESORES_EMAILS', '').strip()
+    if raw:
+        try:
+            for slug, email in json.loads(raw).items():
+                poner(slug, email)
+        except Exception:
+            log.warning('PORTAL_ASESORES_EMAILS no es JSON válido')
+
+    n = 0
+    for slug, email in datos.items():
+        rows = q('SELECT email FROM asesor_perfil WHERE asesor_slug=%s', (slug,), fetch=True) or []
+        if not rows:
+            q('INSERT INTO asesor_perfil (asesor_slug, email, updated_at) VALUES (%s,%s,%s)', (slug, email, None))
+            n += 1
+        elif not (rows[0].get('email') or '').strip():
+            q('UPDATE asesor_perfil SET email=%s WHERE asesor_slug=%s', (email, slug))
+            n += 1
+    return n
+
 
 
 # ---------------------------------------------------------------- utilidades
@@ -417,6 +513,7 @@ def _portal_nav():
         more.append({'href': '/perfil', 'label': 'Mi Perfil', 'key': 'perfil', 'icon': 'user'})
     if role in ('admin', 'lider'):
         more.append({'href': '/mi-equipo', 'label': 'Mi Equipo' if role == 'lider' else 'Equipos', 'key': 'equipo', 'icon': 'users'})
+        more.append({'href': '/aprobaciones', 'label': 'Aprobaciones', 'key': 'aprobaciones', 'icon': 'clipboard'})
     if role == 'admin':
         more.append({'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'key': 'captaciones', 'icon': 'key'})
     else:
@@ -933,8 +1030,12 @@ def mi_equipo_asesora(slug):
     for c in clientes:
         c['editable'] = False
     inv = _inventario()
+    visitas_r = q('SELECT * FROM asesor_visitas WHERE asesor_slug=%s ORDER BY fecha DESC, id DESC', (slug,), fetch=True) or []
+    ofertas_r = q('SELECT * FROM asesor_ofertas WHERE asesor_slug=%s ORDER BY fecha DESC, id DESC', (slug,), fetch=True) or []
+    cli_est, _ = _clientes_estatus(slug)
     return _panel_headers(render_template(
-        'equipo_asesora.html', a_name=meta.get('name') or slug,
+        'equipo_asesora.html', a_name=meta.get('name') or slug, a_slug=slug, pf=_perfil(slug),
+        visitas=visitas_r, visitas_estatus=[c for c in cli_est if c['estatus'] == 'Visita agendada'], ofertas=ofertas_r,
         propias=[x for x in cap if x.get('origen') == 'propio'],
         alianzas=[x for x in cap if x.get('origen') == 'alianza'],
         clientes=clientes,
@@ -1042,6 +1143,21 @@ def _correo(slug, asunto, cuerpo, evento, **kw):
     return notif.queue(q, now_iso, to_slug=slug, to_addr=_email_de(slug), subject=asunto, body=cuerpo, evento=evento, **kw)
 
 
+def _supervisa(user, slug):
+    """Admin: todas; líder: su equipo (sin sí misma); asesora: nadie."""
+    if user['role'] == 'admin':
+        return bool(portal_lib.asesor_by_user(slug))
+    if user['role'] == 'lider':
+        return slug != user['user'] and slug in portal_lib.visible_slugs(user)
+    return False
+
+
+def _aprobador_de(slug):
+    meta = portal_lib.asesor_by_user(slug) or {}
+    lider = meta.get('lider') or ''
+    return lider if lider and lider != slug else 'jose'
+
+
 def _csrf_ok():
     return portal_lib.csrf_ok(g.user, request.form.get('csrf'))
 
@@ -1117,7 +1233,7 @@ def perfil():
 @require_login
 def perfil_foto(slug):
     slug = (slug or '').lower()
-    if not (g.user['role'] == 'admin' or g.user['user'] == slug):
+    if not (g.user['user'] == slug or _supervisa(g.user, slug)):
         return _forbidden()
     rows = q('SELECT foto, foto_mime FROM asesor_perfil WHERE asesor_slug=%s', (slug,), fetch=True) or []
     if not rows or not rows[0].get('foto'):
@@ -1163,10 +1279,14 @@ def mis_captaciones2():
                     det = f"{titulo or codigo}" + (f" (código {codigo})" if codigo else '')
                     _correo(u['user'], f"Solicitud para {que} una captación",
                             f"Hola {u['name'].split(' ')[0]},\n\nRegistramos tu solicitud para {que} la captación: {det}.\n"
-                            "La revisará administración; el inventario no cambia hasta que se apruebe.\n\nFor Rent Online", f'captacion_{accion}')
-                    notif.queue(q, now_iso, to_slug='jose', to_addr=notif.ADMIN_NOTIFY,
-                                subject=f"{u['name']} pidió {que} una captación", body=f"Asesora: {u['name']}\nAcción: {que}\nInmueble: {det}\n",
-                                evento=f'captacion_{accion}_admin')
+                            "La revisará tu líder; el inventario no cambia hasta que se apruebe.\n\nFor Rent Online", f'captacion_{accion}')
+                    apr = _aprobador_de(u['user'])
+                    aviso = f"Asesora: {u['name']}\nAcción: {que}\nInmueble: {det}\n\nApruébala o recházala en For Rent Online › Aprobaciones.\n"
+                    if apr == 'jose':
+                        notif.queue(q, now_iso, to_slug='jose', to_addr=notif.ADMIN_NOTIFY,
+                                    subject=f"{u['name']} pidió {que} una captación", body=aviso, evento=f'captacion_{accion}_aprobador')
+                    else:
+                        _correo(apr, f"{u['name']} pidió {que} una captación", aviso, f'captacion_{accion}_aprobador')
                     return redirect('/mis-captaciones?ok=1')
     f = request.args.get('f') or 'todas'
     if f not in ('propias', 'aliadas', 'todas'):
@@ -1182,6 +1302,63 @@ def mis_captaciones2():
     return _hdr(render_template('captaciones.html', filas=filas, f=f, n_prop=len(prop), n_ali=len(ali), solicitudes=sol,
                                 inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''), ok=ok, err=err,
                                 csrf=portal_lib.csrf_token(u), puede=u['role'] != 'admin'), 400 if err else 200)
+
+
+# --- Aprobaciones de captaciones (líder de la asesora; José todas)
+@app.get('/aprobaciones')
+@require_login
+def aprobaciones():
+    u = g.user
+    if u['role'] not in ('admin', 'lider'):
+        return _forbidden()
+    rows = q('SELECT * FROM captacion_solicitudes ORDER BY id DESC', fetch=True) or []
+    rows = [r for r in rows if _supervisa(u, r['asesor_slug'])]
+    for r in rows:
+        r['asesor_nombre'] = _nombre_asesor(r['asesor_slug'])
+    t = 'historial' if request.args.get('t') == 'historial' else 'pendientes'
+    pend = [r for r in rows if r['estado'] == 'pendiente']
+    hist = [r for r in rows if r['estado'] != 'pendiente']
+    ok = {'aprobada': 'Solicitud aprobada. Avisamos a la asesora e Inventario.', 'rechazada': 'Solicitud rechazada. Avisamos a la asesora.'}.get(request.args.get('ok'), '')
+    return _hdr(render_template('aprobaciones.html', filas=pend if t == 'pendientes' else hist, t=t, n_pend=len(pend), n_hist=len(hist),
+                                ok=ok, err='', csrf=portal_lib.csrf_token(u)))
+
+
+@app.post('/aprobaciones/<int:sid>')
+@require_login
+def aprobar_solicitud(sid):
+    u = g.user
+    if u['role'] not in ('admin', 'lider'):
+        return _forbidden()
+    if not _csrf_ok():
+        abort(400)
+    rows = q('SELECT * FROM captacion_solicitudes WHERE id=%s', (sid,), fetch=True) or []
+    if not rows:
+        abort(404)
+    r = rows[0]
+    if not _supervisa(u, r['asesor_slug']):
+        return _forbidden()
+    if r['estado'] != 'pendiente':
+        return redirect('/aprobaciones?t=historial')
+    dec = request.form.get('decision')
+    if dec not in ('aprobada', 'rechazada'):
+        abort(400)
+    nota = (request.form.get('nota') or '').strip()[:400]
+    q('UPDATE captacion_solicitudes SET estado=%s, revisado_por=%s, revisado_at=%s, nota_revision=%s WHERE id=%s AND estado=%s',
+      (dec, u['user'], now_iso(), nota, sid, 'pendiente'))
+    que = 'agregar' if r['accion'] == 'alta' else 'retirar'
+    det = (r['titulo'] or r['codigo'] or 'inmueble') + (f" (código {r['codigo']})" if r['codigo'] else '')
+    nombre = _nombre_asesor(r['asesor_slug']).split(' ')[0]
+    cuerpo = (f"Hola {nombre},\n\nTu solicitud para {que} la captación {det} fue {dec} por {u['name']}.\n"
+              + (f"Nota: {nota}\n" if nota else '')
+              + ("Queda pendiente de cargar en el inventario.\n" if dec == 'aprobada' else '') + "\nFor Rent Online")
+    _correo(r['asesor_slug'], f"Solicitud de captación {dec}", cuerpo, f'captacion_{dec}')
+    if dec == 'aprobada':
+        notif.queue(q, now_iso, to_slug='inventario', to_addr=notif.ADMIN_NOTIFY,
+                    subject=f"Cargar en inventario: {que} captación de {_nombre_asesor(r['asesor_slug'])}",
+                    body=(f"Aprobada por {u['name']}.\nAcción: {que}\nInmueble: {det}\nOperación: {r['operacion'] or '—'} · Tipo: {r['tipo'] or '—'}"
+                          f" · Zona: {r['zona'] or '—'} · Precio: {r['precio'] or '—'} · Origen: {r['origen'] or '—'}\nNota de la asesora: {r['nota'] or '—'}\n"),
+                    evento='captacion_cargar_inventario')
+    return redirect(f'/aprobaciones?ok={dec}')
 
 
 # --- Visitas

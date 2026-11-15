@@ -156,3 +156,7 @@ button[aria-busy="true"]{opacity:.65;cursor:progress}
 .i.sm{width:15px;height:15px}.link{color:var(--naranja);font-weight:700;font-size:13px;text-decoration:none}
 .checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.chk{display:flex !important;align-items:center;gap:6px;font-weight:600 !important;background:var(--fondo);border-radius:8px;padding:6px 10px}
 .chk input{width:auto !important;margin:0 !important}
+.req{background:#fff;border-radius:var(--r);box-shadow:var(--sombra);padding:12px 14px;margin:0 0 10px}
+.req-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}.req-top .muted{margin-left:auto}
+.req h3{margin:8px 0 3px;font-size:15px}.req-note{margin:6px 0 0;font-size:13.5px;color:#4b5263}
+.req-form{display:flex;flex-direction:column;gap:8px;margin-top:10px}.req-btns{display:flex;gap:8px}.req-btns .btn{flex:1}
