@@ -2,3 +2,4 @@ wa_local.db
 __pycache__/
 *.pyc
 .env
+data/clientes_telefonos.json
