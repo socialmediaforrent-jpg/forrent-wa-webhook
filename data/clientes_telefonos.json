@@ -1,0 +1,2257 @@
+{
+  "fuente": "seguimiento_tg/registro.json",
+  "generado_at": "2026-11-15T21:33:42.079835+00:00",
+  "n": 250,
+  "clientes": [
+    {
+      "id": "ofOW3nap2T8isuN1dwrR",
+      "contact_id": "ofOW3nap2T8isuN1dwrR",
+      "nombre": "esthermcp1976",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-05T12:45:00-04:00",
+      "telefono": "+584129350899",
+      "telefono_alt": ""
+    },
+    {
+      "id": "yMcPQLoE5PJWKXmQl8I9",
+      "contact_id": "yMcPQLoE5PJWKXmQl8I9",
+      "nombre": "soymoisesrangel",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-05T14:40:23-04:00",
+      "telefono": "+584241217506",
+      "telefono_alt": ""
+    },
+    {
+      "id": "JTD5ziK0hWxscS6WsYFH",
+      "contact_id": "JTD5ziK0hWxscS6WsYFH",
+      "nombre": "Ada Rauseo",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-05T16:07:11-04:00",
+      "telefono": "+584220464510",
+      "telefono_alt": ""
+    },
+    {
+      "id": "TQF9vBT0AWUxnJ3hsTI6",
+      "contact_id": "TQF9vBT0AWUxnJ3hsTI6",
+      "nombre": "Adriana del Valle Mata Gonzalez",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-05T16:07:11-04:00",
+      "telefono": "+584122022435",
+      "telefono_alt": ""
+    },
+    {
+      "id": "BJqfjIQRN67OPLbMfDeZ",
+      "contact_id": "BJqfjIQRN67OPLbMfDeZ",
+      "nombre": "Isabel Hernandez",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-05T16:07:11-04:00",
+      "telefono": "+584120909797",
+      "telefono_alt": ""
+    },
+    {
+      "id": "hmqkkWDYlQ30crtMY0kJ",
+      "contact_id": "hmqkkWDYlQ30crtMY0kJ",
+      "nombre": "Jhonson Quevedo",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-05T16:07:11-04:00",
+      "telefono": "+584220041993",
+      "telefono_alt": ""
+    },
+    {
+      "id": "rNsbx496VroJnZiY55wi",
+      "contact_id": "rNsbx496VroJnZiY55wi",
+      "nombre": "leonelmoncada80",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-05T19:15:25-04:00",
+      "telefono": "+584140071920",
+      "telefono_alt": ""
+    },
+    {
+      "id": "bAltIF2kqr8orlkAEECn",
+      "contact_id": "bAltIF2kqr8orlkAEECn",
+      "nombre": "Neldaly Sánchez",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-05T20:48:40-04:00",
+      "telefono": "+584145868544",
+      "telefono_alt": ""
+    },
+    {
+      "id": "8WDEdGEaAE4x0CYfdja5",
+      "contact_id": "8WDEdGEaAE4x0CYfdja5",
+      "nombre": "Karla Gonzalez",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-05T20:56:34-04:00",
+      "telefono": "+584122084173",
+      "telefono_alt": ""
+    },
+    {
+      "id": "yJ2642KrlTAtNYx5F8xV",
+      "contact_id": "yJ2642KrlTAtNYx5F8xV",
+      "nombre": "Sin nombre (propietario vendedor)",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-06T07:13:30-04:00",
+      "telefono": "+584164047074",
+      "telefono_alt": ""
+    },
+    {
+      "id": "iW9JFxslQb5LUadOiSGT",
+      "contact_id": "iW9JFxslQb5LUadOiSGT",
+      "nombre": "Jose G",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-06T11:45:35-04:00",
+      "telefono": "+584242395035",
+      "telefono_alt": ""
+    },
+    {
+      "id": "66rehQkk6eopgfil9FYh",
+      "contact_id": "66rehQkk6eopgfil9FYh",
+      "nombre": "Jenny Prado",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-06T12:33:47-04:00",
+      "telefono": "+584122719201",
+      "telefono_alt": ""
+    },
+    {
+      "id": "809ZEJhdJG04EmfZOQns",
+      "contact_id": "809ZEJhdJG04EmfZOQns",
+      "nombre": "York",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-06T13:50:05-04:00",
+      "telefono": "+584123959993",
+      "telefono_alt": ""
+    },
+    {
+      "id": "DBkCPQbLYKQGc14XQvxk",
+      "contact_id": "DBkCPQbLYKQGc14XQvxk",
+      "nombre": "Vanessa Acosta Nuñez",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-06T15:01:42-04:00",
+      "telefono": "+584122726833",
+      "telefono_alt": ""
+    },
+    {
+      "id": "SngbhqpyMUNmTxzkh7rh",
+      "contact_id": "SngbhqpyMUNmTxzkh7rh",
+      "nombre": "Jorge",
+      "asesor": "Erika Nunez De Ornelas",
+      "asignado_at": "2026-10-06T15:09:27-04:00",
+      "telefono": "+584243720433",
+      "telefono_alt": ""
+    },
+    {
+      "id": "fvoiNs6tio2eWB7BjM0g",
+      "contact_id": "fvoiNs6tio2eWB7BjM0g",
+      "nombre": "fabiola bravo",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-06T15:20:38-04:00",
+      "telefono": "+584120256505",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Wt2IsPGJAXWXBxE53fGI",
+      "contact_id": "Wt2IsPGJAXWXBxE53fGI",
+      "nombre": "Carolina Arias",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-06T16:44:49-04:00",
+      "telefono": "+584142718080",
+      "telefono_alt": ""
+    },
+    {
+      "id": "9vaX5w3s7AB0bJJcXrEK",
+      "contact_id": "9vaX5w3s7AB0bJJcXrEK",
+      "nombre": "Maryury Perez",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-06T18:01:13-04:00",
+      "telefono": "+584123264565",
+      "telefono_alt": ""
+    },
+    {
+      "id": "VpMjtc6kreOoWHuitQny",
+      "contact_id": "VpMjtc6kreOoWHuitQny",
+      "nombre": "Yoleida Fernández🙏🏻💗",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-06T18:14:15-04:00",
+      "telefono": "+584125089478",
+      "telefono_alt": ""
+    },
+    {
+      "id": "JzH19dvh8s5BXyT7JiI5",
+      "contact_id": "JzH19dvh8s5BXyT7JiI5",
+      "nombre": "YM",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-07T10:34:24-04:00",
+      "telefono": "+584243545116",
+      "telefono_alt": ""
+    },
+    {
+      "id": "nlSbJrjNZjINXAiVhiLx",
+      "contact_id": "nlSbJrjNZjINXAiVhiLx",
+      "nombre": "Anyer G",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-07T13:08:11-04:00",
+      "telefono": "+584142875135",
+      "telefono_alt": ""
+    },
+    {
+      "id": "x13e4ACWo8J5kETCK6Tm",
+      "contact_id": "x13e4ACWo8J5kETCK6Tm",
+      "nombre": "Alexis A Moreno Santeliz",
+      "asesor": "Luz Jimenez",
+      "asignado_at": "2026-10-07T16:17:15-04:00",
+      "telefono": "+584125912890",
+      "telefono_alt": ""
+    },
+    {
+      "id": "rsfNgY5BAbLcBoktZo5Z",
+      "contact_id": "rsfNgY5BAbLcBoktZo5Z",
+      "nombre": "Shaddai🐙",
+      "asesor": "Erika Nunez De Ornelas",
+      "asignado_at": "2026-10-07T16:18:52-04:00",
+      "telefono": "+584225421733",
+      "telefono_alt": ""
+    },
+    {
+      "id": "YiACnt3wyM62bI6fMzhJ",
+      "contact_id": "YiACnt3wyM62bI6fMzhJ",
+      "nombre": "Elina",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-08T11:07:27-04:00",
+      "telefono": "+584143342590",
+      "telefono_alt": ""
+    },
+    {
+      "id": "77ZoIkcIp3wbzbdTj7HO",
+      "contact_id": "77ZoIkcIp3wbzbdTj7HO",
+      "nombre": "César Oropeza",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-08T12:26:40-04:00",
+      "telefono": "+584141330789",
+      "telefono_alt": ""
+    },
+    {
+      "id": "lZtCG3LUgPdvn8pP5Gd2",
+      "contact_id": "lZtCG3LUgPdvn8pP5Gd2",
+      "nombre": "Santiago Uzcategui",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-08T13:51:23-04:00",
+      "telefono": "+5491131043142",
+      "telefono_alt": ""
+    },
+    {
+      "id": "TTGLkByUoJoqtLcZBsmy",
+      "contact_id": "TTGLkByUoJoqtLcZBsmy",
+      "nombre": "Celimar Carrasco",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-08T14:48:00-04:00",
+      "telefono": "+584241397133",
+      "telefono_alt": ""
+    },
+    {
+      "id": "nVfqm7IgeH82w0sGWGQj",
+      "contact_id": "nVfqm7IgeH82w0sGWGQj",
+      "nombre": "🌹♥️🎼Santa🌹♥️🎼",
+      "asesor": "Erika Nunez De Ornelas",
+      "asignado_at": "2026-10-08T17:22:51-04:00",
+      "telefono": "+584123711866",
+      "telefono_alt": ""
+    },
+    {
+      "id": "aQ8Ru5VBP64EZ0G1vlIx",
+      "contact_id": "aQ8Ru5VBP64EZ0G1vlIx",
+      "nombre": "O",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-10T12:09:51-04:00",
+      "telefono": "+584149002377",
+      "telefono_alt": ""
+    },
+    {
+      "id": "hxsKtlxdL3jWPntWYqyy",
+      "contact_id": "hxsKtlxdL3jWPntWYqyy",
+      "nombre": "🥰🤔",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-10T12:09:52-04:00",
+      "telefono": "+584241269031",
+      "telefono_alt": ""
+    },
+    {
+      "id": "3uEEc5gjYvAbeSSf9JtX",
+      "contact_id": "3uEEc5gjYvAbeSSf9JtX",
+      "nombre": "Personal",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-10T12:10:03-04:00",
+      "telefono": "+584122945320",
+      "telefono_alt": ""
+    },
+    {
+      "id": "13Mi9rV3KJlhIuIG527x",
+      "contact_id": "13Mi9rV3KJlhIuIG527x",
+      "nombre": "Inversiones White Vacations",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-10T12:10:04-04:00",
+      "telefono": "+584141067985",
+      "telefono_alt": ""
+    },
+    {
+      "id": "dZIzkkU4qiYeObOQ1bIm",
+      "contact_id": "dZIzkkU4qiYeObOQ1bIm",
+      "nombre": "Jose",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-10T12:16:25-04:00",
+      "telefono": "+584129066337",
+      "telefono_alt": ""
+    },
+    {
+      "id": "2TWfJB2sRcJWBan0jZzz",
+      "contact_id": "2TWfJB2sRcJWBan0jZzz",
+      "nombre": "antonietta63457",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-10T12:16:25-04:00",
+      "telefono": "+584141642606",
+      "telefono_alt": ""
+    },
+    {
+      "id": "TI4TDQPwSlEZ0CGAdoZG",
+      "contact_id": "TI4TDQPwSlEZ0CGAdoZG",
+      "nombre": "Yoymayli Araujo",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-10T12:32:01-04:00",
+      "telefono": "+584241437245",
+      "telefono_alt": ""
+    },
+    {
+      "id": "RmxI5VngqYCe0XwipovS",
+      "contact_id": "RmxI5VngqYCe0XwipovS",
+      "nombre": "Yarlin",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-10T13:12:13-04:00",
+      "telefono": "+584248964581",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ZVHkjz8CaJ4yxkAOxxTD",
+      "contact_id": "ZVHkjz8CaJ4yxkAOxxTD",
+      "nombre": "green2goblin",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-10T13:15:05-04:00",
+      "telefono": "+584129646101",
+      "telefono_alt": ""
+    },
+    {
+      "id": "72HsevAz42Qk0DtAbT7m",
+      "contact_id": "72HsevAz42Qk0DtAbT7m",
+      "nombre": "Wilmer Enrique Duncan del castillo",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-10T15:30:44-04:00",
+      "telefono": "+584249453167",
+      "telefono_alt": ""
+    },
+    {
+      "id": "uQLtnOnvr0WH8hmDnYuZ",
+      "contact_id": "uQLtnOnvr0WH8hmDnYuZ",
+      "nombre": "Adaia Guedez",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-10T16:32:17-04:00",
+      "telefono": "+584242346150",
+      "telefono_alt": ""
+    },
+    {
+      "id": "VWqgPV8bDDmXwQ70koJ5",
+      "contact_id": "VWqgPV8bDDmXwQ70koJ5",
+      "nombre": "Sophie Bienes Raíces",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-10T16:32:19-04:00",
+      "telefono": "+584125593836",
+      "telefono_alt": ""
+    },
+    {
+      "id": "W8ceIG558SlzX0Cxyvwt",
+      "contact_id": "W8ceIG558SlzX0Cxyvwt",
+      "nombre": "Joselyn | Apartamentos Casas Caracas",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-10T16:32:20-04:00",
+      "telefono": "+584241896605",
+      "telefono_alt": ""
+    },
+    {
+      "id": "VEBgt8745RvjVZX6Rz0z",
+      "contact_id": "VEBgt8745RvjVZX6Rz0z",
+      "nombre": "Avila Inmuebles",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-10T16:32:21-04:00",
+      "telefono": "+584241292045",
+      "telefono_alt": ""
+    },
+    {
+      "id": "nAHwsle7yN1PyzeF5t1r",
+      "contact_id": "nAHwsle7yN1PyzeF5t1r",
+      "nombre": "Ana Beatriz - InverPropiedad",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-10T16:32:22-04:00",
+      "telefono": "+584141342027",
+      "telefono_alt": ""
+    },
+    {
+      "id": "IKdlD7maqtPiafITCmrs",
+      "contact_id": "IKdlD7maqtPiafITCmrs",
+      "nombre": "🤗",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-10T18:44:28-04:00",
+      "telefono": "+584149900040",
+      "telefono_alt": ""
+    },
+    {
+      "id": "SYuTU95v2311Zb4FzbL4",
+      "contact_id": "SYuTU95v2311Zb4FzbL4",
+      "nombre": "‎Desk",
+      "asesor": "Erika Nunez De Ornelas",
+      "asignado_at": "2026-10-10T21:33:03-04:00",
+      "telefono": "+584241865096",
+      "telefono_alt": ""
+    },
+    {
+      "id": "eRQ8so0ge6tzv2yEo3eW",
+      "contact_id": "eRQ8so0ge6tzv2yEo3eW",
+      "nombre": "Carlos Veloz",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-10T21:33:05-04:00",
+      "telefono": "+584129090072",
+      "telefono_alt": ""
+    },
+    {
+      "id": "9gTTYZAl5dVOwU8pWc4o",
+      "contact_id": "9gTTYZAl5dVOwU8pWc4o",
+      "nombre": "Joel Forero",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-10T21:44:32-04:00",
+      "telefono": "+584142869423",
+      "telefono_alt": ""
+    },
+    {
+      "id": "BvLoO2cKkkCka5TNeH7M",
+      "contact_id": "BvLoO2cKkkCka5TNeH7M",
+      "nombre": "Sarai Escalona✨",
+      "asesor": "Luz Jimenez",
+      "asignado_at": "2026-10-10T22:32:18-04:00",
+      "telefono": "+584123741062",
+      "telefono_alt": ""
+    },
+    {
+      "id": "9XQUwuSVirb8MPXjJJCU",
+      "contact_id": "9XQUwuSVirb8MPXjJJCU",
+      "nombre": "Armando Malou",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-09T23:17:54-05:00",
+      "telefono": "+584143301555",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Sf1QtFTasWdRGtJgrfsO",
+      "contact_id": "Sf1QtFTasWdRGtJgrfsO",
+      "nombre": "Anna Maria Vidao",
+      "asesor": "Luz Jimenez",
+      "asignado_at": "2026-10-11T09:01:26-04:00",
+      "telefono": "+584222293146",
+      "telefono_alt": ""
+    },
+    {
+      "id": "qG5OKMGeezNumV5TnSeh",
+      "contact_id": "qG5OKMGeezNumV5TnSeh",
+      "nombre": "Deyanira",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-11T09:56:45-04:00",
+      "telefono": "+584141541060",
+      "telefono_alt": ""
+    },
+    {
+      "id": "iTV70685en19cAr4zqok",
+      "contact_id": "iTV70685en19cAr4zqok",
+      "nombre": "Zabrina",
+      "asesor": "Luz Jimenez",
+      "asignado_at": "2026-10-11T11:41:58-04:00",
+      "telefono": "+584144796191",
+      "telefono_alt": ""
+    },
+    {
+      "id": "sY8FZthVSL0wQC8C9VXV",
+      "contact_id": "sY8FZthVSL0wQC8C9VXV",
+      "nombre": "Daniel Berbesi",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-11T12:17:10-04:00",
+      "telefono": "+584129534366",
+      "telefono_alt": ""
+    },
+    {
+      "id": "YGZ56AjtmQ1FOpTIfvsT",
+      "contact_id": "YGZ56AjtmQ1FOpTIfvsT",
+      "nombre": "César Bermejo",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-11T12:17:11-04:00",
+      "telefono": "+584241608901",
+      "telefono_alt": ""
+    },
+    {
+      "id": "8r9ZDHoYUUVFejS1zTUg",
+      "contact_id": "8r9ZDHoYUUVFejS1zTUg",
+      "nombre": "VLADIMIR MARTINEZ GOMEZ",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-11T14:01:44-04:00",
+      "telefono": "+584122346475",
+      "telefono_alt": ""
+    },
+    {
+      "id": "tjYVWO9xoBTxm9whm27I",
+      "contact_id": "tjYVWO9xoBTxm9whm27I",
+      "nombre": "Gabriel",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-11T14:01:57-04:00",
+      "telefono": "+34656661821",
+      "telefono_alt": ""
+    },
+    {
+      "id": "D2wMWhiMoZFS9lbsYaKL",
+      "contact_id": "D2wMWhiMoZFS9lbsYaKL",
+      "nombre": "Jainny Pernales",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-11T16:12:24-04:00",
+      "telefono": "+584242075484",
+      "telefono_alt": ""
+    },
+    {
+      "id": "V58rboSzKQwGNUyKk451",
+      "contact_id": "V58rboSzKQwGNUyKk451",
+      "nombre": "Bertha",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-11T17:03:20-04:00",
+      "telefono": "+19293914052",
+      "telefono_alt": ""
+    },
+    {
+      "id": "1MjNEC14GcfvlpBZDSrs",
+      "contact_id": "1MjNEC14GcfvlpBZDSrs",
+      "nombre": "Gabriel Pacheco",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-11T17:31:24-04:00",
+      "telefono": "+584141130431",
+      "telefono_alt": ""
+    },
+    {
+      "id": "DaVjtswvZ1ibweUfrqtG",
+      "contact_id": "DaVjtswvZ1ibweUfrqtG",
+      "nombre": "Zun Lee Nuñez",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-12T07:20:55-04:00",
+      "telefono": "+584127313194",
+      "telefono_alt": ""
+    },
+    {
+      "id": "C0szieyWZTYJ9nDZ1h8l",
+      "contact_id": "C0szieyWZTYJ9nDZ1h8l",
+      "nombre": "Francisner",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-12T08:44:36-04:00",
+      "telefono": "+584242796398",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ubyd4MD9u325GufmCQr3",
+      "contact_id": "ubyd4MD9u325GufmCQr3",
+      "nombre": "venebrokers",
+      "asesor": "Erika Nunez De Ornelas",
+      "asignado_at": "2026-10-12T11:10:48-04:00",
+      "telefono": "+584127184002",
+      "telefono_alt": ""
+    },
+    {
+      "id": "NIrgdH5XBqYhEicTdbE2",
+      "contact_id": "NIrgdH5XBqYhEicTdbE2",
+      "nombre": "L u z R u i Z 🌸",
+      "asesor": "Erika Nunez De Ornelas",
+      "asignado_at": "2026-10-12T11:35:00-04:00",
+      "telefono": "+584241383378",
+      "telefono_alt": ""
+    },
+    {
+      "id": "RJm1yUAODPyCHkKaYQad",
+      "contact_id": "RJm1yUAODPyCHkKaYQad",
+      "nombre": "Wilfredo Diaz",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-12T12:05:22-04:00",
+      "telefono": "+584144642087",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ExpDNFsQ14mpPuVApQw0",
+      "contact_id": "ExpDNFsQ14mpPuVApQw0",
+      "nombre": "Jean Depestre",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-12T13:25:24-04:00",
+      "telefono": "+584242108759",
+      "telefono_alt": ""
+    },
+    {
+      "id": "bAnjGzPFlGfmGRzFIVV6",
+      "contact_id": "bAnjGzPFlGfmGRzFIVV6",
+      "nombre": "Laura Millan🦋🍀🪷",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-12T14:52:47-04:00",
+      "telefono": "+584143103179",
+      "telefono_alt": ""
+    },
+    {
+      "id": "WNyWfQ4OPEqCgV4p82v2",
+      "contact_id": "WNyWfQ4OPEqCgV4p82v2",
+      "nombre": "Blanco",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-12T21:46:42-04:00",
+      "telefono": "+584125712789",
+      "telefono_alt": ""
+    },
+    {
+      "id": "oAKKtBFHKWLbuNmtaGuL",
+      "contact_id": "oAKKtBFHKWLbuNmtaGuL",
+      "nombre": "c",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-12T22:05:03-04:00",
+      "telefono": "+584143881692",
+      "telefono_alt": ""
+    },
+    {
+      "id": "1up73Fcp098qEeWrOQll",
+      "contact_id": "1up73Fcp098qEeWrOQll",
+      "nombre": ".",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-12T22:05:05-04:00",
+      "telefono": "+584242379126",
+      "telefono_alt": ""
+    },
+    {
+      "id": "HvAs0jExrfi8eME6QR2i",
+      "contact_id": "HvAs0jExrfi8eME6QR2i",
+      "nombre": "Andres",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-12T22:28:26-04:00",
+      "telefono": "+584123823286",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Gf8gSe0K83GWFtJVJ6ur",
+      "contact_id": "Gf8gSe0K83GWFtJVJ6ur",
+      "nombre": "AngelD",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-12T22:43:12-04:00",
+      "telefono": "+584142268016",
+      "telefono_alt": ""
+    },
+    {
+      "id": "firma_machillanda_20261015",
+      "contact_id": "",
+      "nombre": "Jose Manuel Machillanda Torres",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "",
+      "telefono": "",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Kzo4AC6BzHZQpxyerykR",
+      "contact_id": "Kzo4AC6BzHZQpxyerykR",
+      "nombre": "TV",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-13T11:22:28-04:00",
+      "telefono": "+584126151643",
+      "telefono_alt": ""
+    },
+    {
+      "id": "OneCIckBOO48EENecXhj",
+      "contact_id": "OneCIckBOO48EENecXhj",
+      "nombre": "Diana Leal",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-13T11:35:30-04:00",
+      "telefono": "+584242572907",
+      "telefono_alt": ""
+    },
+    {
+      "id": "8sJ7IgzgjeOTwp6fJnxA",
+      "contact_id": "8sJ7IgzgjeOTwp6fJnxA",
+      "nombre": "José Abreu",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-13T14:25:27-04:00",
+      "telefono": "+584149421030",
+      "telefono_alt": ""
+    },
+    {
+      "id": "j8ThXDi8rOuZXEHyWzQu",
+      "contact_id": "j8ThXDi8rOuZXEHyWzQu",
+      "nombre": "Happy and Lucky",
+      "asesor": "Luz Jimenez",
+      "asignado_at": "2026-10-13T16:14:39-04:00",
+      "telefono": "+584121967921",
+      "telefono_alt": ""
+    },
+    {
+      "id": "WqLLSDpauK2Gy0PkA6p9",
+      "contact_id": "WqLLSDpauK2Gy0PkA6p9",
+      "nombre": "Valen Ruiz ☘️",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-13T19:14:49-04:00",
+      "telefono": "+584126450129",
+      "telefono_alt": ""
+    },
+    {
+      "id": "yVuyk4QglhdlPPckqUgY",
+      "contact_id": "yVuyk4QglhdlPPckqUgY",
+      "nombre": ".",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-13T22:01:48-04:00",
+      "telefono": "+584129926155",
+      "telefono_alt": ""
+    },
+    {
+      "id": "y2N1GIF86o1QSyLNBbrt",
+      "contact_id": "y2N1GIF86o1QSyLNBbrt",
+      "nombre": "Aglaya Taller",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-14T14:24:18-04:00",
+      "telefono": "+584169711323",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Yk4dpB0aQoZtElFq7yWB",
+      "contact_id": "Yk4dpB0aQoZtElFq7yWB",
+      "nombre": "LG",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-14T15:01:01-04:00",
+      "telefono": "+584244256318",
+      "telefono_alt": ""
+    },
+    {
+      "id": "bbUtpjgHhXwKhwPeycbc",
+      "contact_id": "bbUtpjgHhXwKhwPeycbc",
+      "nombre": "Carlos Toro",
+      "asesor": "Erika Nunez De Ornelas",
+      "asignado_at": "2026-10-14T19:17:42-04:00",
+      "telefono": "+584143178852",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ImaXD9pN5J8kKZwkS8el",
+      "contact_id": "ImaXD9pN5J8kKZwkS8el",
+      "nombre": "Erika Goldberg",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-14T20:28:24-04:00",
+      "telefono": "+584243408501",
+      "telefono_alt": ""
+    },
+    {
+      "id": "FIkpf7tA3iNGlGbLU2dv",
+      "contact_id": "FIkpf7tA3iNGlGbLU2dv",
+      "nombre": "Kimberly Rodríguez",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-15T12:59:03-04:00",
+      "telefono": "+584220244983",
+      "telefono_alt": ""
+    },
+    {
+      "id": "wn3XZTraI6BUpStmvdrL",
+      "contact_id": "wn3XZTraI6BUpStmvdrL",
+      "nombre": "Yunai Castillo",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-15T12:59:03-04:00",
+      "telefono": "+584241355070",
+      "telefono_alt": ""
+    },
+    {
+      "id": "WddsIMORDGteOxDmi38v",
+      "contact_id": "WddsIMORDGteOxDmi38v",
+      "nombre": "Deya",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-15T13:07:20-04:00",
+      "telefono": "+34622776316",
+      "telefono_alt": ""
+    },
+    {
+      "id": "tpeGzJ1mxh3A7fbhIunt",
+      "contact_id": "tpeGzJ1mxh3A7fbhIunt",
+      "nombre": "Edilia",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-15T13:07:24-04:00",
+      "telefono": "+584262177323",
+      "telefono_alt": ""
+    },
+    {
+      "id": "vz0NEF9Wklmr9Ko3WpF0",
+      "contact_id": "vz0NEF9Wklmr9Ko3WpF0",
+      "nombre": "Anyi",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-16T17:17:34-04:00",
+      "telefono": "+584128067116",
+      "telefono_alt": ""
+    },
+    {
+      "id": "fWRtBxu1tHbQ2DyveFGE",
+      "contact_id": "fWRtBxu1tHbQ2DyveFGE",
+      "nombre": "Manuel Cedeño",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-17T12:10:51-04:00",
+      "telefono": "+584262329073",
+      "telefono_alt": ""
+    },
+    {
+      "id": "miYIZMQzJmkalgAfARxi",
+      "contact_id": "miYIZMQzJmkalgAfARxi",
+      "nombre": "Lcda Ariadna Parra",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-17T12:46:37-04:00",
+      "telefono": "+584125411946",
+      "telefono_alt": ""
+    },
+    {
+      "id": "2rPGVrrFeHlCFYP3UT1Y",
+      "contact_id": "2rPGVrrFeHlCFYP3UT1Y",
+      "nombre": "Ys@",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-17T17:57:49-04:00",
+      "telefono": "+584241331863",
+      "telefono_alt": ""
+    },
+    {
+      "id": "eCWrwl16z6uKgalWuoXe",
+      "contact_id": "eCWrwl16z6uKgalWuoXe",
+      "nombre": "Francys Mujica",
+      "asesor": "Luz Jimenez",
+      "asignado_at": "2026-10-17T19:27:29-04:00",
+      "telefono": "+584124608403",
+      "telefono_alt": ""
+    },
+    {
+      "id": "mKrTjaBHL6DzyPAQh8jD",
+      "contact_id": "mKrTjaBHL6DzyPAQh8jD",
+      "nombre": "Mio Movistar 2015",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-17T20:10:52-04:00",
+      "telefono": "+584242200260",
+      "telefono_alt": ""
+    },
+    {
+      "id": "9eM2tMGLgpTf4A72t3Cl",
+      "contact_id": "9eM2tMGLgpTf4A72t3Cl",
+      "nombre": "Jorge Sukkar",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-17T20:47:51-04:00",
+      "telefono": "+584242167619",
+      "telefono_alt": ""
+    },
+    {
+      "id": "vKV8ZxQdO5szMTyWuyQI",
+      "contact_id": "vKV8ZxQdO5szMTyWuyQI",
+      "nombre": "noreidysmartinez513",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-18T08:13:51-04:00",
+      "telefono": "+584122015176",
+      "telefono_alt": ""
+    },
+    {
+      "id": "2vgLJbUnoAyQEaydCABu",
+      "contact_id": "2vgLJbUnoAyQEaydCABu",
+      "nombre": "Wilmer Rodríguez",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-18T16:13:43-04:00",
+      "telefono": "+584129101665",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ronVTOcT6WREKMWl2jCO",
+      "contact_id": "ronVTOcT6WREKMWl2jCO",
+      "nombre": "crmireya18",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-18T16:13:45-04:00",
+      "telefono": "+584126423872",
+      "telefono_alt": ""
+    },
+    {
+      "id": "YhgdMWNg2gvVvzRbAEG2",
+      "contact_id": "YhgdMWNg2gvVvzRbAEG2",
+      "nombre": "Saxofonista con buena música para cualquier ocasión",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-18T20:56:35-04:00",
+      "telefono": "+584221769245",
+      "telefono_alt": ""
+    },
+    {
+      "id": "s4KCq267JvuAsrvnT88n",
+      "contact_id": "s4KCq267JvuAsrvnT88n",
+      "nombre": "Fernando",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-18T22:03:14-04:00",
+      "telefono": "+584168337902",
+      "telefono_alt": ""
+    },
+    {
+      "id": "9g5JGHs9XH9XqQqAeyNt",
+      "contact_id": "9g5JGHs9XH9XqQqAeyNt",
+      "nombre": "Andrea Briceño",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-18T23:13:22-04:00",
+      "telefono": "+584143189833",
+      "telefono_alt": ""
+    },
+    {
+      "id": "v6mW8GqCqMnCE4hRUsvS",
+      "contact_id": "v6mW8GqCqMnCE4hRUsvS",
+      "nombre": "Dc",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-18T23:40:05-04:00",
+      "telefono": "+584242482310",
+      "telefono_alt": ""
+    },
+    {
+      "id": "EpK5sQkDBa1hnJqDFxsy",
+      "contact_id": "EpK5sQkDBa1hnJqDFxsy",
+      "nombre": "evemu2.vende",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-19T07:38:54-04:00",
+      "telefono": "+584242437812",
+      "telefono_alt": ""
+    },
+    {
+      "id": "QSuASmWx2AKUV11Ptok1",
+      "contact_id": "QSuASmWx2AKUV11Ptok1",
+      "nombre": "José",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-19T13:53:43-04:00",
+      "telefono": "+584143361806",
+      "telefono_alt": ""
+    },
+    {
+      "id": "c7TwOAEbse87KpULiwwK",
+      "contact_id": "c7TwOAEbse87KpULiwwK",
+      "nombre": "Pasqual Böcker",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-19T14:25:39-04:00",
+      "telefono": "+491738686939",
+      "telefono_alt": ""
+    },
+    {
+      "id": "TnKXbAsxpmxWdSxqxTz6",
+      "contact_id": "TnKXbAsxpmxWdSxqxTz6",
+      "nombre": "belen mendoza1003",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-19T15:25:50-04:00",
+      "telefono": "+584242826977",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Y1LU53QQezUNZRj7gdtD",
+      "contact_id": "Y1LU53QQezUNZRj7gdtD",
+      "nombre": "Katt",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-19T15:46:56-04:00",
+      "telefono": "+584147015604",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ldo6tnk8IDCC78UAeHcn",
+      "contact_id": "ldo6tnk8IDCC78UAeHcn",
+      "nombre": "Jorge A. K.",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-19T18:34:21-04:00",
+      "telefono": "+19543298501",
+      "telefono_alt": ""
+    },
+    {
+      "id": "bIYH6M4r8Qrk6CPByCBy",
+      "contact_id": "bIYH6M4r8Qrk6CPByCBy",
+      "nombre": "Victor Espiritu Santo",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-19T20:10:43-04:00",
+      "telefono": "+584149278269",
+      "telefono_alt": ""
+    },
+    {
+      "id": "REnFRuaXrrOUTiPn8Ato",
+      "contact_id": "REnFRuaXrrOUTiPn8Ato",
+      "nombre": "Carolina Proaño",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-20T12:57:04-04:00",
+      "telefono": "+584129836359",
+      "telefono_alt": ""
+    },
+    {
+      "id": "pGo8kUfYRNUQZYZ1lrn1",
+      "contact_id": "pGo8kUfYRNUQZYZ1lrn1",
+      "nombre": "Zenaida Roberts",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-20T15:45:00-04:00",
+      "telefono": "+584129930502",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Rh6E8hvCB8jUzjRElYhn",
+      "contact_id": "Rh6E8hvCB8jUzjRElYhn",
+      "nombre": "Juana Osorio",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-20T18:32:19-04:00",
+      "telefono": "+584129893199",
+      "telefono_alt": ""
+    },
+    {
+      "id": "3uKI6YS8Q2AiiqEEAa7C",
+      "contact_id": "3uKI6YS8Q2AiiqEEAa7C",
+      "nombre": "make",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-20T19:29:00-04:00",
+      "telefono": "+85270236007",
+      "telefono_alt": ""
+    },
+    {
+      "id": "S2eXHa4cHFak9AGaIN0r",
+      "contact_id": "S2eXHa4cHFak9AGaIN0r",
+      "nombre": "Mireya Leon",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-20T20:48:03-04:00",
+      "telefono": "+584166274205",
+      "telefono_alt": ""
+    },
+    {
+      "id": "cVeSVfpfVnbnASZ6YE7H",
+      "contact_id": "cVeSVfpfVnbnASZ6YE7H",
+      "nombre": "Katiuska Diaz",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-20T20:48:05-04:00",
+      "telefono": "+19089375443",
+      "telefono_alt": ""
+    },
+    {
+      "id": "9uzA73iA36d6VwCZ7znT",
+      "contact_id": "9uzA73iA36d6VwCZ7znT",
+      "nombre": "A. Gonzalez O.",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-21T08:46:42-04:00",
+      "telefono": "+584141306879",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Y1xGLFbJgiJrTXohwPww",
+      "contact_id": "Y1xGLFbJgiJrTXohwPww",
+      "nombre": "Euryck Adrian",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-21T10:28:49-04:00",
+      "telefono": "+584243409009",
+      "telefono_alt": ""
+    },
+    {
+      "id": "cFuckfqNcNd2FG8a0l5y",
+      "contact_id": "cFuckfqNcNd2FG8a0l5y",
+      "nombre": "RC",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-21T12:56:20-04:00",
+      "telefono": "+584126212227",
+      "telefono_alt": ""
+    },
+    {
+      "id": "8pWzzUJDpNlbXhTkJskp",
+      "contact_id": "8pWzzUJDpNlbXhTkJskp",
+      "nombre": "Pedro (Inversiones AFPH)",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-21T13:56:33-04:00",
+      "telefono": "+584141060081",
+      "telefono_alt": ""
+    },
+    {
+      "id": "dxpfgdynT8BUSMvbRN1o",
+      "contact_id": "dxpfgdynT8BUSMvbRN1o",
+      "nombre": "Julio César",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-21T14:33:38-04:00",
+      "telefono": "+56986600596",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Sh8CaBip7ywgetaS6sNP",
+      "contact_id": "Sh8CaBip7ywgetaS6sNP",
+      "nombre": "Miguel A Quintero",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-21T17:31:32-04:00",
+      "telefono": "+19542143457",
+      "telefono_alt": ""
+    },
+    {
+      "id": "lspm794pXa9ge8tiY7ju",
+      "contact_id": "lspm794pXa9ge8tiY7ju",
+      "nombre": "Claudia✨💫",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-21T17:55:52-04:00",
+      "telefono": "+584127175651",
+      "telefono_alt": ""
+    },
+    {
+      "id": "IJNt99jUkKEDQ7jFxYNb",
+      "contact_id": "IJNt99jUkKEDQ7jFxYNb",
+      "nombre": "😀 JCT",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-21T19:57:47-04:00",
+      "telefono": "+584124854688",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ZwkHCW1KXYRZWoQpibVM",
+      "contact_id": "ZwkHCW1KXYRZWoQpibVM",
+      "nombre": "Rocio Hernandez",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-21T20:13:29-04:00",
+      "telefono": "+584127165560",
+      "telefono_alt": ""
+    },
+    {
+      "id": "p6QfVESc9uoOeq2suHdk",
+      "contact_id": "p6QfVESc9uoOeq2suHdk",
+      "nombre": "🥷🏻",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-21T20:46:56-04:00",
+      "telefono": "+584241518761",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Qq5t11TSBvszoEvsYq30",
+      "contact_id": "Qq5t11TSBvszoEvsYq30",
+      "nombre": "vicky",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-21T21:17:41-04:00",
+      "telefono": "+584242429849",
+      "telefono_alt": ""
+    },
+    {
+      "id": "vWK227wcRpmO4ptLkM4A",
+      "contact_id": "vWK227wcRpmO4ptLkM4A",
+      "nombre": ".",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-22T16:07:00-04:00",
+      "telefono": "+584243609372",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ZqwaUO5WUTtrEsS5I89r",
+      "contact_id": "ZqwaUO5WUTtrEsS5I89r",
+      "nombre": "Javi",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-23T07:13:47-04:00",
+      "telefono": "+34639662879",
+      "telefono_alt": ""
+    },
+    {
+      "id": "DFGs3ifdrLwA5BfgdwUg",
+      "contact_id": "DFGs3ifdrLwA5BfgdwUg",
+      "nombre": "Miriam Rodriguez",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-23T12:47:16-04:00",
+      "telefono": "+584142867557",
+      "telefono_alt": ""
+    },
+    {
+      "id": "8Mg7C1bKcG7OOsmRSUAa",
+      "contact_id": "8Mg7C1bKcG7OOsmRSUAa",
+      "nombre": "LP",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-23T13:53:47-04:00",
+      "telefono": "+584142119021",
+      "telefono_alt": ""
+    },
+    {
+      "id": "eJfPY5Co5twEUVWwlDwz",
+      "contact_id": "eJfPY5Co5twEUVWwlDwz",
+      "nombre": "Lore Martin",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-23T15:59:22-04:00",
+      "telefono": "+584143907837",
+      "telefono_alt": ""
+    },
+    {
+      "id": "w2mn7lpvcs7CFtJbByha",
+      "contact_id": "w2mn7lpvcs7CFtJbByha",
+      "nombre": "Mohamed Abou",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-23T16:22:00-04:00",
+      "telefono": "+584242835214",
+      "telefono_alt": ""
+    },
+    {
+      "id": "755rMNVFhdP8Wl7MwJPT",
+      "contact_id": "755rMNVFhdP8Wl7MwJPT",
+      "nombre": "Oleska Alonzo",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-23T16:27:00-04:00",
+      "telefono": "+584241825385",
+      "telefono_alt": ""
+    },
+    {
+      "id": "4cQKboayYaxZXQMdYy9c",
+      "contact_id": "4cQKboayYaxZXQMdYy9c",
+      "nombre": "salvador",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-23T18:44:57-04:00",
+      "telefono": "+584125989793",
+      "telefono_alt": ""
+    },
+    {
+      "id": "mg1FpL6tgzdeYhiTTvcS",
+      "contact_id": "mg1FpL6tgzdeYhiTTvcS",
+      "nombre": "tianming",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-23T21:43:03-04:00",
+      "telefono": "+584140886998",
+      "telefono_alt": ""
+    },
+    {
+      "id": "JRvLSaGWWY9NABIRqKmw",
+      "contact_id": "JRvLSaGWWY9NABIRqKmw",
+      "nombre": "Javier PM",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-24T09:24:29-04:00",
+      "telefono": "+584262145105",
+      "telefono_alt": ""
+    },
+    {
+      "id": "8XJDDoJwacM2jxIrzUP6",
+      "contact_id": "8XJDDoJwacM2jxIrzUP6",
+      "nombre": "Acuariana/Caprichosa 🙂‍↔️",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-24T12:14:00-04:00",
+      "telefono": "+584125784251",
+      "telefono_alt": ""
+    },
+    {
+      "id": "FHZvjzXmAO29RS9ai98o",
+      "contact_id": "FHZvjzXmAO29RS9ai98o",
+      "nombre": "Evelyn renovado",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-24T14:30:21-04:00",
+      "telefono": "+584264255191",
+      "telefono_alt": ""
+    },
+    {
+      "id": "dsFQpINdaYVD34IX7ZAm",
+      "contact_id": "dsFQpINdaYVD34IX7ZAm",
+      "nombre": "Yazu De Mena",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-24T18:44:33-04:00",
+      "telefono": "+584129659875",
+      "telefono_alt": ""
+    },
+    {
+      "id": "es0ymdCcv3jutNiVnTtW",
+      "contact_id": "es0ymdCcv3jutNiVnTtW",
+      "nombre": "deisy jorge",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-25T07:17:34-04:00",
+      "telefono": "+584242548908",
+      "telefono_alt": ""
+    },
+    {
+      "id": "4cVIDdhFqPNzPgMtTgkX",
+      "contact_id": "4cVIDdhFqPNzPgMtTgkX",
+      "nombre": "Angel Escalona",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-25T12:12:44-04:00",
+      "telefono": "+584125733898",
+      "telefono_alt": ""
+    },
+    {
+      "id": "W4OAFgJb9yLeoWUFlsQf",
+      "contact_id": "W4OAFgJb9yLeoWUFlsQf",
+      "nombre": "genesis b✨",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-25T15:02:30-04:00",
+      "telefono": "+584129615516",
+      "telefono_alt": ""
+    },
+    {
+      "id": "SVQoMER3fhkfpEnuExYI",
+      "contact_id": "SVQoMER3fhkfpEnuExYI",
+      "nombre": "Omar Hernandez",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-25T16:40:22-04:00",
+      "telefono": "+13217049614",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Loa7H5WhavRtXyoHDSPW",
+      "contact_id": "Loa7H5WhavRtXyoHDSPW",
+      "nombre": "Yeiber",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-25T21:01:15-04:00",
+      "telefono": "+584128532188",
+      "telefono_alt": ""
+    },
+    {
+      "id": "8KumKpKkc6R92RNRLzKm",
+      "contact_id": "8KumKpKkc6R92RNRLzKm",
+      "nombre": "Yoisy Nebraska",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-26T10:01:02-04:00",
+      "telefono": "+17866514115",
+      "telefono_alt": ""
+    },
+    {
+      "id": "UooqOelTEELnw7AehuLO",
+      "contact_id": "UooqOelTEELnw7AehuLO",
+      "nombre": "Distribuidora JWA 2010",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-26T11:17:53-04:00",
+      "telefono": "+584125882083",
+      "telefono_alt": ""
+    },
+    {
+      "id": "lJXJZPlZ4jmyZtBHGXZy",
+      "contact_id": "lJXJZPlZ4jmyZtBHGXZy",
+      "nombre": "creafrutas2012",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-26T13:54:03-04:00",
+      "telefono": "+584125760455",
+      "telefono_alt": ""
+    },
+    {
+      "id": "G8YANtLNg4CjFlypkHOL",
+      "contact_id": "G8YANtLNg4CjFlypkHOL",
+      "nombre": "Marlene Dos Santos Rodrigues",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-26T16:19:03-04:00",
+      "telefono": "+584241241117",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Sk0H0dgaSz23K5MjUULJ",
+      "contact_id": "Sk0H0dgaSz23K5MjUULJ",
+      "nombre": "Ivett Zabala",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-26T17:33:12-04:00",
+      "telefono": "+584121230671",
+      "telefono_alt": ""
+    },
+    {
+      "id": "sRlpVVEJkAqoVbjEQYwz",
+      "contact_id": "sRlpVVEJkAqoVbjEQYwz",
+      "nombre": "Vic Cavalieri",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-26T18:11:48-04:00",
+      "telefono": "+584142877247",
+      "telefono_alt": ""
+    },
+    {
+      "id": "NFVNU2yLJMD8bVIdIG8u",
+      "contact_id": "NFVNU2yLJMD8bVIdIG8u",
+      "nombre": "Genesys Morales",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-26T20:02:48-04:00",
+      "telefono": "+584127430410",
+      "telefono_alt": ""
+    },
+    {
+      "id": "NdfTN187oBEyNh8kEEwE",
+      "contact_id": "NdfTN187oBEyNh8kEEwE",
+      "nombre": "Maryuri Vinces",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-26T20:14:33-04:00",
+      "telefono": "+584126045792",
+      "telefono_alt": ""
+    },
+    {
+      "id": "wskdzvwHHSaWxxWQDgLR",
+      "contact_id": "wskdzvwHHSaWxxWQDgLR",
+      "nombre": "dfchamate@hotmail.com",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-26T21:13:01-04:00",
+      "telefono": "+584125842885",
+      "telefono_alt": ""
+    },
+    {
+      "id": "wl1FKofPHti64IQByubW",
+      "contact_id": "wl1FKofPHti64IQByubW",
+      "nombre": "Carolay Da Mata",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-26T21:27:08-04:00",
+      "telefono": "+584242615682",
+      "telefono_alt": ""
+    },
+    {
+      "id": "hXecpGghkx6OQMuQy9kM",
+      "contact_id": "hXecpGghkx6OQMuQy9kM",
+      "nombre": "Jp",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-27T08:36:29-04:00",
+      "telefono": "+584122946550",
+      "telefono_alt": ""
+    },
+    {
+      "id": "pmlabUFFIrtat3lxWD8e",
+      "contact_id": "pmlabUFFIrtat3lxWD8e",
+      "nombre": "寨",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-27T09:33:50-04:00",
+      "telefono": "+584248722316",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ekdG4muxi4086g7nvHPX",
+      "contact_id": "ekdG4muxi4086g7nvHPX",
+      "nombre": "Kris",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-27T09:33:51-04:00",
+      "telefono": "+34662492384",
+      "telefono_alt": ""
+    },
+    {
+      "id": "VpbYqpfnCi4jo8hjxo4p",
+      "contact_id": "VpbYqpfnCi4jo8hjxo4p",
+      "nombre": "Julio Ignacio González Lasaulce",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-27T10:05:17-04:00",
+      "telefono": "+17862706332",
+      "telefono_alt": ""
+    },
+    {
+      "id": "lin6YFUKPklFv5YxZD2V",
+      "contact_id": "lin6YFUKPklFv5YxZD2V",
+      "nombre": "Christopher Zerpa",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-27T13:48:00-04:00",
+      "telefono": "+584125696491",
+      "telefono_alt": ""
+    },
+    {
+      "id": "2SkpeDw9jFHdln4y0GdS",
+      "contact_id": "2SkpeDw9jFHdln4y0GdS",
+      "nombre": "Mary Barroso",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-27T14:02:22-04:00",
+      "telefono": "+584242858099",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ZhC4cKhlYKFLuYs3A2zU",
+      "contact_id": "ZhC4cKhlYKFLuYs3A2zU",
+      "nombre": "Eva Torres",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-27T14:12:04-04:00",
+      "telefono": "+584241851086",
+      "telefono_alt": ""
+    },
+    {
+      "id": "tEmJ4qgR1PpfEJ1YpKka",
+      "contact_id": "tEmJ4qgR1PpfEJ1YpKka",
+      "nombre": "Bersa",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-27T14:12:06-04:00",
+      "telefono": "+584143247008",
+      "telefono_alt": ""
+    },
+    {
+      "id": "S54iRNzDnyhpODsHfIwr",
+      "contact_id": "S54iRNzDnyhpODsHfIwr",
+      "nombre": "Daniela Maselli",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-27T14:12:11-04:00",
+      "telefono": "+584128442187",
+      "telefono_alt": ""
+    },
+    {
+      "id": "reivLwARMmrkNErMOxJb",
+      "contact_id": "reivLwARMmrkNErMOxJb",
+      "nombre": "Karla",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-27T14:12:32-04:00",
+      "telefono": "+584241602018",
+      "telefono_alt": ""
+    },
+    {
+      "id": "14QSJBZsL2MHFcY6qFDe",
+      "contact_id": "14QSJBZsL2MHFcY6qFDe",
+      "nombre": "Frances Mary PARADISO🥰",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-27T14:32:37-04:00",
+      "telefono": "+584143322736",
+      "telefono_alt": ""
+    },
+    {
+      "id": "CWbExhLhBhpyBUTAOqk7",
+      "contact_id": "CWbExhLhBhpyBUTAOqk7",
+      "nombre": "Zaida",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-10-27T15:16:37-04:00",
+      "telefono": "+584165307175",
+      "telefono_alt": ""
+    },
+    {
+      "id": "eFWOpWlkAIjboTUNrrGd",
+      "contact_id": "eFWOpWlkAIjboTUNrrGd",
+      "nombre": "Cheryl",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-10-27T15:16:40-04:00",
+      "telefono": "+584241057041",
+      "telefono_alt": ""
+    },
+    {
+      "id": "zUZNScQBz4vtceRwUjlm",
+      "contact_id": "zUZNScQBz4vtceRwUjlm",
+      "nombre": "Ivonne aponte",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-27T15:46:26-04:00",
+      "telefono": "+584168229715",
+      "telefono_alt": ""
+    },
+    {
+      "id": "jl7PpVy1TOymc3DsBOHZ",
+      "contact_id": "jl7PpVy1TOymc3DsBOHZ",
+      "nombre": "Carlos Azacón R",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-27T16:45:57-04:00",
+      "telefono": "+584242202226",
+      "telefono_alt": ""
+    },
+    {
+      "id": "7Bg49XvB2ja2CzQlnPat",
+      "contact_id": "7Bg49XvB2ja2CzQlnPat",
+      "nombre": "Moi",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-27T17:29:02-04:00",
+      "telefono": "+584169386579",
+      "telefono_alt": ""
+    },
+    {
+      "id": "YbGalxvo5dtR974OqvbV",
+      "contact_id": "YbGalxvo5dtR974OqvbV",
+      "nombre": "Francys Tapia Asesor Inmobiliario",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-28T08:32:31-04:00",
+      "telefono": "+584249391804",
+      "telefono_alt": ""
+    },
+    {
+      "id": "AzGgM6n81C4gq167Nmww",
+      "contact_id": "AzGgM6n81C4gq167Nmww",
+      "nombre": "Nothing",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-28T09:23:14-04:00",
+      "telefono": "+584242693018",
+      "telefono_alt": ""
+    },
+    {
+      "id": "IDvHpbvBooRonDw1xIF6",
+      "contact_id": "IDvHpbvBooRonDw1xIF6",
+      "nombre": "Alejandro Vallera",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-28T11:04:31-04:00",
+      "telefono": "+12063310930",
+      "telefono_alt": ""
+    },
+    {
+      "id": "leXU5NDb0jscpTMxBcJs",
+      "contact_id": "leXU5NDb0jscpTMxBcJs",
+      "nombre": "Rafael Prieto",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-10-28T11:29:39-04:00",
+      "telefono": "+584142923279",
+      "telefono_alt": ""
+    },
+    {
+      "id": "SUKXPGXT2b8bV8K0fbXi",
+      "contact_id": "SUKXPGXT2b8bV8K0fbXi",
+      "nombre": "ERICK",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-10-28T12:29:58-04:00",
+      "telefono": "+584242478793",
+      "telefono_alt": ""
+    },
+    {
+      "id": "vA03f157FcQqz24lepz0",
+      "contact_id": "vA03f157FcQqz24lepz0",
+      "nombre": "Albino Tú Patrón 🙄💅",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-10-29T16:04:45-04:00",
+      "telefono": "+584129169526",
+      "telefono_alt": ""
+    },
+    {
+      "id": "sarai_mendoza_20261031",
+      "contact_id": "sarai_mendoza_20261031",
+      "nombre": "Saraí Mendoza",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-31T13:21:00-04:00",
+      "telefono": "+584120900020",
+      "telefono_alt": ""
+    },
+    {
+      "id": "MYi6xPeJS7vVli19yRkF",
+      "contact_id": "MYi6xPeJS7vVli19yRkF",
+      "nombre": "Carmen Rondón",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-10-31T13:45:00-04:00",
+      "telefono": "+584145713310",
+      "telefono_alt": ""
+    },
+    {
+      "id": "guN7WeDQMNvP4spBm4vC",
+      "contact_id": "guN7WeDQMNvP4spBm4vC",
+      "nombre": "María Elena Barranco 🩷",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-31T15:59:44-04:00",
+      "telefono": "+584166331000",
+      "telefono_alt": ""
+    },
+    {
+      "id": "VAExxjOBYeg9GsKCN9Z2",
+      "contact_id": "VAExxjOBYeg9GsKCN9Z2",
+      "nombre": "Sari",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-10-31T15:59:44-04:00",
+      "telefono": "+584120900020",
+      "telefono_alt": ""
+    },
+    {
+      "id": "lq936ZMaY2tKwHNnyoZg",
+      "contact_id": "lq936ZMaY2tKwHNnyoZg",
+      "nombre": "Alexander Sierra",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-11-01T08:16:10-04:00",
+      "telefono": "+584129065058",
+      "telefono_alt": ""
+    },
+    {
+      "id": "qwbTBtF1NGdhR7b5IR2m",
+      "contact_id": "qwbTBtF1NGdhR7b5IR2m",
+      "nombre": "Balarezosu",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-11-01T08:16:10-04:00",
+      "telefono": "+584143710542",
+      "telefono_alt": ""
+    },
+    {
+      "id": "08ux1OLNeJEN9kSNk2F5",
+      "contact_id": "08ux1OLNeJEN9kSNk2F5",
+      "nombre": "Freddy Diaz",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-01T08:16:10-04:00",
+      "telefono": "+584127274037",
+      "telefono_alt": ""
+    },
+    {
+      "id": "k6lrz8pRCob2NWFXoNUm",
+      "contact_id": "k6lrz8pRCob2NWFXoNUm",
+      "nombre": "Jorge Cabrera",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-11-01T08:16:10-04:00",
+      "telefono": "+17863657521",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Lyomu4r5hxdmbCxq4h4v",
+      "contact_id": "Lyomu4r5hxdmbCxq4h4v",
+      "nombre": "Obdulia Guzmán",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-01T10:05:00-04:00",
+      "telefono": "+584260359872",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Kx4QMclCt5pawPsXqEnQ",
+      "contact_id": "Kx4QMclCt5pawPsXqEnQ",
+      "nombre": "Leidy Repillosa",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-11-01T16:50:00-04:00",
+      "telefono": "",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Xq7PRck6w69VsROUOUWe",
+      "contact_id": "Xq7PRck6w69VsROUOUWe",
+      "nombre": "Asdrubal Canache",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-11-01T22:13:00-04:00",
+      "telefono": "+584242012972",
+      "telefono_alt": ""
+    },
+    {
+      "id": "eqCo8SzXxUG1BkVD2sZB",
+      "contact_id": "eqCo8SzXxUG1BkVD2sZB",
+      "nombre": "Luis Gerardo",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-02T08:09:59-04:00",
+      "telefono": "+584125916601",
+      "telefono_alt": ""
+    },
+    {
+      "id": "DfRNCt0PmB0aHdbhynDO",
+      "contact_id": "DfRNCt0PmB0aHdbhynDO",
+      "nombre": "Maite Pineda Forgione",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-11-02T10:26:40-04:00",
+      "telefono": "+584241049249",
+      "telefono_alt": ""
+    },
+    {
+      "id": "qxQscwMZ9R8KqZlXDfvh",
+      "contact_id": "qxQscwMZ9R8KqZlXDfvh",
+      "nombre": "Angelo Trasolini",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-11-02T10:26:40-04:00",
+      "telefono": "+584224003613",
+      "telefono_alt": ""
+    },
+    {
+      "id": "KN4J4iyOugQbwL9kL2TC",
+      "contact_id": "KN4J4iyOugQbwL9kL2TC",
+      "nombre": "Alejandro Gavidez",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-02T11:03:47-04:00",
+      "telefono": "+584149230700",
+      "telefono_alt": ""
+    },
+    {
+      "id": "3Q9eJduimMg3J8bus3Mj",
+      "contact_id": "3Q9eJduimMg3J8bus3Mj",
+      "nombre": "Ida Altuve",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-11-02T11:06:25-05:00",
+      "telefono": "+584122582673",
+      "telefono_alt": ""
+    },
+    {
+      "id": "HgSKIyQCVUehnrszvfZa",
+      "contact_id": "HgSKIyQCVUehnrszvfZa",
+      "nombre": ".",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-02T11:19:52-05:00",
+      "telefono": "+584241958956",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ScqA8eM4MRTarW4ksqoc",
+      "contact_id": "ScqA8eM4MRTarW4ksqoc",
+      "nombre": "Sandra Domínguez",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-02T11:20:06-05:00",
+      "telefono": "+584122466101",
+      "telefono_alt": ""
+    },
+    {
+      "id": "DvpdfkgrwfUTqKe08Aze",
+      "contact_id": "DvpdfkgrwfUTqKe08Aze",
+      "nombre": "Carolina Lacerati",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-02T12:25:51-05:00",
+      "telefono": "+584149442754",
+      "telefono_alt": ""
+    },
+    {
+      "id": "4aHg6eeWmcInJLwWn9hE",
+      "contact_id": "4aHg6eeWmcInJLwWn9hE",
+      "nombre": "Yusti",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-11-02T15:59:33-05:00",
+      "telefono": "+584142324694",
+      "telefono_alt": ""
+    },
+    {
+      "id": "IWADi3tQbvcaTUbBuneG",
+      "contact_id": "IWADi3tQbvcaTUbBuneG",
+      "nombre": "Jose Martin Rodriguez",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-02T17:51:42-05:00",
+      "telefono": "+584146456427",
+      "telefono_alt": ""
+    },
+    {
+      "id": "1bQmy3EFHamaA4MVa0GR",
+      "contact_id": "1bQmy3EFHamaA4MVa0GR",
+      "nombre": "albymar gonzalez",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-11-03T09:23:48-05:00",
+      "telefono": "+584242999989",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Ec47iqK2RUm7lq2ruqcc",
+      "contact_id": "Ec47iqK2RUm7lq2ruqcc",
+      "nombre": "Celibeth Guarín",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-11-03T14:30:24-05:00",
+      "telefono": "+584145342932",
+      "telefono_alt": ""
+    },
+    {
+      "id": "QsXh6dZmhwVtgOhtHZzX",
+      "contact_id": "QsXh6dZmhwVtgOhtHZzX",
+      "nombre": "Wendy González",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-03T15:47:45-05:00",
+      "telefono": "+584120940693",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Vqo9LNgJySHO2rQItxCJ",
+      "contact_id": "Vqo9LNgJySHO2rQItxCJ",
+      "nombre": "Elaine Casanova",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-11-03T15:54:30-05:00",
+      "telefono": "+584147643860",
+      "telefono_alt": ""
+    },
+    {
+      "id": "24cI5ouQHKzTv6WnC01n",
+      "contact_id": "24cI5ouQHKzTv6WnC01n",
+      "nombre": "Carmen",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-11-03T19:38:22-05:00",
+      "telefono": "+584129355022",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ERuIzyzQOmP2hFNXAK8y",
+      "contact_id": "ERuIzyzQOmP2hFNXAK8y",
+      "nombre": "Marianella de Lara",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-04T07:27:33-05:00",
+      "telefono": "+584241842738",
+      "telefono_alt": ""
+    },
+    {
+      "id": "RzkLFbwAc0NksP08H2If",
+      "contact_id": "RzkLFbwAc0NksP08H2If",
+      "nombre": "Marisol Jaramillo",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-11-04T07:27:35-05:00",
+      "telefono": "+584163481726",
+      "telefono_alt": ""
+    },
+    {
+      "id": "XxEhEjWEZHzGXCRlzeog",
+      "contact_id": "XxEhEjWEZHzGXCRlzeog",
+      "nombre": "Joselyn Marcano",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-04T07:49:50-05:00",
+      "telefono": "+584143144735",
+      "telefono_alt": ""
+    },
+    {
+      "id": "fwcb0u51yqHhjs0cQVDh",
+      "contact_id": "fwcb0u51yqHhjs0cQVDh",
+      "nombre": "Radame Pereira",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-11-04T10:51:32-05:00",
+      "telefono": "+584126086973",
+      "telefono_alt": ""
+    },
+    {
+      "id": "8l3NDyKm2b4RA17uWjJ5",
+      "contact_id": "8l3NDyKm2b4RA17uWjJ5",
+      "nombre": "Carlos Ferrer",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-04T11:54:19-05:00",
+      "telefono": "+584246094321",
+      "telefono_alt": ""
+    },
+    {
+      "id": "LMvb52Se4H6MQ31lgRlk",
+      "contact_id": "LMvb52Se4H6MQ31lgRlk",
+      "nombre": "Daniel Marques",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-11-04T12:36:33-05:00",
+      "telefono": "+584122330530",
+      "telefono_alt": ""
+    },
+    {
+      "id": "KA3kylMt2shhj98J7LGM",
+      "contact_id": "KA3kylMt2shhj98J7LGM",
+      "nombre": "Lourdes Parra",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-11-04T13:04:00-05:00",
+      "telefono": "+584143103152",
+      "telefono_alt": ""
+    },
+    {
+      "id": "wyaBLYOOeOIiZhUgYeej",
+      "contact_id": "wyaBLYOOeOIiZhUgYeej",
+      "nombre": "Wilmer",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-04T15:35:55-05:00",
+      "telefono": "+584247002794",
+      "telefono_alt": ""
+    },
+    {
+      "id": "sAJd8RMN4QQD7rKGVufq",
+      "contact_id": "sAJd8RMN4QQD7rKGVufq",
+      "nombre": "Kendry Vilchez",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-11-04T15:46:30-05:00",
+      "telefono": "+593991428193",
+      "telefono_alt": ""
+    },
+    {
+      "id": "2uQfMPByImbFPXpBBRTl",
+      "contact_id": "2uQfMPByImbFPXpBBRTl",
+      "nombre": "Grecia Arévalo",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-11-04T16:16:21-05:00",
+      "telefono": "+584123982177",
+      "telefono_alt": ""
+    },
+    {
+      "id": "OcBD9rNNKbOLMbNsnLSn",
+      "contact_id": "OcBD9rNNKbOLMbNsnLSn",
+      "nombre": "Karl Dos Ramos",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-05T09:47:44-05:00",
+      "telefono": "+584163065194",
+      "telefono_alt": ""
+    },
+    {
+      "id": "yXBr1oJsOtxRFDxe6nnv",
+      "contact_id": "yXBr1oJsOtxRFDxe6nnv",
+      "nombre": "Lorena Meneses",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-11-05T15:08:06-05:00",
+      "telefono": "+584242713381",
+      "telefono_alt": ""
+    },
+    {
+      "id": "1tPpFmDBDjgWMJndHDlZ",
+      "contact_id": "1tPpFmDBDjgWMJndHDlZ",
+      "nombre": "Nereida Meza",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-11-05T16:11:27-05:00",
+      "telefono": "+584249492595",
+      "telefono_alt": "+584121496390"
+    },
+    {
+      "id": "4MDDNujCCsTuU1UNAeNW",
+      "contact_id": "4MDDNujCCsTuU1UNAeNW",
+      "nombre": "Yasmelina",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-05T16:40:29-05:00",
+      "telefono": "+584142276561",
+      "telefono_alt": ""
+    },
+    {
+      "id": "P3lhG0mtfgXTLnFIbQ1e",
+      "contact_id": "P3lhG0mtfgXTLnFIbQ1e",
+      "nombre": "Juan Solett",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-11-06T10:24:42-05:00",
+      "telefono": "+584248662299",
+      "telefono_alt": ""
+    },
+    {
+      "id": "XpbgflTbR2MiTh1Qeu98",
+      "contact_id": "XpbgflTbR2MiTh1Qeu98",
+      "nombre": "Francheska Toro",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-11-06T15:31:15-05:00",
+      "telefono": "+584124977627",
+      "telefono_alt": ""
+    },
+    {
+      "id": "ZlDbA3qdyW1c78DoLHwN",
+      "contact_id": "ZlDbA3qdyW1c78DoLHwN",
+      "nombre": "Fayruz Issa",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-06T16:55:46-05:00",
+      "telefono": "+15098088348",
+      "telefono_alt": ""
+    },
+    {
+      "id": "aHvcw6vNI4UV8vHk2OQn",
+      "contact_id": "aHvcw6vNI4UV8vHk2OQn",
+      "nombre": "Jenifer Quintana",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-11-06T18:24:19-05:00",
+      "telefono": "+584242622494",
+      "telefono_alt": ""
+    },
+    {
+      "id": "N8RPxIW8HKbW5vNPJOD5",
+      "contact_id": "N8RPxIW8HKbW5vNPJOD5",
+      "nombre": "Carmen Rangel",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-11-07T11:19:01-05:00",
+      "telefono": "+584123710917",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Me3lke2GaIN0iamF46gc",
+      "contact_id": "Me3lke2GaIN0iamF46gc",
+      "nombre": "Carlos Prieto",
+      "asesor": "Antonio Pinto De Abreu",
+      "asignado_at": "2026-11-07T11:20:54-05:00",
+      "telefono": "+584141113499",
+      "telefono_alt": ""
+    },
+    {
+      "id": "XX3N9F9o3aGJDBsYFPFy",
+      "contact_id": "XX3N9F9o3aGJDBsYFPFy",
+      "nombre": "Andrea Ruiz",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-11-07T14:16:31-05:00",
+      "telefono": "+584242971437",
+      "telefono_alt": ""
+    },
+    {
+      "id": "9D5456oyCm6HdhFySvDt",
+      "contact_id": "9D5456oyCm6HdhFySvDt",
+      "nombre": "Isis Parra",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-07T18:07:33-05:00",
+      "telefono": "+584126611281",
+      "telefono_alt": ""
+    },
+    {
+      "id": "pTljn2EaUXWJTfBxF8r6",
+      "contact_id": "pTljn2EaUXWJTfBxF8r6",
+      "nombre": "Piter Echezuría",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-11-08T11:14:05-05:00",
+      "telefono": "+584143093800",
+      "telefono_alt": ""
+    },
+    {
+      "id": "uWXECLkpYw4MOxEbbnbE",
+      "contact_id": "uWXECLkpYw4MOxEbbnbE",
+      "nombre": "Saray Herrera",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-08T16:21:21-05:00",
+      "telefono": "+584263129693",
+      "telefono_alt": ""
+    },
+    {
+      "id": "dR546qANRKuQrqDmdHcQ",
+      "contact_id": "dR546qANRKuQrqDmdHcQ",
+      "nombre": "Geraldine León",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-11-08T19:07:31-05:00",
+      "telefono": "+584242091772",
+      "telefono_alt": ""
+    },
+    {
+      "id": "lapqFJOmI2JqRNlcYxHw",
+      "contact_id": "lapqFJOmI2JqRNlcYxHw",
+      "nombre": "Francisco Hermoso",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-09T07:31:36-05:00",
+      "telefono": "+584140230462",
+      "telefono_alt": ""
+    },
+    {
+      "id": "SjPE2qcMDaFYib72CeXV",
+      "contact_id": "SjPE2qcMDaFYib72CeXV",
+      "nombre": "Ismael Cabello",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-11-09T09:26:21-05:00",
+      "telefono": "+584241137396",
+      "telefono_alt": ""
+    },
+    {
+      "id": "PIqzLZKNDhiBTPXDQH9j",
+      "contact_id": "PIqzLZKNDhiBTPXDQH9j",
+      "nombre": "Carlos Dominguez",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-09T11:11:45-05:00",
+      "telefono": "+584141395235",
+      "telefono_alt": ""
+    },
+    {
+      "id": "g7Ys9wR916m7dEI2S2pD",
+      "contact_id": "g7Ys9wR916m7dEI2S2pD",
+      "nombre": "Marilyn Mirabal-Century21",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-09T12:04:49-05:00",
+      "telefono": "+584242974422",
+      "telefono_alt": ""
+    },
+    {
+      "id": "wAjSDRIQnB9VNDHDpvGA",
+      "contact_id": "wAjSDRIQnB9VNDHDpvGA",
+      "nombre": "Pavel",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-11-09T19:06:38-05:00",
+      "telefono": "+584142421687",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Cv5DQZpS1RUJjGq9KR2Z",
+      "contact_id": "Cv5DQZpS1RUJjGq9KR2Z",
+      "nombre": "Roys Caroa",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-10T10:40:19-05:00",
+      "telefono": "+584126178060",
+      "telefono_alt": ""
+    },
+    {
+      "id": "3IEwoXWBti1Ma6xmf7rS",
+      "contact_id": "3IEwoXWBti1Ma6xmf7rS",
+      "nombre": "Kender Herrera",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-10T12:11:01-05:00",
+      "telefono": "+584242735247",
+      "telefono_alt": ""
+    },
+    {
+      "id": "AazxA5FscUSj09pbyp6n",
+      "contact_id": "AazxA5FscUSj09pbyp6n",
+      "nombre": "José Antonio España",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-10T16:57:52-05:00",
+      "telefono": "+584140143034",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Ycn104wxJEn58tdYdrSU",
+      "contact_id": "Ycn104wxJEn58tdYdrSU",
+      "nombre": "Daisy Peña",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-10T18:48:29-05:00",
+      "telefono": "+584241538601",
+      "telefono_alt": ""
+    },
+    {
+      "id": "lCvbM0m6gO2EIbGObLit",
+      "contact_id": "lCvbM0m6gO2EIbGObLit",
+      "nombre": "Nancy Rojas",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-11-11T07:24:01-05:00",
+      "telefono": "+584125960545",
+      "telefono_alt": ""
+    },
+    {
+      "id": "pDOZ7Ct1Zw8Sbapzidvx",
+      "contact_id": "pDOZ7Ct1Zw8Sbapzidvx",
+      "nombre": "Yelitza Camacaro",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-11-11T19:12:09-05:00",
+      "telefono": "+584144172706",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Wsd0RXv0i9EushDlq0SS",
+      "contact_id": "Wsd0RXv0i9EushDlq0SS",
+      "nombre": "🌻María Gabriela🌻",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-11T19:23:33-05:00",
+      "telefono": "+584241016633",
+      "telefono_alt": ""
+    },
+    {
+      "id": "bzvQPkB3yp5pey3PnrwW",
+      "contact_id": "bzvQPkB3yp5pey3PnrwW",
+      "nombre": "Leoneidis",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-11-12T12:06:32-05:00",
+      "telefono": "+584162647861",
+      "telefono_alt": ""
+    },
+    {
+      "id": "sb8vyFYDodkGBRv4UYJI",
+      "contact_id": "sb8vyFYDodkGBRv4UYJI",
+      "nombre": "Adriana V. Palacios🌷",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-11-12T16:38:44-05:00",
+      "telefono": "+584242843241",
+      "telefono_alt": ""
+    },
+    {
+      "id": "Hrjxr11laYWW5841pl4B",
+      "contact_id": "Hrjxr11laYWW5841pl4B",
+      "nombre": "Jennifer Durán",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-12T17:51:59-05:00",
+      "telefono": "+584166202605",
+      "telefono_alt": ""
+    },
+    {
+      "id": "8rILPEdTYuFjE1cJ3AqX",
+      "contact_id": "8rILPEdTYuFjE1cJ3AqX",
+      "nombre": "cibelmarrero",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-11-13T08:21:18-05:00",
+      "telefono": "+584147986835",
+      "telefono_alt": ""
+    },
+    {
+      "id": "xGIWyHXLBU5NUp95f4UY",
+      "contact_id": "xGIWyHXLBU5NUp95f4UY",
+      "nombre": "Streaming Humboldt",
+      "asesor": "Maria Torres",
+      "asignado_at": "2026-11-13T19:07:57-05:00",
+      "telefono": "+584126042612",
+      "telefono_alt": ""
+    },
+    {
+      "id": "EpdYUUqCLzzg8f5x17nj",
+      "contact_id": "EpdYUUqCLzzg8f5x17nj",
+      "nombre": "florianadiazparada",
+      "asesor": "Miriam Margarita Acosta Ascanio",
+      "asignado_at": "2026-11-14T08:58:10-05:00",
+      "telefono": "+584143599317",
+      "telefono_alt": ""
+    },
+    {
+      "id": "YYx8adoSQy87ORItbuE6",
+      "contact_id": "YYx8adoSQy87ORItbuE6",
+      "nombre": "Oswal Brand",
+      "asesor": "Herlinda Guerrero",
+      "asignado_at": "2026-11-14T08:59:09-05:00",
+      "telefono": "+584242782500",
+      "telefono_alt": ""
+    },
+    {
+      "id": "SHaCxWWS9awq63f6PYWS",
+      "contact_id": "SHaCxWWS9awq63f6PYWS",
+      "nombre": "maite zamudia",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-11-15T09:11:14-05:00",
+      "telefono": "+584142801355",
+      "telefono_alt": ""
+    },
+    {
+      "id": "7sf89xdnbPhlrzYSjhQ7",
+      "contact_id": "7sf89xdnbPhlrzYSjhQ7",
+      "nombre": "DP",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-11-15T10:51:50-05:00",
+      "telefono": "+584166155040",
+      "telefono_alt": ""
+    },
+    {
+      "id": "n3mxsfQS0SdmIipNYO40",
+      "contact_id": "n3mxsfQS0SdmIipNYO40",
+      "nombre": "Adriana Palacios",
+      "asesor": "Ireida Virginia Pozo Fernandez",
+      "asignado_at": "2026-11-15T10:52:49-05:00",
+      "telefono": "+584242843241",
+      "telefono_alt": ""
+    },
+    {
+      "id": "P7yIvdKIjtUOpxveGZN7",
+      "contact_id": "P7yIvdKIjtUOpxveGZN7",
+      "nombre": "Katherine Alvarez",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-15T12:39:47-05:00",
+      "telefono": "+584127042206",
+      "telefono_alt": ""
+    },
+    {
+      "id": "dGfJEvYzkcXYO2WeaY2y",
+      "contact_id": "dGfJEvYzkcXYO2WeaY2y",
+      "nombre": "Celeste Fattori",
+      "asesor": "Ana I. Teixeira",
+      "asignado_at": "2026-11-15T12:39:49-05:00",
+      "telefono": "+584122573338",
+      "telefono_alt": ""
+    },
+    {
+      "id": "LFchBb4ZA644ki9PiutL",
+      "contact_id": "LFchBb4ZA644ki9PiutL",
+      "nombre": "Mary Fernández",
+      "asesor": "Cristina Paiva",
+      "asignado_at": "2026-11-15T14:46:12-05:00",
+      "telefono": "+584129520054",
+      "telefono_alt": ""
+    }
+  ]
+}
