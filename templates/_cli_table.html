@@ -1,29 +1,56 @@
-{% macro cli_table(clientes, csrf, estatus_opciones, vacio, mostrar_asesor=False) %}
+{% macro cli_table(clientes, csrf, estatus_opciones, vacio, mostrar_asesor=False, sid='cli') %}
 {% if not clientes %}<div class="empty">{{ vacio }}</div>{% else %}
-<table class="inv">
-  <thead><tr><th>Cliente</th>{% if mostrar_asesor %}<th>Asesor</th>{% endif %}<th>Origen</th><th>Busca</th><th>Estatus</th></tr></thead>
-  <tbody>
-  {% for c in clientes %}
-    <tr>
-      <td data-label="Cliente"><b>{{ c.nombre }}</b>{% if c.telefono %}<div class="muted">{{ c.telefono }}</div>{% endif %}</td>
-      {% if mostrar_asesor %}<td data-label="Asesor">{% if c.asesor_nombre %}{{ c.asesor_nombre }}{% else %}<span class="muted">—</span>{% endif %}</td>{% endif %}
-      <td data-label="Origen">
-        {% if c.origen=='Propio del asesor' %}<span class="pill prop">Propio del asesor</span>{% else %}<span class="pill asig">Asignado por For Rent</span>{% endif %}
-        {% if c.origen_nota %}<div class="muted">{{ c.origen_nota }}</div>{% endif %}
-      </td>
-      <td data-label="Busca">{% if c.busca %}{{ c.busca }}{% else %}<span class="muted">—</span>{% endif %}{% if c.inmueble %}<div class="muted">{{ c.inmueble }}</div>{% endif %}</td>
-      <td data-label="Estatus">
-        {% if c.editable and csrf %}
-        <form method="post" action="/asesor/clientes/{{ c.id }}/estatus" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-          <input type="hidden" name="csrf" value="{{ csrf }}">
-          <select name="status">{% for s in estatus_opciones %}<option value="{{ s }}" {{ 'selected' if c.estatus==s else '' }}>{{ s }}</option>{% endfor %}</select>
-          <button type="submit" class="btn">Guardar</button>
-        </form>
-        {% else %}<span class="pill pill-fase fase-{{ c.fase or 'otros' }}">{{ c.estatus }}</span>{% endif %}
-      </td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<ul class="cli-list">
+{% for c in clientes %}
+  {% set did = sid ~ '-' ~ loop.index0 %}
+  <li>
+    <button type="button" class="cli-row" data-dlg="{{ did }}" aria-haspopup="dialog">
+      <span class="cli-body">
+        <span class="cli-name">{{ c.nombre }}</span>
+        {% if mostrar_asesor %}<span class="cli-asesor">{{ c.asesor_nombre or '—' }}</span>{% endif %}
+        {% if c.busca %}<span class="cli-busca">{{ c.busca }}</span>{% endif %}
+      </span>
+      <span class="pill pill-fase fase-{{ c.fase or 'otros' }}">{{ c.estatus or 'Sin estatus' }}</span>
+    </button>
+    <dialog class="cli-modal" id="{{ did }}" aria-label="Ficha de {{ c.nombre }}">
+      <div class="cli-modal-inner fase-{{ c.fase or 'otros' }}">
+        <button type="button" class="cli-modal-x" data-close aria-label="Cerrar">&times;</button>
+        <dl class="cli-dl">
+          <div><dt>Cliente</dt><dd><b>{{ c.nombre }}</b>{% if c.telefono %}<div class="muted">{{ c.telefono }}</div>{% endif %}</dd></div>
+          {% if mostrar_asesor %}<div><dt>Asesor</dt><dd>{% if c.asesor_nombre %}{{ c.asesor_nombre }}{% else %}<span class="muted">—</span>{% endif %}</dd></div>{% endif %}
+          <div><dt>Origen</dt><dd>
+            {% if c.origen=='Propio del asesor' %}<span class="pill prop">Propio del asesor</span>{% else %}<span class="pill asig">Asignado por For Rent</span>{% endif %}
+            {% if c.origen_nota %}<div class="muted">{{ c.origen_nota }}</div>{% endif %}
+          </dd></div>
+          <div><dt>Busca</dt><dd>{% if c.busca %}{{ c.busca }}{% else %}<span class="muted">—</span>{% endif %}{% if c.inmueble %}<div class="muted">{{ c.inmueble }}</div>{% endif %}</dd></div>
+          <div><dt>Estatus</dt><dd>
+            {% if c.editable and csrf %}
+            <form method="post" action="/asesor/clientes/{{ c.id }}/estatus" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <select name="status">{% for s in estatus_opciones %}<option value="{{ s }}" {{ 'selected' if c.estatus==s else '' }}>{{ s }}</option>{% endfor %}</select>
+              <button type="submit" class="btn">Guardar</button>
+            </form>
+            {% else %}<span class="pill pill-fase fase-{{ c.fase or 'otros' }}">{{ c.estatus }}</span>{% endif %}
+          </dd></div>
+        </dl>
+      </div>
+    </dialog>
+  </li>
+{% endfor %}
+</ul>
 {% endif %}
+{% endmacro %}
+
+{% macro cli_js() %}
+<script>
+(function(){
+  if (window.__cliBound) return; window.__cliBound = true;
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('.cli-row');
+    if (b){ var d = document.getElementById(b.getAttribute('data-dlg')); if (d){ if (d.showModal) d.showModal(); else d.setAttribute('open',''); } return; }
+    var d = e.target.closest('dialog.cli-modal');
+    if (d && (e.target === d || e.target.hasAttribute('data-close'))){ if (d.close) d.close(); else d.removeAttribute('open'); }
+  });
+})();
+</script>
 {% endmacro %}

@@ -229,3 +229,22 @@ details.fase-sec .inv{margin:0 0 8px}
   .inv-row{padding:10px 12px}
   .inv-thumb,.inv-thumb img,.inv-ph{width:72px;height:72px}
 }
+
+/* Clientes: lista compacta + ficha */
+.cli-list{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:6px}
+.cli-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:#fff;border:0;border-radius:10px;box-shadow:var(--sombra);padding:10px 12px;cursor:pointer;font:inherit;color:inherit;min-height:52px}
+.cli-row:hover,.cli-row:focus-visible{background:#fffaf6;outline:none}
+.cli-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.cli-name{font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cli-asesor{font-size:12px;font-weight:600;color:#30343d}
+.cli-busca{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cli-row .pill{flex:none;max-width:44%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cli-modal{position:relative;border:0;padding:0;border-radius:16px 16px 0 0;width:min(520px,100%);max-height:90dvh;margin:auto auto 0;background:#fff;box-shadow:0 -8px 40px rgba(17,17,17,.18)}
+.cli-modal::backdrop{background:rgba(17,17,17,.45)}
+@media (min-width:720px){.cli-modal{border-radius:16px;margin:auto}}
+.cli-modal-inner{border-top:5px solid var(--fase,var(--naranja));padding:18px 16px 22px;overflow:auto}
+.cli-modal-x{position:absolute;top:10px;right:10px;width:38px;height:38px;border:0;border-radius:19px;background:#f1f2f4;font-size:24px;line-height:1;cursor:pointer}
+.cli-dl{margin:0;display:flex;flex-direction:column;gap:12px}
+.cli-dl dt{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.cli-dl dd{margin:3px 0 0;font-size:14.5px}
+.cli-dl select{font:inherit;padding:7px;border:1px solid #d5dae3;border-radius:8px;max-width:100%}
