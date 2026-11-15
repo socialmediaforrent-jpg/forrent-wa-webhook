@@ -158,6 +158,9 @@ def init_db():
     q("""CREATE TABLE IF NOT EXISTS asignaciones_notificadas (
         asesor_slug TEXT NOT NULL, cliente_id TEXT NOT NULL, created_at TEXT NOT NULL,
         PRIMARY KEY (asesor_slug, cliente_id))""")
+    # Restore point taken once, before the GHL history import. Never overwritten.
+    q("CREATE TABLE IF NOT EXISTS bak_pre_ghl_import_wa_events AS SELECT * FROM wa_events")
+    q("CREATE TABLE IF NOT EXISTS bak_pre_ghl_import_raw_events AS SELECT * FROM raw_events")
     seed_emails_perfil()
 
 
@@ -811,6 +814,120 @@ def panel_data():
     if data is None:
         return _panel_headers(Response('No tienes acceso a esta conversación.\n', 403))
     return _panel_headers(jsonify(data))
+
+
+def _table_count(table, where='', args=()):
+    try:
+        sql = 'SELECT COUNT(*) AS n FROM ' + table
+        if where:
+            sql += ' WHERE ' + where
+        rows = q(sql, args, fetch=True) or []
+        return int(rows[0]['n']) if rows else 0
+    except Exception:
+        return None
+
+
+def _already_live_event(wa_id, kind, text, ts, msg_type):
+    """True if a live (non-import) event already represents this message. Does not mutate it."""
+    rows = q(
+        """SELECT text, ts, msg_type FROM wa_events
+           WHERE wa_id=%s AND kind=%s AND kind IN ('message','outbound')
+             AND (source IS NULL OR source <> %s)""",
+        (wa_id, kind, 'ghl_import'),
+        fetch=True,
+    ) or []
+    minute = (ts or '')[:16].replace('Z', '')
+    text = (text or '').strip()
+    for x in rows:
+        same_text = (x.get('text') or '').strip() == text
+        same_min = (x.get('ts') or '')[:16].replace('Z', '') == minute
+        if text and same_text and same_min:
+            return True
+        if (not text) and same_min and (x.get('msg_type') or '') == (msg_type or ''):
+            return True
+    return False
+
+
+@app.get('/panel/import-ghl')
+@require_admin
+def panel_import_ghl_status():
+    st = {
+        'backup_wa_events': _table_count('bak_pre_ghl_import_wa_events'),
+        'backup_raw_events': _table_count('bak_pre_ghl_import_raw_events'),
+        'wa_events': _table_count('wa_events'),
+        'ghl_import': _table_count('wa_events', 'source=%s', ('ghl_import',)),
+        'ghl_conversations': _table_count(
+            'wa_events', "source=%s AND kind IN ('message','outbound')", ('ghl_import',)
+        ),
+    }
+    # distinct conversations
+    try:
+        rows = q(
+            "SELECT COUNT(DISTINCT wa_id) AS n FROM wa_events WHERE source=%s",
+            ('ghl_import',),
+            fetch=True,
+        ) or []
+        st['ghl_conversations'] = int(rows[0]['n']) if rows else 0
+    except Exception:
+        pass
+    return _panel_headers(jsonify(ok=True, **st))
+
+
+@app.post('/panel/import-ghl')
+@require_admin
+def panel_import_ghl():
+    """Load GHL history rows (source=ghl_import, wamid ghl:...). Re-runnable. Admin only."""
+    q("CREATE TABLE IF NOT EXISTS bak_pre_ghl_import_wa_events AS SELECT * FROM wa_events")
+    q("CREATE TABLE IF NOT EXISTS bak_pre_ghl_import_raw_events AS SELECT * FROM raw_events")
+    body = request.get_json(silent=True, force=True) or {}
+    rows = body.get('rows') or []
+    inserted = skipped_conflict = skipped_live = rejected = 0
+    for r in rows:
+        if not isinstance(r, dict):
+            rejected += 1
+            continue
+        wamid = str(r.get('wamid') or '')
+        if not wamid.startswith('ghl:'):
+            rejected += 1
+            continue
+        r = dict(r)
+        r['source'] = 'ghl_import'
+        if _already_live_event(r.get('wa_id') or '', r.get('kind') or '', r.get('text') or '', r.get('ts') or '', r.get('msg_type') or ''):
+            skipped_live += 1
+            continue
+        before = q("SELECT 1 FROM wa_events WHERE kind=%s AND wamid=%s AND coalesce(status,'')=coalesce(%s,'') LIMIT 1",
+                   (r.get('kind'), wamid, r.get('status') or ''), fetch=True)
+        insert_event(
+            kind=r.get('kind'), wamid=wamid, wa_id=r.get('wa_id'), name=r.get('name'),
+            direction=r.get('direction'), msg_type=r.get('msg_type'), text=r.get('text') or '',
+            ts=r.get('ts'), status=r.get('status') or '', auto=int(r.get('auto') or 0),
+            source='ghl_import', phone_number_id=r.get('phone_number_id') or '',
+            received_at=r.get('received_at'), data=r.get('data') or {},
+        )
+        after = q("SELECT 1 FROM wa_events WHERE kind=%s AND wamid=%s AND coalesce(status,'')=coalesce(%s,'') LIMIT 1",
+                  (r.get('kind'), wamid, r.get('status') or ''), fetch=True)
+        if before:
+            skipped_conflict += 1
+        elif after:
+            inserted += 1
+        else:
+            rejected += 1
+    st = {
+        'ok': True,
+        'received': len(rows),
+        'inserted': inserted,
+        'skipped_conflict': skipped_conflict,
+        'skipped_live': skipped_live,
+        'rejected': rejected,
+        'backup_wa_events': _table_count('bak_pre_ghl_import_wa_events'),
+        'ghl_import': _table_count('wa_events', 'source=%s', ('ghl_import',)),
+    }
+    try:
+        rows_n = q("SELECT COUNT(DISTINCT wa_id) AS n FROM wa_events WHERE source=%s", ('ghl_import',), fetch=True) or []
+        st['ghl_conversations'] = int(rows_n[0]['n']) if rows_n else 0
+    except Exception:
+        st['ghl_conversations'] = None
+    return _panel_headers(jsonify(st))
 
 
 INV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'inventario.json')
