@@ -1,0 +1,15 @@
+{% from '_icons.html' import icon %}
+{% for titulo, ic, kpis in dash %}
+<section class="dash-sec" aria-label="{{ titulo }}">
+  <h2>{{ icon(ic) }} {{ titulo }}</h2>
+  <div class="kpis">
+    {% for k in kpis %}
+    {% if k.value is none %}
+    <div class="kpi empty"><div class="lbl">{{ k.label }}</div><span class="tag">Sin dato</span><div class="meta">{{ k.meta }}</div></div>
+    {% else %}
+    <{{ 'a href="' ~ k.href ~ '"' if k.href else 'div' }} class="kpi"><div class="lbl">{{ k.label }}</div><div class="val">{{ k.value }}</div><div class="meta">{{ k.meta }}</div></{{ 'a' if k.href else 'div' }}>
+    {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}

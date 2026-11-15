@@ -1,0 +1,10 @@
+{% macro cap_table(items, vacio) %}
+{% if not items %}<div class="empty">{{ vacio }}</div>{% else %}
+<table class="inv"><thead><tr><th>Título</th><th>Operación</th><th>Tipo</th><th>Zona</th><th>Precio</th><th>Código</th></tr></thead><tbody>
+{% for it in items %}<tr>
+<td data-label="Título">{{ it.titulo }}{% if it.solo_cliente_directo %} <span class="badge">Solo cliente directo</span>{% endif %}</td>
+<td data-label="Operación"><span class="op {{ 'alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span></td>
+<td data-label="Tipo">{{ it.tipo }}</td><td data-label="Zona">{{ it.zona }}</td><td data-label="Precio">{{ it.precio }}</td>
+<td data-label="Código"><b>{{ it.codigo }}</b></td></tr>{% endfor %}
+</tbody></table>{% endif %}
+{% endmacro %}

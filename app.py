@@ -371,19 +371,37 @@ def require_admin(fn):
     return require_login(wrapper)
 
 
+ROLE_LABEL = {'admin': 'Presidencia', 'lider': 'Líder comercial', 'asesor': 'Asesora'}
+
+
 @app.context_processor
 def _portal_nav():
     u = getattr(g, 'user', None)
     if not u:
-        return {'nav_links': [], 'viewer': None}
-    if u['role'] == 'admin':
-        links = [('/portal', 'Inicio', 'portal'), ('/panel', 'Mensajes', 'mensajes'),
-                 ('/inventario', 'Inventario', 'inventario'), ('/clientes-propios', 'Clientes propios', 'propios')]
-    elif u['role'] == 'lider':
-        links = [('/portal', 'Inicio', 'portal'), ('/clientes-propios', 'Clientes del equipo', 'propios')]
+        return {'nav_main': [], 'nav_more': [], 'nav_more_keys': [], 'viewer': None, 'role_label': ''}
+    role = u['role']
+    links = _portal_links()
+    main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'}]
+    main.append({'href': '/mis-clientes', 'label': 'Mis Clientes', 'short': 'Clientes', 'key': 'clientes', 'icon': 'users'})
+    main.append({'href': '/inventario', 'label': 'Inventario General', 'short': 'Inventario', 'key': 'inventario', 'icon': 'building'})
+    if role == 'admin':
+        main.append({'href': '/panel', 'label': 'Mensajes', 'key': 'mensajes', 'icon': 'chat'})
+    more = [{'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'key': 'captaciones', 'icon': 'key'}]
+    if role in ('admin', 'lider'):
+        more.insert(0, {'href': '/mi-equipo', 'label': 'Mi Equipo', 'key': 'equipo', 'icon': 'users'})
+    if role == 'admin':
+        if links['cierres_url']:
+            more.append({'href': links['cierres_url'], 'label': 'Cierres', 'key': 'cierres', 'icon': 'cash', 'external': True})
+        if links['estatus_url']:
+            more.append({'href': links['estatus_url'], 'label': 'Sistema de Clientes', 'key': 'estatus', 'icon': 'clipboard', 'external': True})
     else:
-        links = [('/portal', 'Inicio', 'portal')]
-    return {'nav_links': links, 'viewer': u}
+        more.append({'href': '/portal#cierres', 'label': 'Cierres', 'key': 'cierres', 'icon': 'cash'})
+        more.append({'href': '/mis-clientes#agregar', 'label': 'Agregar cliente', 'key': 'agregar', 'icon': 'userplus'})
+    if role in ('admin', 'lider'):
+        more.append({'href': '/clientes-propios', 'label': 'Clientes propios' if role == 'admin' else 'Clientes del equipo',
+                     'key': 'propios_more', 'icon': 'users'})
+    return {'nav_main': main, 'nav_more': more, 'nav_more_keys': [m['key'] for m in more],
+            'viewer': u, 'role_label': ROLE_LABEL.get(role, role)}
 
 
 def _parse_caracas(iso):
@@ -656,26 +674,109 @@ def _cierres_vista(user, *, full):
 
 
 def _render_asesor(user, flash_ok='', flash_err='', form=None):
-    cap = portal_lib.load_captaciones(slug=user['user'])
-    propias = [x for x in cap if x.get('origen') == 'propio']
-    alianzas = [x for x in cap if x.get('origen') == 'alianza']
-    clientes, cli_fecha = _asesor_clientes(user)
     full = user['role'] in ('admin', 'lider')
     cierres = _cierres_vista(user, full=full)
-    inv = _inventario()
     return _panel_headers(render_template(
-        'asesor.html',
-        propias=propias, alianzas=alianzas,
-        n_propias=len(propias), n_alianza=len(alianzas),
-        clientes=clientes, n_clientes=len(clientes),
-        cli_fecha=portal_lib.fmt_fecha(cli_fecha) if cli_fecha else 'fecha no disponible',
-        inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''),
-        cierres=cierres, n_cierres=len(cierres),
-        estatus_opciones=portal_lib.ESTATUS_OPCIONES,
-        csrf=portal_lib.csrf_token(user),
-        flash_ok=flash_ok, flash_err=flash_err, form=form or {},
+        'asesor.html', cierres=cierres, n_cierres=len(cierres), dash=_dashboard(user),
     ))
 
+
+def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200):
+    clientes, cli_fecha = _asesor_clientes(user)
+    resp = _panel_headers(render_template(
+        'clientes.html',
+        clientes=clientes, n_clientes=len(clientes),
+        cli_fecha=portal_lib.fmt_fecha(cli_fecha) if cli_fecha else 'fecha no disponible',
+        estatus_opciones=portal_lib.ESTATUS_OPCIONES,
+        csrf=portal_lib.csrf_token(user), puede_agregar=user['role'] != 'admin',
+        flash_ok=flash_ok, flash_err=flash_err, form=form or {},
+    ))
+    resp.status_code = status
+    return resp
+
+
+
+def _hoy_caracas():
+    return datetime.now(CARACAS).date()
+
+
+def _fecha_corta(iso):
+    dt = _parse_caracas(iso)
+    if not dt:
+        return 'fecha no disponible'
+    return f'{dt.day} {MESES_CORTOS[dt.month - 1]} {dt.year}'
+
+
+def _kpi(label, value=None, meta='', href=''):
+    return {'label': label, 'value': value, 'meta': meta, 'href': href}
+
+
+def _dashboard(user):
+    """Indicadores reales, filtrados en servidor según rol. None = sin dato (estado vacío)."""
+    role = user['role']
+    slugs = None if role == 'admin' else [user['user']]
+    asig, asig_act, _ = portal_lib.load_asignados(slugs=slugs) if slugs else portal_lib.load_asignados()
+    propios = _db_propios(slugs or portal_lib.visible_slugs(user))
+    inv = _inventario()
+    cap_data = portal_lib._load('captaciones.json', {})
+    cap = portal_lib.load_captaciones(slugs=slugs) if slugs else (cap_data.get('items') or [])
+    cierres = portal_lib.load_cierres(slugs=slugs, full=(role != 'asesor')) if slugs else portal_lib.load_cierres(full=True)
+    ci_act = portal_lib._load('cierres.json', {}).get('actualizado') or ''
+    hoy = _hoy_caracas()
+    f_asig, f_inv, f_ci = _fecha_corta(asig_act), _fecha_corta(inv.get('actualizado') or ''), _fecha_corta(ci_act)
+
+    def es_hoy(iso):
+        dt = _parse_caracas(iso) if iso and ('+' in iso[10:] or iso.endswith('Z')) else None
+        if dt:
+            return dt.date() == hoy
+        return (iso or '')[:10] == hoy.isoformat()
+
+    nuevos = sum(1 for c in asig if es_hoy(c.get('asignado_at') or '')) + sum(1 for r in propios if es_hoy(r.get('created_at') or ''))
+    est = [c.get('estatus') for c in asig] + [r.get('status') for r in propios]
+    visitas = sum(1 for s in est if s == 'Visita agendada')
+    reservas = sum(1 for s in est if s in ('Reserva agendada', 'Reserva firmada'))
+    mes = hoy.strftime('%Y-%m')
+    cierres_mes = sum(1 for c in cierres if (c.get('fecha') or '').startswith(mes))
+    vacio = f'Sin dato todavía · copia del {f_asig}'
+    mis = 'tuyos' if role != 'admin' else 'del equipo'
+    grupos = inv.get('grupos') or {}
+    n_prop_inv, n_ali_inv = len(grupos.get('propio') or []), len(grupos.get('alianza') or [])
+    n_cap_prop = sum(1 for x in cap if x.get('origen') == 'propio')
+    n_cap_ali = sum(1 for x in cap if x.get('origen') == 'alianza')
+
+    secciones = [
+        ('Clientes', 'users', [
+            _kpi('Nuevos del día', nuevos, f'Asignados hoy (copia del {f_asig}) + propios registrados hoy'),
+            _kpi('Asignados', len(asig), f'{"Tus asignados" if role != "admin" else "Todos"} · copia del {f_asig}',
+                 '/mis-clientes'),
+            _kpi('Contactos pendientes', None, vacio),
+            _kpi('Seguimientos vencidos', None, vacio),
+        ]),
+        ('Inventario', 'building', [
+            _kpi('Disponibles', n_prop_inv + n_ali_inv, f'Propias + aliados (sin red) · {f_inv}', '/inventario'),
+            _kpi('Captaciones propias', n_cap_prop if role != 'admin' else n_prop_inv,
+                 (f'Tuyas · {f_inv}' if role != 'admin' else f'De For Rent · {f_inv}'),
+                 '/mis-captaciones' if role != 'admin' else '/inventario?f=propias'),
+            _kpi('En alianza', n_cap_ali if role != 'admin' else n_ali_inv,
+                 (f'Tuyas · {f_inv}' if role != 'admin' else f'Aliados · {f_inv}'),
+                 '/mis-captaciones' if role != 'admin' else '/inventario?f=aliados'),
+            _kpi('Nuevas incorporadas', None, f'Sin dato todavía · inventario del {f_inv}'),
+        ]),
+        ('Operaciones', 'calendar', [
+            _kpi('Visitas programadas', visitas, f'Estatus «Visita agendada» · copia del {f_asig}'),
+            _kpi('Negociaciones activas', None, vacio),
+            _kpi('Reservas', reservas, f'Reserva agendada o firmada · copia del {f_asig}'),
+            _kpi('Cierres del mes', cierres_mes, f'{MESES[hoy.month - 1].capitalize()} · copia de cierres del {f_ci}',
+                 '/portal#cierres' if role != 'admin' else ''),
+        ]),
+        ('Productividad', 'chart', [
+            _kpi('Actividad de las asesoras' if role != 'asesor' else 'Tu actividad', None, vacio),
+            _kpi('Clientes contactados', None, vacio),
+            _kpi('Seguimientos realizados', None, vacio),
+            _kpi('Resultados comerciales', None, f'Sin dato todavía · cierres del {f_ci}'),
+        ]),
+    ]
+    return secciones
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -724,10 +825,8 @@ def logout():
 @require_login
 def portal():
     if g.user['role'] != 'admin':
-        ok = request.args.get('ok')
-        flash_ok = 'Cliente guardado.' if ok == '1' else ('Estatus actualizado.' if ok == 'estatus' else '')
-        return _render_asesor(g.user, flash_ok=flash_ok)
-    return _panel_headers(render_template('portal.html', **_portal_links()))
+        return _render_asesor(g.user)
+    return _panel_headers(render_template('portal.html', dash=_dashboard(g.user), **_portal_links()))
 
 
 @app.get('/clientes-propios')
@@ -747,16 +846,78 @@ def clientes_propios():
     return _panel_headers(render_template('propios.html', filas=filas))
 
 
+@app.get('/mis-clientes')
+@require_login
+def mis_clientes():
+    ok = request.args.get('ok')
+    flash_ok = 'Cliente guardado.' if ok == '1' else ('Estatus actualizado.' if ok == 'estatus' else '')
+    return _render_clientes(g.user, flash_ok=flash_ok)
+
+
+def _equipo_de(user):
+    """Asesoras que este usuario puede supervisar (servidor). Admin: todas; líder: su equipo."""
+    if user['role'] == 'admin':
+        return [a for a in portal_lib.asesores_meta()]
+    if user['role'] == 'lider':
+        permitidos = set(portal_lib.visible_slugs(user)) - {user['user']}
+        return [a for a in portal_lib.asesores_meta() if a['user'] in permitidos]
+    return None
+
+
+@app.get('/mi-equipo')
+@require_login
+def mi_equipo():
+    equipo = _equipo_de(g.user)
+    if equipo is None:
+        return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
+    asig_all, _, _ = portal_lib.load_asignados(slugs=[a['user'] for a in equipo]) if equipo else ([], '', '')
+    cap_all = portal_lib.load_captaciones(slugs=[a['user'] for a in equipo]) if equipo else []
+    filas = []
+    for a in equipo:
+        s = a['user']
+        filas.append({
+            'user': s, 'name': a.get('name') or s, 'role': a.get('role'),
+            'lider': _nombre_asesor(a.get('lider')) if a.get('lider') and a.get('lider') != s else '',
+            'n_prop': sum(1 for x in cap_all if x.get('asesor') == s and x.get('origen') == 'propio'),
+            'n_ali': sum(1 for x in cap_all if x.get('asesor') == s and x.get('origen') == 'alianza'),
+            'n_cli': sum(1 for x in asig_all if x.get('asesor') == s) + len(_db_propios([s])),
+        })
+    return _panel_headers(render_template('equipo.html', filas=filas))
+
+
+@app.get('/mi-equipo/<slug>')
+@require_login
+def mi_equipo_asesora(slug):
+    equipo = _equipo_de(g.user)
+    slug = (slug or '').strip().lower()
+    if equipo is None or slug not in {a['user'] for a in equipo}:
+        return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
+    meta = portal_lib.asesor_by_user(slug) or {}
+    cap = portal_lib.load_captaciones(slug=slug)
+    clientes, cli_fecha = _asesor_clientes({'user': slug})
+    for c in clientes:
+        c['editable'] = False
+    inv = _inventario()
+    return _panel_headers(render_template(
+        'equipo_asesora.html', a_name=meta.get('name') or slug,
+        propias=[x for x in cap if x.get('origen') == 'propio'],
+        alianzas=[x for x in cap if x.get('origen') == 'alianza'],
+        clientes=clientes,
+        cli_fecha=portal_lib.fmt_fecha(cli_fecha) if cli_fecha else 'fecha no disponible',
+        inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''),
+    ))
+
+
 @app.post('/asesor/clientes')
 @require_login
 def asesor_nuevo_cliente():
     if g.user['role'] == 'admin':
         return _panel_headers(Response('Los clientes propios los registra cada asesor en su portal.\n', 403))
     if not portal_lib.csrf_ok(g.user, request.form.get('csrf')):
-        return _render_asesor(g.user, flash_err='La sesión expiró. Vuelve a intentar.')
+        return _render_clientes(g.user, flash_err='La sesión expiró. Vuelve a intentar.')
     datos, errores = portal_lib.validar_cliente(request.form)
     if errores:
-        return _render_asesor(g.user, flash_err=' '.join(errores), form=datos)
+        return _render_clientes(g.user, flash_err=' '.join(errores), form=datos)
     now = now_iso()
     try:
         q(
@@ -769,49 +930,62 @@ def asesor_nuevo_cliente():
     except Exception as e:
         msg = str(e).lower()
         if 'unique' in msg or 'duplicate' in msg:
-            return _render_asesor(g.user, flash_err='Ya tienes un cliente con ese teléfono.', form=datos)
+            return _render_clientes(g.user, flash_err='Ya tienes un cliente con ese teléfono.', form=datos)
         log.error('No se pudo guardar cliente propio: %s', type(e).__name__)
-        return _render_asesor(g.user, flash_err='No se pudo guardar. Inténtalo de nuevo.', form=datos)
-    return redirect('/portal?ok=1#clientes')
+        return _render_clientes(g.user, flash_err='No se pudo guardar. Inténtalo de nuevo.', form=datos)
+    return redirect('/mis-clientes?ok=1')
 
 
 @app.post('/asesor/clientes/<int:cid>/estatus')
 @require_login
 def asesor_estatus_cliente(cid):
     if not portal_lib.csrf_ok(g.user, request.form.get('csrf')):
-        return _render_asesor(g.user, flash_err='La sesión expiró. Vuelve a intentar.')
+        return _render_clientes(g.user, flash_err='La sesión expiró. Vuelve a intentar.')
     status = (request.form.get('status') or '').strip()
     if status not in portal_lib.ESTATUS_OPCIONES:
-        return _render_asesor(g.user, flash_err='El estatus no es válido.')
+        return _render_clientes(g.user, flash_err='El estatus no es válido.')
     rows = q('SELECT id, asesor_slug FROM asesor_clientes WHERE id=%s', (cid,), fetch=True) or []
     if not rows:
-        return _render_asesor(g.user, flash_err='No encontramos ese cliente.')
+        return _render_clientes(g.user, flash_err='No encontramos ese cliente.')
     if not portal_lib.can_edit_propio(g.user, rows[0]['asesor_slug']):
         return _panel_headers(Response('No puedes editar este cliente.\n', 403))
     q('UPDATE asesor_clientes SET status=%s, updated_at=%s WHERE id=%s', (status, now_iso(), cid))
-    return redirect('/portal?ok=estatus#clientes')
+    return redirect('/mis-clientes?ok=estatus')
 
 
 
 @app.get('/inventario')
-@require_admin
+@require_login
 def inventario():
+    """Inventario General: solo lectura para todos los roles (autorizado por José)."""
     data = _inventario()
     grupos = data.get('grupos') or {}
-    orden = [('propio', grupos.get('propio') or []),
-             ('alianza', grupos.get('alianza') or []),
-             ('red', grupos.get('red') or [])]
+    prop, ali, red = grupos.get('propio') or [], grupos.get('alianza') or [], grupos.get('red') or []
+    f = request.args.get('f') or 'propias'
+    if f not in ('propias', 'aliados', 'todos'):
+        f = 'propias'
+    filas = prop if f == 'propias' else ali if f == 'aliados' else (prop + ali + red)
     return _panel_headers(render_template(
         'inventario.html',
         actualizado=_fmt_actualizado(data.get('actualizado') or ''),
-        grupos=orden,
-        n_propio=len(orden[0][1]),
-        n_alianza=len(orden[1][1]),
-        n_red=len(orden[2][1]),
+        filas=filas, f=f,
+        n_propio=len(prop), n_alianza=len(ali), n_red=len(red), n_todos=len(prop) + len(ali) + len(red),
     ))
 
 
-# ---------------------------------------------------------------- respuesta fuera de horario (APAGADA por defecto)
+@app.get('/mis-captaciones')
+@require_login
+def mis_captaciones():
+    cap = portal_lib.load_captaciones(slug=g.user['user'])
+    inv = _inventario()
+    return _panel_headers(render_template(
+        'captaciones.html',
+        propias=[x for x in cap if x.get('origen') == 'propio'],
+        alianzas=[x for x in cap if x.get('origen') == 'alianza'],
+        inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''),
+    ))
+
+
 def _fuera_de_horario(dt_caracas):
     return not (8 <= dt_caracas.hour < 20)
 
