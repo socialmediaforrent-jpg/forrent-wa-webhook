@@ -56,9 +56,10 @@ header .sub{color:var(--muted);font-size:13px}
 .bub .st.fallo{color:#b91c1c;font-weight:700}
 .empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:15px}
 html,body{height:100%}
-.wrap{height:calc(100% - 200px)}
+body{display:flex;flex-direction:column}
+.wrap{flex:1;height:auto}
 @media (max-width:720px){
-  .wrap{grid-template-columns:1fr;height:calc(100% - 228px)}
+  .wrap{grid-template-columns:1fr}
   body.con .list, body:not(.con) .thread{display:none}
   .thread-head a{display:inline}
 }
