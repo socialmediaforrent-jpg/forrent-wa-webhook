@@ -35,6 +35,9 @@ services:
         sync: false
       - key: PORTAL_ASESORES_SHA256
         sync: false
+      - key: SECRET_KEY
+        generateValue: true
+        sync: false
       - key: GRAPH_VERSION
         value: v27.0
       - key: AUTO_REPLY_ENABLED

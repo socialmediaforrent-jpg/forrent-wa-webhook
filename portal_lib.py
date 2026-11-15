@@ -92,6 +92,25 @@ def identify_user(username, password):
     }
 
 
+def user_by_username(username):
+    """Carga el perfil de un usuario ya autenticado (sesión). Sin contraseña."""
+    user = (username or '').strip().lower()
+    if not user:
+        return None
+    if user == 'jose':
+        return {'user': 'jose', 'name': 'José Daniel Pinto Chacón', 'role': 'admin', 'equipo': [], 'lider': ''}
+    meta = asesor_by_user(user)
+    if not meta:
+        return None
+    return {
+        'user': user,
+        'name': meta.get('name') or user,
+        'role': meta.get('role') or 'asesor',
+        'equipo': list(meta.get('equipo') or []),
+        'lider': meta.get('lider') or '',
+    }
+
+
 def visible_slugs(user):
     """Slugs de asesor cuyos datos puede ver este usuario."""
     if user['role'] == 'admin':

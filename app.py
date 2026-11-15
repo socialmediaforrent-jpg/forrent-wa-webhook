@@ -7,8 +7,10 @@ Endpoints
   GET  /api/events?since_id=N        -> (Bearer WA_READ_KEY) mensajes/estados nuevos para los scripts de la caja
   POST /api/outbound                 -> (Bearer WA_READ_KEY) registra una respuesta enviada desde la caja
   GET  /api/last_inbound?wa_id=...   -> (Bearer WA_READ_KEY) último mensaje entrante de un número
-  GET  / y /portal                   -> portal For Rent (HTTP Basic, usuario jose)
-  GET  /panel                        -> bandeja de entrada (misma autenticación)
+  GET  /login                        -> inicio de sesión (cookie de sesión firmada)
+  POST /login, GET|POST /logout      -> entrar / cerrar sesión
+  GET  / y /portal                   -> portal For Rent (sesión; redirige a /login)
+  GET  /panel                        -> bandeja de entrada (sesión, solo José)
   GET  /panel/data                   -> JSON de la bandeja (para auto-actualizar)
   GET  /inventario                   -> inventario propios / alianza / red (solo lectura)
 
@@ -22,6 +24,7 @@ Variables de entorno
   PANEL_PASSWORD_SHA256       sha256 hex de la contraseña del portal (usuario fijo: jose). También acepta PANEL_PASSWORD.
   PORTAL_ESTATUS_URL          enlace del panel admin del Sistema de Clientes
   PORTAL_CIERRES_URL          enlace del panel admin de Cierres (Sistema Contable)
+  SECRET_KEY                  firma de la cookie de sesión del portal (no es una contraseña de usuario)
 """
 import hashlib, hmac, json, logging, os, sqlite3, threading, time, urllib.request
 from datetime import datetime, timedelta, timezone
@@ -30,13 +33,21 @@ from zoneinfo import ZoneInfo
 from functools import wraps
 from urllib.parse import quote
 
-from flask import Flask, Response, abort, g, jsonify, make_response, redirect, render_template, request
+from flask import Flask, Response, abort, g, jsonify, make_response, redirect, render_template, request, session
 
 import portal_lib
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('wa')
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY') or os.urandom(32)
+app.config.update(
+    SESSION_COOKIE_NAME='forrent_session',
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=bool(os.environ.get('RENDER')),
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+)
 CARACAS = ZoneInfo('America/Caracas')
 STARTED = datetime.now(timezone.utc).isoformat()
 
@@ -273,21 +284,79 @@ STATUS_ETIQUETA = {
 }
 
 
-def _auth_401():
-    return Response(
-        'Se necesita usuario y contraseña.\n',
-        401,
-        {'WWW-Authenticate': 'Basic realm="For Rent Portal", charset="UTF-8"'},
-    )
+LOGIN_FAIL_WINDOW = 15 * 60
+LOGIN_FAIL_MAX = 5
+_login_fails = {}
+
+
+def _client_ip():
+    xf = request.headers.get('X-Forwarded-For', '')
+    if xf:
+        return xf.split(',')[0].strip()
+    return request.remote_addr or '0.0.0.0'
+
+
+def _login_fail_keys(username=''):
+    keys = ['ip:' + _client_ip()]
+    user = (username or '').strip().lower()
+    if user:
+        keys.append('u:' + user)
+    return keys
+
+
+def _too_many_login_fails(username=''):
+    now = time.time()
+    with _lock:
+        for key in _login_fail_keys(username):
+            hits = [t for t in _login_fails.get(key, []) if now - t < LOGIN_FAIL_WINDOW]
+            _login_fails[key] = hits
+            if len(hits) >= LOGIN_FAIL_MAX:
+                return True
+    return False
+
+
+def _record_login_fail(username=''):
+    now = time.time()
+    with _lock:
+        for key in _login_fail_keys(username):
+            _login_fails.setdefault(key, []).append(now)
+
+
+def _clear_login_fails(username=''):
+    with _lock:
+        for key in _login_fail_keys(username):
+            _login_fails.pop(key, None)
+
+
+def _safe_next(val):
+    val = (val or '').strip()
+    if not val.startswith('/') or val.startswith('//') or '\\' in val:
+        return '/portal'
+    path = val.split('?', 1)[0]
+    if path.startswith(('/login', '/logout', '/webhook', '/api/', '/static/', '/health')):
+        return '/portal'
+    return val
+
+
+def _current_user():
+    return portal_lib.user_by_username(session.get('uid'))
+
+
+def _login_redirect(next_url=None):
+    nxt = _safe_next(next_url or (request.full_path if request.query_string else request.path))
+    if nxt in ('/', '/portal'):
+        return redirect('/login')
+    return redirect('/login?next=' + quote(nxt, safe='/'))
 
 
 def require_login(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        auth = request.authorization
-        user = portal_lib.identify_user(auth.username if auth else '', auth.password if auth else '')
+        user = _current_user()
         if not user:
-            return _auth_401()
+            if request.path == '/panel/data' or request.accept_mimetypes.best == 'application/json':
+                return _panel_headers(make_response(jsonify({'error': 'auth'}), 401))
+            return _login_redirect()
         g.user = user
         return fn(*args, **kwargs)
     return wrapper
@@ -606,6 +675,48 @@ def _render_asesor(user, flash_ok='', flash_err='', form=None):
         csrf=portal_lib.csrf_token(user),
         flash_ok=flash_ok, flash_err=flash_err, form=form or {},
     ))
+
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    user = _current_user()
+    next_url = _safe_next(request.values.get('next'))
+    if user and request.method == 'GET':
+        return redirect(next_url)
+    error = ''
+    usuario = (request.form.get('usuario') or '').strip()
+    if request.method == 'POST':
+        if _too_many_login_fails(usuario):
+            error = 'Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.'
+            log.info('login rate-limited ip=%s user=%s', _client_ip(), usuario.lower())
+        else:
+            found = portal_lib.identify_user(usuario, request.form.get('password') or '')
+            if not found:
+                _record_login_fail(usuario)
+                error = 'Usuario o contraseña incorrectos.'
+                log.info('login failed ip=%s user=%s', _client_ip(), usuario.lower())
+            else:
+                _clear_login_fails(usuario)
+                session.clear()
+                session.permanent = True
+                session['uid'] = found['user']
+                log.info('login ok user=%s', found['user'])
+                return redirect(next_url)
+    return _panel_headers(render_template(
+        'login.html', error=error, usuario=usuario, next_url=next_url if next_url != '/portal' else ''))
+
+
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
+    session.clear()
+    resp = _panel_headers(redirect('/login'))
+    resp.set_cookie(
+        app.config['SESSION_COOKIE_NAME'], '', expires=0, max_age=0,
+        httponly=True, secure=bool(app.config.get('SESSION_COOKIE_SECURE')),
+        samesite='Lax', path='/',
+    )
+    return resp
 
 
 @app.get('/')

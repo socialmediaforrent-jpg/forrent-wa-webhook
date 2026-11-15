@@ -1,7 +1,14 @@
 <div class="top">
   <div class="row">
     <a class="brand" href="/portal" aria-label="For Rent Online · Portal"><picture><source srcset="/static/logo.webp 1x, /static/logo-1200.webp 2x" type="image/webp"><img class="logo" src="/static/logo.png" alt="For Rent Online" width="800" height="302"></picture></a>
-    <div class="sub">{{ subtitle }}{% if viewer %} · {{ viewer.name }}{% endif %}</div>
+    <div class="right">
+      <div class="sub">{{ subtitle }}{% if viewer %} · {{ viewer.name }}{% endif %}</div>
+      {% if viewer %}
+      <form class="logout" method="post" action="/logout">
+        <button type="submit">Cerrar sesión</button>
+      </form>
+      {% endif %}
+    </div>
   </div>
   {% if nav_links %}
   <nav class="bar" aria-label="Secciones">
