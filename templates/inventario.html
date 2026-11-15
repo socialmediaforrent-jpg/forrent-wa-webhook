@@ -21,11 +21,7 @@
     <a href="/inventario?f=todos" class="{{ 'on' if f=='todos' else '' }}">Todos ({{ n_todos }})</a>
   </nav>
   <input class="search" id="q" type="search" placeholder="Buscar por zona, tipo, código o título…" autocomplete="off">
-  {{ cap_table(filas, 'No hay inmuebles en este filtro.') }}
+  {{ cap_table(filas, 'No hay inmuebles en este filtro.', sid='inv') }}
 </main>
-<script>
-(function(){var q=document.getElementById('q');q.addEventListener('input',function(){var s=q.value.trim().toLowerCase();
-document.querySelectorAll('table.inv tbody tr').forEach(function(tr){tr.style.display=!s||tr.textContent.toLowerCase().indexOf(s)>-1?'':'none';});});})();
-</script>
 </body>
 </html>

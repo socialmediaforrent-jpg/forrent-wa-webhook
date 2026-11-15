@@ -1,10 +1,129 @@
-{% macro cap_table(items, vacio) %}
+{% macro cap_table(items, vacio, sid='inv') %}
 {% if not items %}<div class="empty">{{ vacio }}</div>{% else %}
-<table class="inv"><thead><tr><th>Título</th><th>Operación</th><th>Tipo</th><th>Zona</th><th>Precio</th><th>Código</th></tr></thead><tbody>
-{% for it in items %}<tr>
-<td data-label="Título">{{ it.titulo }}{% if it.solo_cliente_directo %} <span class="badge">Solo cliente directo</span>{% endif %}</td>
-<td data-label="Operación"><span class="op {{ 'alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span></td>
-<td data-label="Tipo">{{ it.tipo }}</td><td data-label="Zona">{{ it.zona }}</td><td data-label="Precio">{{ it.precio }}</td>
-<td data-label="Código"><b>{{ it.codigo }}</b></td></tr>{% endfor %}
-</tbody></table>{% endif %}
+<ul class="inv-list" id="{{ sid }}-list">
+{% for it in items %}
+  {% set fotos = it.fotos or [] %}
+  <li>
+    <button type="button" class="inv-row" data-sid="{{ sid }}" data-i="{{ loop.index0 }}" aria-haspopup="dialog">
+      <span class="inv-thumb">
+        {% if fotos %}
+        <img src="{{ fotos[0].thumb or fotos[0].full }}" alt="" width="64" height="64" loading="lazy" referrerpolicy="no-referrer">
+        {% else %}
+        <span class="inv-ph" aria-hidden="true"></span>
+        {% endif %}
+      </span>
+      <span class="inv-body">
+        <span class="inv-title">{{ it.titulo }}{% if it.solo_cliente_directo %} <span class="badge">Solo cliente directo</span>{% endif %}</span>
+        <span class="inv-meta"><span class="op{{ ' alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span> {{ it.zona }}</span>
+        <span class="inv-price">{{ it.precio }}</span>
+      </span>
+    </button>
+  </li>
+{% endfor %}
+</ul>
+<script type="application/json" id="{{ sid }}-json">{{ items|tojson }}</script>
+<dialog class="inv-modal" id="{{ sid }}-modal" aria-labelledby="{{ sid }}-modal-title">
+  <div class="inv-modal-inner">
+    <button type="button" class="inv-modal-x" data-close="{{ sid }}" aria-label="Cerrar">&times;</button>
+    <div class="inv-gal" hidden>
+      <div class="inv-gal-main">
+        <button type="button" class="inv-gal-nav prev" data-gal="{{ sid }}" data-dir="-1" aria-label="Foto anterior">‹</button>
+        <img id="{{ sid }}-foto" alt="" referrerpolicy="no-referrer">
+        <button type="button" class="inv-gal-nav next" data-gal="{{ sid }}" data-dir="1" aria-label="Foto siguiente">›</button>
+      </div>
+      <div class="inv-gal-bar"><span id="{{ sid }}-foto-n"></span></div>
+    </div>
+    <div class="inv-ficha">
+      <h2 class="inv-ficha-title" id="{{ sid }}-modal-title"></h2>
+      <p class="inv-ficha-price" id="{{ sid }}-precio"></p>
+      <dl class="inv-dl">
+        <div><dt>Operación</dt><dd id="{{ sid }}-operacion"></dd></div>
+        <div><dt>Tipo</dt><dd id="{{ sid }}-tipo"></dd></div>
+        <div><dt>Zona</dt><dd id="{{ sid }}-zona"></dd></div>
+        <div><dt>Código</dt><dd id="{{ sid }}-codigo"></dd></div>
+      </dl>
+      <p class="inv-badge-wrap" id="{{ sid }}-badge" hidden><span class="badge">Solo cliente directo</span></p>
+    </div>
+  </div>
+</dialog>
+<script>
+(function(){
+  var sid = {{ sid|tojson }};
+  var data = [];
+  try { data = JSON.parse(document.getElementById(sid + '-json').textContent || '[]'); } catch (e) { data = []; }
+  var modal = document.getElementById(sid + '-modal');
+  var img = document.getElementById(sid + '-foto');
+  var num = document.getElementById(sid + '-foto-n');
+  var gal = modal.querySelector('.inv-gal');
+  var idx = 0, fotos = [];
+
+  function showFoto(i){
+    if (!fotos.length) return;
+    idx = (i + fotos.length) % fotos.length;
+    var f = fotos[idx];
+    img.src = f.full || f.thumb || '';
+    num.textContent = (idx + 1) + ' / ' + fotos.length;
+  }
+
+  function openFicha(i){
+    var it = data[i];
+    if (!it) return;
+    document.getElementById(sid + '-modal-title').textContent = it.titulo || '';
+    document.getElementById(sid + '-precio').textContent = it.precio || '';
+    document.getElementById(sid + '-operacion').textContent = it.operacion || '—';
+    document.getElementById(sid + '-tipo').textContent = it.tipo || '—';
+    document.getElementById(sid + '-zona').textContent = it.zona || '—';
+    var cod = it.codigo || '';
+    document.getElementById(sid + '-codigo').textContent = cod || '—';
+    document.getElementById(sid + '-badge').hidden = !it.solo_cliente_directo;
+    fotos = it.fotos || [];
+    idx = 0;
+    if (fotos.length){
+      gal.hidden = false;
+      modal.querySelectorAll('.inv-gal-nav').forEach(function(b){ b.hidden = fotos.length < 2; });
+      showFoto(0);
+    } else {
+      gal.hidden = true;
+      img.removeAttribute('src');
+    }
+    if (typeof modal.showModal === 'function') modal.showModal();
+    else modal.setAttribute('open','');
+  }
+
+  document.getElementById(sid + '-list').addEventListener('click', function(e){
+    var btn = e.target.closest('.inv-row');
+    if (!btn) return;
+    openFicha(parseInt(btn.getAttribute('data-i'), 10));
+  });
+  modal.addEventListener('click', function(e){
+    if (e.target === modal || e.target.getAttribute('data-close') === sid){ if (typeof modal.close==='function') modal.close(); else modal.removeAttribute('open'); }
+  });
+  modal.querySelectorAll('.inv-gal-nav').forEach(function(b){
+    b.addEventListener('click', function(e){
+      e.stopPropagation();
+      showFoto(idx + parseInt(b.getAttribute('data-dir'), 10));
+    });
+  });
+  modal.addEventListener('keydown', function(e){
+    if (gal.hidden) return;
+    if (e.key === 'ArrowRight') showFoto(idx + 1);
+    if (e.key === 'ArrowLeft') showFoto(idx - 1);
+  });
+
+  var q = document.getElementById('q');
+  if (q && !q.dataset.invBound){
+    q.dataset.invBound = '1';
+    q.addEventListener('input', function(){
+      var s = q.value.trim().toLowerCase();
+      document.querySelectorAll('.inv-row').forEach(function(row){
+        var li = row.closest('li');
+        var show = !s || row.textContent.toLowerCase().indexOf(s) > -1;
+        if (li) li.style.display = show ? '' : 'none';
+        else row.style.display = show ? '' : 'none';
+      });
+    });
+  }
+})();
+</script>
+{% endif %}
 {% endmacro %}

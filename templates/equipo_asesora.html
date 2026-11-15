@@ -21,8 +21,8 @@
   <section class="sec"><h2>Perfil</h2>
   <div class="card profile-head">{% if pf.foto_mime %}<img class="pfoto" src="/perfil/foto/{{ a_slug }}" alt="Foto de {{ a_name }}" width="72" height="72">{% else %}<span class="pfoto">{{ a_name[:1] }}</span>{% endif %}
   <div><b>{{ a_name }}</b><div class="muted">{{ pf.email or 'sin correo' }} · {{ pf.telefono or 'sin teléfono' }}</div>{% if pf.zonas %}<div class="muted">Zonas: {{ pf.zonas }}</div>{% endif %}{% if pf.bio %}<p class="muted" style="margin:4px 0 0">{{ pf.bio }}</p>{% endif %}</div></div></section>
-  <section class="sec"><h2>Captaciones propias ({{ propias|length }})</h2>{{ cap_table(propias, 'Sin captaciones propias en esta copia.') }}</section>
-  <section class="sec"><h2>Captaciones aliadas ({{ alianzas|length }})</h2>{{ cap_table(alianzas, 'Sin captaciones aliadas en esta copia.') }}</section>
+  <section class="sec"><h2>Captaciones propias ({{ propias|length }})</h2>{{ cap_table(propias, 'Sin captaciones propias en esta copia.', sid='capprop') }}</section>
+  <section class="sec"><h2>Captaciones aliadas ({{ alianzas|length }})</h2>{{ cap_table(alianzas, 'Sin captaciones aliadas en esta copia.', sid='capali') }}</section>
   <section class="sec" id="visitas"><h2>Visitas ({{ visitas|length + visitas_estatus|length }})</h2>
   {% if not visitas and not visitas_estatus %}<div class="empty">Sin visitas agendadas ni registradas.</div>{% else %}
   <table class="inv"><thead><tr><th>Fecha</th><th>Cliente</th><th>Inmueble</th><th>Fuente</th></tr></thead><tbody>

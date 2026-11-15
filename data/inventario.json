@@ -16,7 +16,53 @@
         "precio": "US$ 300",
         "codigo": "10542820",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/206184120261031012840.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184120261031012840.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184220261031012840.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184220261031012840.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184320261031012840.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184320261031012840.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184420261031012841.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184420261031012841.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184520261031012841.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184520261031012841.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184620261031012842.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184620261031012842.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184720261031012842.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184720261031012842.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184820261031012843.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184820261031012843.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184920261031012843.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184920261031012843.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841020261031012844.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841020261031012844.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841120261031013014.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841120261031013014.jpg"
+          }
+        ]
       },
       {
         "titulo": "Boleita Sur, Local En Alquiler",
@@ -26,7 +72,25 @@
         "precio": "US$ 300",
         "codigo": "10421721",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_boleita_sur_local_en_alquiler_1789794550-5663_1188.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_boleita_sur_local_en_alquiler_1789794550-5663_1188.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_boleita_sur_local_en_alquiler_1789794552-9563_3670.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_boleita_sur_local_en_alquiler_1789794552-9563_3670.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_boleita_sur_local_en_alquiler_1789794555-3029_9949.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_boleita_sur_local_en_alquiler_1789794555-3029_9949.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_boleita_sur_local_en_alquiler_1789794557-6879_4088.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_boleita_sur_local_en_alquiler_1789794557-6879_4088.jpg"
+          }
+        ]
       },
       {
         "titulo": "Local Boleita Sur En Alquiler 53m2",
@@ -36,7 +100,37 @@
         "precio": "US$ 400",
         "codigo": "10421726",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794587-3947_3609.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794587-3947_3609.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794589-8741_993.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794589-8741_993.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794592-2857_1675.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794592-2857_1675.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794594-7168_4913.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794594-7168_4913.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794597-1884_5892.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794597-1884_5892.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794599-615_8302.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794599-615_8302.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794601-9793_1289.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_boleita_sur_en_alquiler_1789794601-9793_1289.jpg"
+          }
+        ]
       },
       {
         "titulo": "Centro Comercial San Ignacio, Local En Alquiler",
@@ -46,7 +140,33 @@
         "precio": "US$ 450",
         "codigo": "10421727",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794612-8144_6980.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794612-8144_6980.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794615-2154_9470.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794615-2154_9470.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794617-5866_9778.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794617-5866_9778.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794619-9958_5388.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794619-9958_5388.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794622-3982_5142.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794622-3982_5142.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794624-8364_2884.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_centro_comercial_san_ignacio_l_1789794624-8364_2884.jpg"
+          }
+        ]
       },
       {
         "titulo": "Alquiler para uso de oficina El Marqués",
@@ -56,7 +176,85 @@
         "precio": "US$ 950",
         "codigo": "10419846",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841320260918125812.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841320260918125812.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841720260918125814.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841720260918125814.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184120260918125805.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184120260918125805.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841620260918125814.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841620260918125814.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841820260918125815.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841820260918125815.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184320260918125806.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184320260918125806.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184620260918125808.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184620260918125808.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061842020260918125816.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061842020260918125816.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841920260918125815.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841920260918125815.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184420260918125807.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184420260918125807.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184720260918125808.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184720260918125808.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184220260918125806.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184220260918125806.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184520260918125807.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184520260918125807.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841120260918125811.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841120260918125811.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841520260918125813.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841520260918125813.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184920260918125810.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184920260918125810.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841220260918125811.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841220260918125811.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841020260918125810.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841020260918125810.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841420260918125812.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841420260918125812.jpeg"
+          }
+        ]
       },
       {
         "titulo": "Apartamento en La Boyera",
@@ -66,7 +264,8 @@
         "precio": "US$ 1.100",
         "codigo": "2051293926",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": []
       },
       {
         "titulo": "Local Comercial En Alquiler En Catia",
@@ -76,7 +275,17 @@
         "precio": "US$ 700",
         "codigo": "10421691",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_en_1789838663-4558_4221.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_en_1789838663-4558_4221.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_en_1789838665-9756_5496.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_en_1789838665-9756_5496.jpg"
+          }
+        ]
       },
       {
         "titulo": "Local Comercial En Alquiler Catia",
@@ -86,7 +295,25 @@
         "precio": "US$ 550",
         "codigo": "10421702",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_ca_1789794336-2888_3715.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_ca_1789794336-2888_3715.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_ca_1789794338-8211_1238.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_ca_1789794338-8211_1238.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_ca_1789794341-253_8055.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_ca_1789794341-253_8055.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_ca_1789794343-6824_5478.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_comercial_en_alquiler_ca_1789794343-6824_5478.jpg"
+          }
+        ]
       },
       {
         "titulo": "Alquiler De Local Comercial A Pie De Calle San Bernardino",
@@ -96,7 +323,49 @@
         "precio": "US$ 800",
         "codigo": "10421687",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794191-7531_4473.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794191-7531_4473.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794194-2542_233.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794194-2542_233.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794196-6521_633.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794196-6521_633.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794199-0174_9602.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794199-0174_9602.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794201-3962_8819.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794201-3962_8819.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794203-7761_9246.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794203-7761_9246.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794206-2158_9165.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794206-2158_9165.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794208-6227_1740.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794208-6227_1740.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794211-06_3678.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794211-06_3678.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794213-4887_2694.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_alquiler_de_local_comercial_a_1789794213-4887_2694.jpg"
+          }
+        ]
       },
       {
         "titulo": "Alquiler de Local Ubicación en Santa Monica",
@@ -106,7 +375,41 @@
         "precio": "US$ 1.600",
         "codigo": "10419907",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/206184120260918012355.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184120260918012355.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184420260918012358.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184420260918012358.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184520260918012359.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184520260918012359.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184620260918012400.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184620260918012400.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184720260918012401.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184720260918012401.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184820260918012402.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184820260918012402.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184920260918012403.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184920260918012403.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184220260918012356.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184220260918012356.jpg"
+          }
+        ]
       },
       {
         "titulo": "En Venta Apartamento En Las Palmeras De Aguasal. Higuerote",
@@ -116,7 +419,45 @@
         "precio": "US$ 90.000",
         "codigo": "10421710",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794423-5352_6371.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794423-5352_6371.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794425-9944_1454.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794425-9944_1454.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794428-4158_911.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794428-4158_911.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794430-8158_5497.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794430-8158_5497.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794433-2146_9648.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794433-2146_9648.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794435-5897_7736.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794435-5897_7736.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794438-0467_6011.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794438-0467_6011.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794440-4434_3907.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794440-4434_3907.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794442-8253_9387.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_apartamento_en_las_pa_1789794442-8253_9387.jpg"
+          }
+        ]
       },
       {
         "titulo": "Venta de Apartamento en Colinas de Bello Monte Amoblado",
@@ -126,7 +467,73 @@
         "precio": "US$ 175.000",
         "codigo": "10422670",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/206184420260919053830.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184420260919053830.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841620260919053841.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841620260919053841.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841220260919053838.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841220260919053838.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841520260919053840.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841520260919053840.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841320260919053838.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841320260919053838.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841420260919053839.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841420260919053839.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841020260919053836.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841020260919053836.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184920260919053835.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184920260919053835.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841120260919053837.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841120260919053837.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184120260919053828.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184120260919053828.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184520260919053831.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184520260919053831.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184620260919053832.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184620260919053832.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184820260919053834.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184820260919053834.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184320260919053829.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184320260919053829.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184220260919053829.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184220260919053829.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184720260919053833.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184720260919053833.jpg"
+          }
+        ]
       },
       {
         "titulo": "En Venta Casa Urbanizacion La Niebla. El Junquito",
@@ -136,7 +543,53 @@
         "precio": "US$ 90.000",
         "codigo": "10421699",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794305-7457_2341.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794305-7457_2341.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794308-2656_7725.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794308-2656_7725.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794310-7235_5533.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794310-7235_5533.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794313-1303_4682.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794313-1303_4682.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794315-6162_8712.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794315-6162_8712.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794318-0185_1316.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794318-0185_1316.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794320-493_1793.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794320-493_1793.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794322-9943_9503.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794322-9943_9503.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794325-5467_6031.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794325-5467_6031.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794328-1561_2964.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794328-1561_2964.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794330-5855_4225.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_en_venta_casa_urbanizacion_la_1789794330-5855_4225.jpg"
+          }
+        ]
       },
       {
         "titulo": "Terreno en venta en Guarenas (Zona Industrial)",
@@ -146,7 +599,49 @@
         "precio": "US$ 150.000",
         "codigo": "10424354",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843228-3157_8365.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843228-3157_8365.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843233-7591_1100.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843233-7591_1100.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843236-5644_694.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843236-5644_694.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843239-5442_8090.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843239-5442_8090.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843242-3192_208.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843242-3192_208.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843245-0607_3776.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843245-0607_3776.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843247-7728_2062.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843247-7728_2062.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843250-6736_7971.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843250-6736_7971.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843254-0792_1104.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843254-0792_1104.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843259-2677_7442.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_terreno_en_venta_en_guarenas_z_1789843259-2677_7442.jpg"
+          }
+        ]
       },
       {
         "titulo": "Casa En Venta En Hoyo De La Puerta",
@@ -156,7 +651,65 @@
         "precio": "US$ 65.000",
         "codigo": "10421696",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794271-2575_5403.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794271-2575_5403.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794273-7268_357.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794273-7268_357.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794276-1339_6854.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794276-1339_6854.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794278-521_4969.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794278-521_4969.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794280-8865_4560.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794280-8865_4560.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794283-3316_877.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794283-3316_877.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794285-7382_2934.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794285-7382_2934.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794288-12_2391.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794288-12_2391.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794290-5128_2612.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794290-5128_2612.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794292-8896_3429.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794292-8896_3429.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794295-3886_3716.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794295-3886_3716.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794297-7881_5466.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794297-7881_5466.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794300-1618_2426.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794300-1618_2426.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794302-5687_6234.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_hoyo_de_la_pu_1789794302-5687_6234.jpg"
+          }
+        ]
       },
       {
         "titulo": "Galpon En Venta La Candelaria",
@@ -166,7 +719,49 @@
         "precio": "US$ 268.000",
         "codigo": "10421703",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794351-8504_1787.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794351-8504_1787.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794354-2778_6860.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794354-2778_6860.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794356-7283_6231.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794356-7283_6231.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794359-1503_8771.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794359-1503_8771.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794361-5674_7936.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794361-5674_7936.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794363-9291_278.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794363-9291_278.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794366-3478_9092.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794366-3478_9092.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794368-7595_1565.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794368-7595_1565.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794371-2322_9311.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794371-2322_9311.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794373-7018_6035.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_galpon_en_venta_la_candelaria_1789794373-7018_6035.jpg"
+          }
+        ]
       },
       {
         "titulo": "Galpon en venta la candelaria",
@@ -176,7 +771,77 @@
         "precio": "US$ 360.000",
         "codigo": "10422780",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841020260919063450.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841020260919063450.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841120260919063451.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841120260919063451.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841320260919063453.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841320260919063453.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841520260919063454.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841520260919063454.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184120260919063442.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184120260919063442.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841720260919063456.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841720260919063456.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841420260919063453.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841420260919063453.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841620260919063455.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841620260919063455.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841220260919063452.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841220260919063452.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184820260919063448.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184820260919063448.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184320260919063444.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184320260919063444.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184620260919063446.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184620260919063446.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184420260919063445.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184420260919063445.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184720260919063447.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184720260919063447.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184520260919063446.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184520260919063446.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184920260919063449.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184920260919063449.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184220260919063443.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/206184220260919063443.jpg"
+          }
+        ]
       },
       {
         "titulo": "Apartamento en venta en los Chorros",
@@ -186,7 +851,81 @@
         "precio": "US$ 150.000",
         "codigo": "10419935",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/206184820260918014125.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184820260918014125.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841220260918014128.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841220260918014128.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841620260918014131.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841620260918014131.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061842020260918014135.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061842020260918014135.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184220260918014120.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184220260918014120.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184320260918014121.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184320260918014121.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184420260918014121.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184420260918014121.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184920260918014125.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184920260918014125.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184520260918014122.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184520260918014122.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841320260918014129.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841320260918014129.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841420260918014129.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841420260918014129.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841520260918014130.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841520260918014130.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184620260918014123.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184620260918014123.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/206184720260918014124.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/206184720260918014124.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841120260918014127.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841120260918014127.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841720260918014132.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841720260918014132.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841820260918014133.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841820260918014133.jpeg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/2061841920260918014134.jpeg",
+            "thumb": "https://images.wasi.co/inmuebles/2061841920260918014134.jpeg"
+          }
+        ]
       },
       {
         "titulo": "Local Comercial En Venta Los Cortijos De Lourdes",
@@ -196,7 +935,13 @@
         "precio": "US$ 1.000.000",
         "codigo": "10421685",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_local_comercial_en_venta_los_c_1789838660-8236_3173.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_local_comercial_en_venta_los_c_1789838660-8236_3173.jpg"
+          }
+        ]
       },
       {
         "titulo": "Venta De Local, Centro Comercial Caracas De Montalbán",
@@ -206,7 +951,21 @@
         "precio": "US$ 25.000",
         "codigo": "10421715",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_venta_de_local_centro_comercia_1789794497-7337_8299.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_venta_de_local_centro_comercia_1789794497-7337_8299.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_venta_de_local_centro_comercia_1789794500-212_9653.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_venta_de_local_centro_comercia_1789794500-212_9653.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_venta_de_local_centro_comercia_1789794502-5556_3775.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_venta_de_local_centro_comercia_1789794502-5556_3775.jpg"
+          }
+        ]
       },
       {
         "titulo": "Venta Local, Centro Comercial Caracas De Montalbán",
@@ -216,7 +975,17 @@
         "precio": "US$ 19.000",
         "codigo": "10421722",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_venta_local_centro_comercial_c_1789838678-7589_5353.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_venta_local_centro_comercial_c_1789838678-7589_5353.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_venta_local_centro_comercial_c_1789838681-252_1077.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_venta_local_centro_comercial_c_1789838681-252_1077.jpg"
+          }
+        ]
       },
       {
         "titulo": "Venta De Local Centro Comercial Caracas De Montalbán",
@@ -226,7 +995,17 @@
         "precio": "US$ 21.500",
         "codigo": "10421725",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_venta_de_local_centro_comercia_1789838673-7754_9219.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_venta_de_local_centro_comercia_1789838673-7754_9219.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_venta_de_local_centro_comercia_1789838676-2288_2324.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_venta_de_local_centro_comercia_1789838676-2288_2324.jpg"
+          }
+        ]
       },
       {
         "titulo": "Casa En Venta En Río Chico",
@@ -236,7 +1015,69 @@
         "precio": "US$ 22.500",
         "codigo": "10421717",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": [
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794511-2058_3234.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794511-2058_3234.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794513-6407_856.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794513-6407_856.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794516-0379_3804.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794516-0379_3804.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794518-4112_863.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794518-4112_863.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794520-7975_1599.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794520-7975_1599.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794523-1545_3681.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794523-1545_3681.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794525-5131_6519.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794525-5131_6519.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794527-8587_6197.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794527-8587_6197.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794530-3421_6128.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794530-3421_6128.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794532-7469_5634.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794532-7469_5634.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794535-0848_9038.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794535-0848_9038.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794537-4906_7366.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794537-4906_7366.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794539-8814_2710.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794539-8814_2710.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794542-3385_8602.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794542-3385_8602.jpg"
+          },
+          {
+            "full": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794544-7116_3085.jpg",
+            "thumb": "https://images.wasi.co/inmuebles/_casa_en_venta_en_ro_chico_1789794544-7116_3085.jpg"
+          }
+        ]
       },
       {
         "titulo": "Apartamento en Santa Mónica",
@@ -246,7 +1087,8 @@
         "precio": "US$ 172.000",
         "codigo": "—",
         "origen": "propio",
-        "solo_cliente_directo": false
+        "solo_cliente_directo": false,
+        "fotos": []
       }
     ],
     "alianza": [
@@ -258,7 +1100,8 @@
         "precio": "US$ 400",
         "codigo": "2327223429",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Oficina en La Lagunita",
@@ -268,7 +1111,8 @@
         "precio": "US$ 700",
         "codigo": "2327295734",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Local en Los Chaguaramos",
@@ -278,7 +1122,8 @@
         "precio": "US$ 2.500",
         "codigo": "4602894646",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Apartamento en Caricuao UD4 Canagua",
@@ -288,7 +1133,8 @@
         "precio": "US$ 55.000",
         "codigo": "—",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Apartamento en Caricuao UD4 Queseras del Medio",
@@ -298,7 +1144,8 @@
         "precio": "US$ 43.000",
         "codigo": "—",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Posada en Chuspa, La Guaira",
@@ -308,7 +1155,8 @@
         "precio": "US$ 240.000",
         "codigo": "—",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Apartamento en El Encantado",
@@ -318,7 +1166,8 @@
         "precio": "US$ 75.000",
         "codigo": "—",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Townhouse en Guatire",
@@ -328,7 +1177,8 @@
         "precio": "US$ 63.500",
         "codigo": "—",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "PH en La Boyera",
@@ -338,7 +1188,8 @@
         "precio": "US$ 159.000",
         "codigo": "2327545534",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Apartamento en La Candelaria",
@@ -348,7 +1199,8 @@
         "precio": "US$ 75.000",
         "codigo": "3169912523",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Quinta en La Floresta, Chacao",
@@ -358,7 +1210,8 @@
         "precio": "US$ 680.000",
         "codigo": "3927862619",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Apartamento en La Tahona",
@@ -368,7 +1221,8 @@
         "precio": "US$ 240.000",
         "codigo": "232735410",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "PH en Las Esmeraldas, Baruta",
@@ -378,7 +1232,8 @@
         "precio": "US$ 240.000",
         "codigo": "3927771111",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Quinta en Los Chorros",
@@ -388,7 +1243,8 @@
         "precio": "US$ 150.000",
         "codigo": "—",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Casa en Los Naranjos del Cafetal",
@@ -398,7 +1254,8 @@
         "precio": "US$ 420.000",
         "codigo": "10406194",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Apartamento en Los Palos Grandes",
@@ -408,7 +1265,8 @@
         "precio": "US$ 170.000",
         "codigo": "—",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Apartamento en Los Palos Grandes",
@@ -418,7 +1276,8 @@
         "precio": "US$ 147.000",
         "codigo": "—",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Quinta en Los Teques",
@@ -428,7 +1287,8 @@
         "precio": "US$ 90.000",
         "codigo": "—",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Casa en Potro Redondo",
@@ -438,7 +1298,8 @@
         "precio": "US$ 150.000",
         "codigo": "5712510401",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Townhouse en Río Chico",
@@ -448,7 +1309,8 @@
         "precio": "US$ 45.000",
         "codigo": "—",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Apartamento en Sabana Grande",
@@ -458,7 +1320,8 @@
         "precio": "US$ 95.000",
         "codigo": "JF-AP97",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       },
       {
         "titulo": "Apartamento en Terrazas de Guaicoco",
@@ -468,7 +1331,8 @@
         "precio": "US$ 68.000",
         "codigo": "3461633300",
         "origen": "alianza",
-        "solo_cliente_directo": true
+        "solo_cliente_directo": true,
+        "fotos": []
       }
     ],
     "red": [

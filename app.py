@@ -941,6 +941,92 @@ def _inventario():
         return {'actualizado': '', 'grupos': {'propio': [], 'alianza': [], 'red': []}, 'conteos': {}}
 
 
+_FOTO_HOSTS = (
+    'image.wasi.co', 'images.wasi.co',
+    'http2.mlstatic.com', 'mlstatic.com',
+)
+
+
+def _foto_ok(url):
+    if not isinstance(url, str) or not url.startswith('https://'):
+        return False
+    host = url.split('/')[2].lower()
+    return any(host == h or host.endswith('.' + h) for h in _FOTO_HOSTS)
+
+
+def _fotos_limpias(fotos):
+    out, seen = [], set()
+    for f in fotos or []:
+        if isinstance(f, str):
+            full, thumb = f, f
+        elif isinstance(f, dict):
+            full = f.get('full') or f.get('url') or ''
+            thumb = f.get('thumb') or full
+        else:
+            continue
+        if not _foto_ok(full):
+            continue
+        if not _foto_ok(thumb):
+            thumb = full
+        if full in seen:
+            continue
+        seen.add(full)
+        out.append({'full': full, 'thumb': thumb})
+    return out
+
+
+def _fotos_indice(data=None):
+    """codigo / título+zona+precio -> fotos. Solo Propias y Aliados."""
+    data = data or _inventario()
+    by_code, by_key = {}, {}
+    for g in ('propio', 'alianza'):
+        for it in (data.get('grupos') or {}).get(g) or []:
+            fotos = _fotos_limpias(it.get('fotos'))
+            if not fotos:
+                continue
+            code = str(it.get('codigo') or '').strip()
+            if code and code != '—':
+                by_code[code] = fotos
+            key = (
+                (it.get('titulo') or '').strip().lower(),
+                (it.get('zona') or '').strip().lower(),
+                (it.get('precio') or '').strip().lower(),
+            )
+            by_key[key] = fotos
+    return by_code, by_key
+
+
+def _ficha_publica(it, *, fotos_code=None, fotos_key=None):
+    """Campos públicos de un inmueble. Sin captador ni enlaces de Rex/Wasi."""
+    fotos = _fotos_limpias(it.get('fotos'))
+    code = str(it.get('codigo') or '').strip()
+    if not fotos and fotos_code is not None:
+        if code and code != '—':
+            fotos = list(fotos_code.get(code) or [])
+        if not fotos and fotos_key is not None:
+            key = (
+                (it.get('titulo') or '').strip().lower(),
+                (it.get('zona') or '').strip().lower(),
+                (it.get('precio') or '').strip().lower(),
+            )
+            fotos = list(fotos_key.get(key) or [])
+    return {
+        'titulo': it.get('titulo') or '',
+        'operacion': it.get('operacion') or '',
+        'tipo': it.get('tipo') or '',
+        'zona': it.get('zona') or '',
+        'precio': it.get('precio') or '',
+        'codigo': '' if (not code or code == '—') else code,
+        'solo_cliente_directo': bool(it.get('solo_cliente_directo')),
+        'fotos': fotos,
+    }
+
+
+def _fichas_publicas(items, data=None):
+    code, key = _fotos_indice(data)
+    return [_ficha_publica(it, fotos_code=code, fotos_key=key) for it in items or []]
+
+
 def _fmt_actualizado(iso):
     dt = _parse_caracas(iso)
     if not dt:
@@ -1283,8 +1369,8 @@ def mi_equipo_asesora(slug):
     return _panel_headers(render_template(
         'equipo_asesora.html', a_name=meta.get('name') or slug, a_slug=slug, pf=_perfil(slug),
         visitas=visitas_r, visitas_estatus=[c for c in cli_est if c['estatus'] == 'Visita agendada'], ofertas=ofertas_r,
-        propias=[x for x in cap if x.get('origen') == 'propio'],
-        alianzas=[x for x in cap if x.get('origen') == 'alianza'],
+        propias=_fichas_publicas([x for x in cap if x.get('origen') == 'propio']),
+        alianzas=_fichas_publicas([x for x in cap if x.get('origen') == 'alianza']),
         clientes=clientes, fases=_fases_de(clientes),
         cli_fecha=portal_lib.fmt_fecha(cli_fecha) if cli_fecha else 'fecha no disponible',
         inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''),
@@ -1351,7 +1437,7 @@ def inventario():
     return _panel_headers(render_template(
         'inventario.html',
         actualizado=_fmt_actualizado(data.get('actualizado') or ''),
-        filas=filas, f=f,
+        filas=_fichas_publicas(filas, data), f=f,
         n_propio=len(prop), n_alianza=len(ali), n_red=len(red), n_todos=len(prop) + len(ali),
     ))
 
@@ -1546,7 +1632,7 @@ def mis_captaciones2():
     if request.args.get('ok') == '1':
         ok = 'Solicitud registrada. Te enviamos un aviso por correo.'
     inv = _inventario()
-    return _hdr(render_template('captaciones.html', filas=filas, f=f, n_prop=len(prop), n_ali=len(ali), solicitudes=sol,
+    return _hdr(render_template('captaciones.html', filas=_fichas_publicas(filas, inv), f=f, n_prop=len(prop), n_ali=len(ali), solicitudes=sol,
                                 inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''), ok=ok, err=err,
                                 csrf=portal_lib.csrf_token(u), puede=u['role'] != 'admin'), 400 if err else 200)
 

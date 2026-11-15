@@ -9,7 +9,7 @@
   <a href="/mis-captaciones?f=aliadas" class="{{ 'on' if f=='aliadas' else '' }}">Aliadas ({{ n_ali }})</a>
   <a href="/mis-captaciones?f=todas" class="{{ 'on' if f=='todas' else '' }}">Todas ({{ n_prop + n_ali }})</a>
 </nav>
-{{ cap_table(filas, 'No hay captaciones a tu nombre en este filtro.') }}
+{{ cap_table(filas, 'No hay captaciones a tu nombre en este filtro.', sid='cap') }}
 {% set aprob = solicitudes|selectattr('estado','equalto','aprobada')|selectattr('accion','equalto','alta')|list %}
 {% if aprob %}<section class="sec"><h2>Aprobadas, pendientes de cargar en inventario ({{ aprob|length }})</h2>
 <table class="inv"><thead><tr><th>Inmueble</th><th>Operación</th><th>Zona</th><th>Precio</th><th>Estado</th></tr></thead><tbody>
