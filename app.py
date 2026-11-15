@@ -759,11 +759,14 @@ def _busca(c):
     return ' · '.join(parts)
 
 
-def _db_propios(slugs):
+def _db_propios(slugs, *, todos=False):
+    from corte_clientes import en_ejercicio
     rows = []
     for s in slugs:
         rows.extend(q('SELECT * FROM asesor_clientes WHERE asesor_slug=%s ORDER BY id DESC', (s,), fetch=True) or [])
-    return rows
+    if todos:
+        return rows
+    return [r for r in rows if en_ejercicio(created_at=r.get('created_at'), propio=True)]
 
 
 def _nombre_asesor(slug):

@@ -2,6 +2,7 @@
 import hashlib, hmac, json, os, re, unicodedata
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+from corte_clientes import en_ejercicio, filtrar, CORTE_FECHA, CORTE_ISO, CORTE_LABEL, CORTE_NOTA
 
 CARACAS = ZoneInfo('America/Caracas')
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -231,12 +232,15 @@ def load_captaciones(slug=None, slugs=None):
     return items
 
 
-def load_asignados(slug=None, slugs=None):
+def load_asignados(slug=None, slugs=None, *, todos=False):
     data = _load('clientes_asignados.json', {})
     items = data.get('clientes') or []
     allow = {slug} if slug else set(slugs or [])
     if allow:
         items = [x for x in items if x.get('asesor') in allow]
+    # Corte 31-oct-2026: no borrar; solo ocultar del ejercicio vigente.
+    if not todos:
+        items = [x for x in items if en_ejercicio(asignado_at=x.get('asignado_at'))]
     return items, data.get('actualizado') or '', data.get('fuente') or ''
 
 
@@ -321,7 +325,13 @@ def load_cierres(slug=None, slugs=None, *, full):
         if allow and a not in allow:
             continue
         out.append(cierre_publico(c, full=full))
-    return out
+    # Sin asignado_at en el libro de cierres: se usa la fecha del cierre.
+    # Si tampoco hay fecha, se oculta.
+    visibles = []
+    for c in out:
+        if en_ejercicio(asignado_at=c.get('asignado_at') or c.get('fecha')):
+            visibles.append(c)
+    return visibles
 
 
 def money(x):

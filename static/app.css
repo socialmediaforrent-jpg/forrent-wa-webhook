@@ -177,3 +177,5 @@ details.fase-sec>summary::-webkit-details-marker{display:none}
 details.fase-sec>summary::before{content:'';width:8px;height:8px;border-right:2px solid #333;border-bottom:2px solid #333;transform:rotate(45deg);margin-right:4px;transition:transform .15s}
 details.fase-sec[open]>summary::before{transform:rotate(225deg);margin-top:4px}
 details.fase-sec .inv{margin:0 0 8px}
+
+.fase-corte{margin:8px 0 0;font-size:12px;color:var(--muted,#666);line-height:1.4}
