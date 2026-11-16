@@ -167,7 +167,11 @@ def main():
                                fuente=fuente, nota=('; '.join(x for x in (nota, det) if x) or None), por='import')
         vistos.add((key, portal))
     # Lo importado antes que ya no aparece en las fuentes de hoy se marca como caído (no se borra).
-    for row in q("SELECT id, inmueble_key, portal FROM crm_portal_links WHERE fuente LIKE 'import:%%'", fetch=True) or []:
+    # Solo las filas que puso ESTE script (sus 4 fuentes). Las cargas de Inventario («inventario: …» y la del
+    # 16-nov «import: Inventario …») y las manuales no se tocan.
+    propias = ("fuente LIKE 'import: panel ML%%' OR fuente LIKE 'import: ficha Wasi%%' "
+               "OR fuente LIKE 'import: API Wasi%%' OR fuente LIKE 'import: ficha Rex%%'")
+    for row in q(f"SELECT id, inmueble_key, portal FROM crm_portal_links WHERE {propias}", fetch=True) or []:
         if (row['inmueble_key'], row['portal']) not in vistos:
             q("UPDATE crm_portal_links SET estado='caido', nota=%s, verificado_en=%s WHERE id=%s",
               ('Ya no aparece en las fuentes del día', portales.now_iso(), row['id']))
