@@ -7,6 +7,9 @@ Endpoints
   GET  /api/events?since_id=N        -> (Bearer WA_READ_KEY) mensajes/estados nuevos para los scripts de la caja
   POST /api/outbound                 -> (Bearer WA_READ_KEY) registra una respuesta enviada desde la caja
   GET  /api/last_inbound?wa_id=...   -> (Bearer WA_READ_KEY) último mensaje entrante de un número
+  GET  /privacidad                   -> política de privacidad (pública, sin login)
+  GET  /eliminar-datos               -> cómo solicitar la eliminación de datos (pública, sin login)
+  GET  /terminos                     -> términos de servicio breves (pública, sin login)
   GET  /login                        -> inicio de sesión (cookie de sesión firmada)
   POST /login, GET|POST /logout      -> entrar / cerrar sesión
   GET  / y /portal                   -> portal For Rent (sesión; redirige a /login)
@@ -1529,6 +1532,25 @@ def portal_links_export_api():
         return err
     import links_inventario
     return jsonify(links_inventario.exportar(q))
+
+
+def _legal_page(page, title):
+    return _panel_headers(render_template('legal.html', page=page, title=title))
+
+
+@app.get('/privacidad')
+def privacidad():
+    return _legal_page('privacidad', 'Política de privacidad')
+
+
+@app.get('/eliminar-datos')
+def eliminar_datos():
+    return _legal_page('eliminar', 'Eliminar datos')
+
+
+@app.get('/terminos')
+def terminos():
+    return _legal_page('terminos', 'Términos de servicio')
 
 
 @app.route('/login', methods=['GET', 'POST'])

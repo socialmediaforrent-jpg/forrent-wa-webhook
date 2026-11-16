@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="index, follow">
+<title>{{ title }} · For Rent Online</title>
+{% include '_head_icons.html' %}
+{% include '_brand.css.html' %}
+</head>
+<body class="legal-body">
+<header class="legal-header">
+  <div class="legal-header-inner">
+    <a class="brand" href="/privacidad" aria-label="For Rent Online">
+      <picture>
+        <source srcset="/static/logo.webp 1x, /static/logo-1200.webp 2x" type="image/webp">
+        <img class="logo" src="/static/logo.png" alt="For Rent Grupo Inmobiliario" width="800" height="302">
+      </picture>
+    </a>
+    <nav class="legal-nav" aria-label="Páginas legales">
+      <a href="/privacidad" class="{{ 'on' if page=='privacidad' else '' }}">Privacidad</a>
+      <a href="/eliminar-datos" class="{{ 'on' if page=='eliminar' else '' }}">Eliminar datos</a>
+      <a href="/terminos" class="{{ 'on' if page=='terminos' else '' }}">Términos de servicio</a>
+    </nav>
+  </div>
+</header>
+<main class="legal-main">
+  <article class="legal-card">
+    <h1>{{ title }}</h1>
+    <p class="legal-meta">Vigente desde el 16 de noviembre de 2026.</p>
+
+    {% if page=='privacidad' %}
+    <p>Esta política describe cómo <strong>For Rent Grupo Inmobiliario, C.A.</strong> (RIF J-50475755-1) trata los datos personales que recibimos cuando una persona nos escribe por WhatsApp, Instagram o Facebook, o cuando nos contacta por correo para una consulta inmobiliaria.</p>
+
+    <h2>Responsable</h2>
+    <p>
+      For Rent Grupo Inmobiliario, C.A.<br>
+      RIF J-50475755-1<br>
+      Av. Francisco de Miranda, Centro Seguros La Paz, piso 5, local 0-55, Boleíta Norte, Petare, Caracas, Venezuela.<br>
+      Correo: <a href="mailto:socialmediaforrent@gmail.com">socialmediaforrent@gmail.com</a>
+    </p>
+
+    <h2>Qué datos recibimos</h2>
+    <p>A través de WhatsApp, Instagram y Facebook podemos recibir, según lo que la persona comparta o lo que la plataforma nos entregue al enviar un mensaje:</p>
+    <ul>
+      <li>nombre o nombre de perfil;</li>
+      <li>número de teléfono;</li>
+      <li>contenido de los mensajes;</li>
+      <li>preferencias de inmueble (por ejemplo zona, tipo, presupuesto u operación de alquiler o compra).</li>
+    </ul>
+    <p>Si nos escriben por correo, también recibimos la dirección de correo y lo que indiquen en el mensaje.</p>
+
+    <h2>Para qué los usamos</h2>
+    <p>Estos datos se usan solo para atender consultas inmobiliarias y coordinar con nuestros asesores. No los vendemos ni los cedemos con fines de mercadeo a terceros ajenos a esa atención.</p>
+    <p>Para poder dar seguimiento a una consulta, el asesor asignado puede conocer el nombre, el teléfono y la información relevante de la conversación.</p>
+
+    <h2>Cómo pedir que los borremos</h2>
+    <p>Puedes solicitar la eliminación de tus datos en cualquier momento, como se explica en la página <a href="/eliminar-datos">Eliminar datos</a>. Atendemos la solicitud en un máximo de 30 días.</p>
+    <p>También puedes escribirnos a <a href="mailto:socialmediaforrent@gmail.com">socialmediaforrent@gmail.com</a> para preguntar qué datos tenemos o pedir una corrección.</p>
+
+    {% elif page=='eliminar' %}
+    <p>Si quieres que <strong>For Rent Grupo Inmobiliario, C.A.</strong> (RIF J-50475755-1) elimine tus datos personales, puedes pedirlo de estas dos formas:</p>
+    <ul>
+      <li>escribiendo a <a href="mailto:socialmediaforrent@gmail.com">socialmediaforrent@gmail.com</a>; o</li>
+      <li>enviándonos un mensaje por WhatsApp con el texto exacto <strong>ELIMINAR MIS DATOS</strong>, al mismo canal de atención con el que ya conversaste (+58 424-2294196).</li>
+    </ul>
+    <p>Te pedimos que, si es posible, indiques el nombre y el número de teléfono o la cuenta con la que nos contactaste, para ubicar tu información con precisión.</p>
+    <p>Eliminamos los datos en un máximo de 30 días a partir de la solicitud. Si hace falta conservar algún registro por una obligación legal o una gestión inmobiliaria aún abierta, te lo informaremos.</p>
+    <p>Responsable: For Rent Grupo Inmobiliario, C.A., Av. Francisco de Miranda, Centro Seguros La Paz, piso 5, local 0-55, Boleíta Norte, Petare, Caracas. Correo: <a href="mailto:socialmediaforrent@gmail.com">socialmediaforrent@gmail.com</a>.</p>
+
+    {% elif page=='terminos' %}
+    <p>Estos términos regulan el uso de las páginas públicas de For Rent Online y de los canales de atención de <strong>For Rent Grupo Inmobiliario, C.A.</strong> (RIF J-50475755-1) en WhatsApp, Instagram y Facebook.</p>
+
+    <h2>Servicio</h2>
+    <p>Estos canales existen para consultas inmobiliarias: alquiler, compra, venta o información sobre inmuebles que comercializamos o gestionamos. La información que compartimos sobre un inmueble es orientativa; la disponibilidad, el precio y las condiciones se confirman con un asesor.</p>
+
+    <h2>Uso</h2>
+    <p>Al escribirnos o al usar estas páginas, aceptas estos términos y nuestra <a href="/privacidad">política de privacidad</a>. Te pedimos datos veraces de contacto cuando quieras que te atendamos. Podemos no dar seguimiento a mensajes que no se relacionen con una consulta inmobiliaria.</p>
+
+    <h2>Contacto</h2>
+    <p>
+      For Rent Grupo Inmobiliario, C.A.<br>
+      RIF J-50475755-1<br>
+      Av. Francisco de Miranda, Centro Seguros La Paz, piso 5, local 0-55, Boleíta Norte, Petare, Caracas, Venezuela.<br>
+      Correo: <a href="mailto:socialmediaforrent@gmail.com">socialmediaforrent@gmail.com</a>
+    </p>
+    {% endif %}
+  </article>
+</main>
+<footer class="legal-footer">
+  <div class="legal-footer-inner">
+    <p>For Rent Grupo Inmobiliario, C.A. · RIF J-50475755-1<br>
+    Av. Francisco de Miranda, Centro Seguros La Paz, piso 5, local 0-55, Boleíta Norte, Petare, Caracas<br>
+    <a href="mailto:socialmediaforrent@gmail.com">socialmediaforrent@gmail.com</a>
+    · <a href="/privacidad">Privacidad</a>
+    · <a href="/eliminar-datos">Eliminar datos</a>
+    · <a href="/terminos">Términos</a></p>
+  </div>
+</footer>
+</body>
+</html>
