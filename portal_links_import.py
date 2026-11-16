@@ -7,7 +7,8 @@ Fuentes (no inventa nada):
   permalink capturado de ML si lo tenemos (--ml-urls) o el permalink corto oficial de ML.
 - Wasi: ficha pública del sitio Wasi de For Rent (link_publico) o, si falta, el ``link`` que devuelve
   la API de Wasi cuando la ficha está activa (--wasi-env, solo lectura).
-- Rex: ficha de Rex del inventario diario (los Rex inactivos ya salen de ese inventario).
+- Rex: ficha de Rex del inventario diario (los Rex inactivos ya salen de ese inventario). En inmuebles de
+  alianza la ficha Rex es la del aliado (con sus datos), así que se guarda como ``ajena`` y no se muestra.
 Los otros 7 portales no se tocan: quedan vacíos hasta que se publique y se cargue el enlace.
 Cada URL se verifica por HTTP antes de guardarse (ok / protegido por anti-robots / caido).
 
@@ -131,10 +132,18 @@ def main():
             if wl:
                 plan.append((it, 'wasi', wl, FUENTE_WASI_API.format(f=fecha), ''))
         if idr and 'rexup.net' in link and f'cod_inmueble={idr}' in link:
-            plan.append((it, 'rex', link, FUENTE_REX.format(f=fecha), ''))
+            aliado = (r.get('alianza_de') or '').strip()
+            if o == 'alianza':
+                # La ficha Rex de un inmueble de alianza es la del aliado (sus datos de contacto): no es nuestra.
+                plan.append((it, 'rex', link, FUENTE_REX.format(f=fecha),
+                             f'AJENA: ficha Rex de {aliado or "otro captador"}, no es publicación nuestra'))
+            else:
+                plan.append((it, 'rex', link, FUENTE_REX.format(f=fecha), ''))
 
     def check(x):
         it, portal, url, fuente, nota = x
+        if nota.startswith('AJENA:'):
+            return x, ('ajena', None, '')
         return x, portales.verificar(portal, url)
     with ThreadPoolExecutor(max_workers=6) as ex:
         res = list(ex.map(check, plan))

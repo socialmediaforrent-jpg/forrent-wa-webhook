@@ -38,7 +38,8 @@ dialog.mk-dlg::backdrop{background:rgba(17,17,17,.45)}
 .mk-acts svg,.mk-alt svg{width:18px;height:18px}
 .mk-alt{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .mk-alt.on{display:grid}
-.mk-warn{font-size:12px;background:#fff7ed;color:#9a3d04;border-radius:8px;padding:6px 8px;margin:10px 0 0}
+.pl.ajena img{filter:grayscale(1);opacity:.3}
+.pl.ajena::after{content:'×';position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#6b7280;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
 .mk-msg{font-size:13px;color:#067647;min-height:18px;margin-top:8px}
 .mk-close{margin-top:12px;width:100%;min-height:42px;border-radius:10px;border:0;background:#eef0f4;font:inherit;font-weight:700;cursor:pointer}
 .mk-edit{margin-top:10px;border-top:1px solid var(--linea);padding-top:8px}
@@ -57,7 +58,7 @@ dialog.mk-dlg::backdrop{background:rgba(17,17,17,.45)}
 <div class="mk-head">
   <div>
     <h1 class="page">Mercadeo</h1>
-    <p class="lead">{% if es_admin %}Todos los inmuebles de For Rent{% elif ver_asesor %}Tus inmuebles y los de tu equipo{% else %}Tus inmuebles{% endif %} en los 10 portales. Un logo significa que el inmueble está publicado y el enlace fue verificado; una casilla vacía, que aún no está en ese portal. Inventario del {{ inv_fecha }}.</p>
+    <p class="lead">{% if es_admin %}Todos los inmuebles de For Rent{% elif ver_asesor %}Tus inmuebles y los de tu equipo{% else %}Tus inmuebles{% endif %} en los 10 portales. Un logo significa que el inmueble está publicado por For Rent en ese portal y el enlace fue verificado; se puede abrir, copiar y compartir con clientes. Una casilla vacía significa que aún no está publicado ahí. Inventario del {{ inv_fecha }}.</p>
   </div>
 </div>
 
@@ -105,13 +106,17 @@ dialog.mk-dlg::backdrop{background:rgba(17,17,17,.45)}
       {% for c in r.casillas %}
         {% if c.visible %}
         <a role="listitem" class="pl" href="{{ c.url }}" target="_blank" rel="noopener noreferrer"
-           data-url="{{ c.url }}" data-portal="{{ c.nombre }}" data-logo="/static/{{ c.logo }}" data-title="{{ r.titulo }}" data-int="{{ 1 if c.interno else 0 }}"
+           data-url="{{ c.url }}" data-portal="{{ c.nombre }}" data-logo="/static/{{ c.logo }}" data-title="{{ r.titulo }}"
            title="{{ c.nombre }}: publicado. {{ c.etiqueta }}{% if c.verificado_en %} ({{ fmt(c.verificado_en) }}){% endif %}">
           <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: publicado. Abrir opciones</span>
         </a>
         {% elif c.caido %}
         <span role="listitem" class="pl caido" tabindex="0" title="{{ c.nombre }}: el enlace dejó de responder{% if c.verificado_en %} ({{ fmt(c.verificado_en) }}){% endif %}">
           <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: el enlace dejó de responder</span>
+        </span>
+        {% elif c.ajena and es_admin %}
+        <span role="listitem" class="pl ajena" tabindex="0" title="{{ c.nombre }}: el enlace cargado es una ficha de otro captador; no se muestra a asesoras">
+          <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: ficha de otro captador, oculta</span>
         </span>
         {% elif c.pendiente and es_admin %}
         <span role="listitem" class="pl pend" title="{{ c.nombre }}: enlace sin verificar">
@@ -157,7 +162,6 @@ dialog.mk-dlg::backdrop{background:rgba(17,17,17,.45)}
     <a id="dlg-wa" href="#" target="_blank" rel="noopener noreferrer">{{ icon('chat') }}WhatsApp</a>
     <button type="button" id="dlg-copy2">{{ icon('copy') }}Copiar enlace</button>
   </div>
-  <p class="mk-warn" id="dlg-int" hidden>Enlace interno: según la regla de For Rent, los enlaces de Rex y Wasi no se envían a clientes.</p>
   <div class="mk-msg" id="dlg-msg" role="status" aria-live="polite"></div>
   <button type="button" class="mk-close" id="dlg-x">Cerrar</button>
 </dialog>
@@ -183,7 +187,6 @@ dialog.mk-dlg::backdrop{background:rgba(17,17,17,.45)}
     document.getElementById('dlg-u').textContent=a.dataset.url;
     document.getElementById('dlg-go').href=a.dataset.url;
     document.getElementById('dlg-wa').href='https://wa.me/?text='+encodeURIComponent(a.dataset.title+' '+a.dataset.url);
-    document.getElementById('dlg-int').hidden=a.dataset.int!=='1';
     alt.classList.remove('on'); say(''); d.showModal();
   });
   document.getElementById('dlg-copy').onclick=function(){if(cur)copiar(cur.dataset.url);};

@@ -33,4 +33,7 @@ enlaces (`POST /mercadeo/link`, con CSRF; solo https y solo el dominio del porta
 Datos en `crm_portal_links` (+ `crm_portal_links_log`), tablas nuevas (ver `migrations/002_portal_links.sql`).
 `portal_links_import.py` (se corre en la caja) carga solo enlaces reales: ML activos del panel del día, fichas Wasi y Rex
 del inventario diario. Estados: `ok` (respondió), `protegido` (el portal bloquea robots y el enlace viene de fuente
-verificada), `caido` (dejó de responder; no se muestra como publicado), `pendiente`. Sin GHL. Logos locales en `static/portales/`.
+verificada), `caido` (dejó de responder; no se muestra como publicado), `pendiente`, `ajena` (ficha con datos de otro
+captador, p. ej. la ficha Rex del aliado; nunca se muestra). Solo se muestran publicaciones nuestras (propias y de alianza con
+nuestros datos y el aviso «solo cliente directo»), así que Ir, Copiar y Compartir quedan libres en los 10 logos. Wasi acepta solo
+nuestro sitio (grupoinmobiliarioforrent.com). Sin GHL. Logos locales en `static/portales/`.

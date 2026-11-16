@@ -6,7 +6,10 @@ Reglas:
 - Cada URL debe ser https y pertenecer al dominio del portal (evita SSRF y enlaces a otro sitio).
 - Un logo solo se muestra si el enlace está verificado: ``ok`` (respondió 2xx) o ``protegido``
   (el portal bloquea robots, p. ej. Cloudflare o la verificación de Mercado Libre, y el enlace
-  viene de una fuente verificada del día). ``caido`` = dejó de responder; ``pendiente`` = sin verificar.
+  viene de una fuente verificada del día). ``caido`` = dejó de responder; ``pendiente`` = sin verificar;
+  ``ajena`` = ficha con datos de otro captador (no es publicación nuestra): nunca se muestra ni se comparte.
+- Solo se muestran publicaciones NUESTRAS (propias y de alianza publicadas con nuestros datos de contacto),
+  por eso todas se pueden abrir, copiar y compartir con clientes.
 """
 from __future__ import annotations
 
@@ -27,9 +30,9 @@ TZ = ZoneInfo('America/Caracas')
 PORTALES = [
     {'key': 'mercadolibre', 'nombre': 'Mercado Libre', 'logo': 'portales/mercadolibre.png',
      'dominios': ('mercadolibre.com.ve',)},
-    {'key': 'rex', 'nombre': 'Rex', 'logo': 'portales/rex.svg', 'dominios': ('rexup.net',), 'interno': True},
-    {'key': 'wasi', 'nombre': 'Wasi', 'logo': 'portales/wasi.png',
-     'dominios': ('grupoinmobiliarioforrent.com', 'wasi.co'), 'interno': True},
+    {'key': 'rex', 'nombre': 'Rex', 'logo': 'portales/rex.svg', 'dominios': ('rexup.net',)},
+    # Wasi: solo nuestro sitio Wasi; las fichas de otras inmobiliarias de la red Wasi no se aceptan.
+    {'key': 'wasi', 'nombre': 'Wasi', 'logo': 'portales/wasi.png', 'dominios': ('grupoinmobiliarioforrent.com',)},
     {'key': 'bienesonline', 'nombre': 'Bienes Online', 'logo': 'portales/bienesonline.svg',
      'dominios': ('bienesonline.com', 'bienesonline.ai'),
      # Bienes Online responde 200 con su portada cuando la ficha no existe (soft 404).
@@ -47,6 +50,7 @@ ESTADOS_VISIBLES = ('ok', 'protegido')
 ESTADO_ETIQUETA = {
     'ok': 'Verificado', 'protegido': 'Verificado por fuente (el portal bloquea robots)',
     'caido': 'Dejó de responder', 'pendiente': 'Sin verificar',
+    'ajena': 'Ficha de otro captador (no es publicación nuestra): no se muestra',
 }
 UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
       'Chrome/130.0 Safari/537.36')
@@ -268,7 +272,7 @@ def reverificar_todo(q, *, en_segundo_plano=True, hilos=6):
     with _job_lock:
         if _job['corriendo']:
             return False
-        rows = q('SELECT * FROM crm_portal_links', fetch=True) or []
+        rows = q("SELECT * FROM crm_portal_links WHERE estado <> 'ajena'", fetch=True) or []
         _job.update(corriendo=True, inicio=now_iso(), fin=None, total=len(rows), hechos=0, resumen={})
 
     def run():
@@ -304,12 +308,13 @@ def casillas(links_inmueble):
         r = (links_inmueble or {}).get(p['key'])
         estado = (r or {}).get('estado') or ''
         out.append({
-            'key': p['key'], 'nombre': p['nombre'], 'logo': p['logo'], 'interno': bool(p.get('interno')),
+            'key': p['key'], 'nombre': p['nombre'], 'logo': p['logo'],
             'url': (r or {}).get('url') or '',
             'estado': estado,
             'visible': bool(r) and estado in ESTADOS_VISIBLES,
             'caido': bool(r) and estado == 'caido',
             'pendiente': bool(r) and estado == 'pendiente',
+            'ajena': bool(r) and estado == 'ajena',
             'etiqueta': ESTADO_ETIQUETA.get(estado, ''),
             'verificado_en': (r or {}).get('verificado_en') or '',
             'fuente': (r or {}).get('fuente') or '',
