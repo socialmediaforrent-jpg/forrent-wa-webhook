@@ -856,6 +856,8 @@ def _already_live_event(wa_id, kind, text, ts, msg_type):
     return False
 
 
+# Importación HISTÓRICA de conversaciones GHL (source='ghl_import', wamid 'ghl:…'). Es un dato ya guardado,
+# no una conexión: no llama a GHL. Tras el corte a Meta y el borrado de GHL queda como consulta/recarga del histórico.
 @app.get('/panel/import-ghl')
 @require_admin
 def panel_import_ghl_status():
@@ -1283,8 +1285,9 @@ def _dashboard(user):
 
 
 # ---------------------------------------------------------------- datos vivos del portal
-# La caja lee las fuentes reales (registro de asignaciones GHL, Sistema de Clientes, cierres)
-# y las empuja aquí con una llave propia. Sin llave configurada, el endpoint queda cerrado.
+# Clientes, teléfonos, productividad y cierres salen del CRM propio (tablas crm_*, ver crm.portal_payload).
+# Inventario y captaciones los empuja la caja (Wasi/Rex, sin GHL) con una llave propia; sin llave, el endpoint
+# queda cerrado. El push de clientes queda solo como respaldo si el CRM no responde.
 PORTAL_SYNC_NOMBRES = ('clientes_asignados.json', 'cierres.json', 'clientes_telefonos.json',
                        'inventario.json', 'captaciones.json', 'productividad.json')
 _SYNC_LISTA = {'clientes_asignados.json': 'clientes', 'clientes_telefonos.json': 'clientes', 'cierres.json': 'cierres',
@@ -1405,6 +1408,127 @@ def crm_write_api():
     except Exception:
         log.exception('crm-write op=%s', op)
         return jsonify({'ok': False, 'error': 'crm-write falló'}), 500
+
+
+# ---------------------------------------------------------------- lecturas del CRM propio (reemplazo de GET a GHL)
+# Misma llave que /admin/portal-sync y /admin/crm-write (PORTAL_SYNC_KEY). Solo lectura.
+def _crm_read_guard():
+    if not os.environ.get('PORTAL_SYNC_KEY'):
+        return jsonify({'error': 'sync no configurado'}), 503
+    if not _sync_key_ok():
+        return jsonify({'error': 'forbidden'}), 403
+    if not IS_PG:
+        return jsonify({'error': 'solo Postgres'}), 503
+    return None
+
+
+def _arg_fecha(nombre):
+    v = (request.args.get(nombre) or '').strip()
+    if not v:
+        return None
+    try:
+        return datetime.fromisoformat(v.replace('Z', '+00:00')).isoformat()
+    except ValueError:
+        abort(400)
+
+
+@app.get('/admin/crm-read/contactos')
+def crm_read_contactos():
+    err = _crm_read_guard()
+    if err:
+        return err
+    import crm_read
+    try:
+        lim = int(request.args.get('limite') or crm_read.LIMITE)
+    except ValueError:
+        abort(400)
+    rows = crm_read.contactos(q, _arg_fecha('desde'), _arg_fecha('hasta'), _arg_fecha('actualizados_desde'), lim)
+    return jsonify({'contacts': rows, 'n': len(rows), 'fuente': 'crm'})
+
+
+@app.get('/admin/crm-read/contacto/<cid>')
+def crm_read_contacto(cid):
+    err = _crm_read_guard()
+    if err:
+        return err
+    import crm_read
+    c = crm_read.contacto(q, cid)
+    return (jsonify({'contact': c}), 200) if c else (jsonify({'error': 'no encontrado'}), 404)
+
+
+@app.get('/admin/crm-read/asignaciones')
+def crm_read_asignaciones():
+    err = _crm_read_guard()
+    if err:
+        return err
+    import crm_read
+    desde = _arg_fecha('desde')
+    if not desde:
+        abort(400)
+    rows = crm_read.asignaciones(q, desde, _arg_fecha('hasta'))
+    return jsonify({'asignaciones': rows, 'n': len(rows)})
+
+
+@app.get('/admin/crm-read/wa-nuevos')
+def crm_read_wa_nuevos():
+    err = _crm_read_guard()
+    if err:
+        return err
+    import crm_read
+    desde, hasta = _arg_fecha('desde'), _arg_fecha('hasta')
+    if not (desde and hasta):
+        abort(400)
+    rows = crm_read.wa_nuevos(q, desde, hasta)
+    return jsonify({'nuevos': rows, 'n': len(rows)})
+
+
+# ---------------------------------------------------------------- enlaces de portales desde Inventario
+# Llave propia de Inventario (INVENTARIO_LINKS_KEY_SHA256; en Render solo el SHA-256). Solo sirve para
+# estas dos rutas: no da acceso al portal, al CRM ni a Mensajes. Sin la variable, las rutas quedan cerradas.
+def _links_key_ok():
+    given = request.headers.get('X-Inventario-Links-Key', '')
+    if _secret_matches(given, 'INVENTARIO_LINKS_KEY', 'INVENTARIO_LINKS_KEY_SHA256'):
+        return True
+    return bool(os.environ.get('PORTAL_SYNC_KEY')) and _sync_key_ok()  # llave de la caja (superconjunto)
+
+
+def _links_guard():
+    if not (os.environ.get('INVENTARIO_LINKS_KEY') or os.environ.get('INVENTARIO_LINKS_KEY_SHA256')
+            or os.environ.get('PORTAL_SYNC_KEY')):
+        return jsonify({'error': 'importación de enlaces no configurada'}), 503
+    if not _links_key_ok():
+        return jsonify({'error': 'forbidden'}), 403
+    return None
+
+
+@app.post('/admin/portal-links/import')
+def portal_links_import_api():
+    """Cuerpo JSON: {"texto": "código | portal | url ...", "dry_run": true, "verificar": true}.
+    Por defecto es simulacro (dry_run=true). Nunca borra; reemplazos quedan en crm_portal_links_log."""
+    err = _links_guard()
+    if err:
+        return err
+    body = request.get_json(silent=True) or {}
+    texto = body.get('texto')
+    if not isinstance(texto, str) or not texto.strip() or len(texto) > 200_000:
+        return jsonify({'error': 'texto vacío o demasiado grande'}), 400
+    import links_inventario
+    _, items, _ = _mercadeo_items({'role': 'admin', 'user': 'inventario'})
+    if not items:
+        return jsonify({'error': 'inventario vacío; no se importa'}), 409
+    fuente = str(body.get('fuente') or 'inventario: lista de Inventario')[:120]
+    res = links_inventario.importar(q, items, texto, dry_run=body.get('dry_run', True) is not False,
+                                    verificar=body.get('verificar', True) is not False, fuente=fuente)
+    return jsonify(res)
+
+
+@app.get('/admin/portal-links/export')
+def portal_links_export_api():
+    err = _links_guard()
+    if err:
+        return err
+    import links_inventario
+    return jsonify(links_inventario.exportar(q))
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -2225,7 +2349,7 @@ def _fuera_de_horario(dt_caracas):
 
 
 def maybe_auto_reply(wa_id, pnid):
-    """Una vez por contacto por noche (equivale al flujo GHL + etiqueta auto_fuera_horario)."""
+    """Una vez por contacto por noche (reemplaza al workflow de GHL «fuera de horario»; queda auto=1)."""
     if os.environ.get('AUTO_REPLY_ENABLED') != '1' or not wa_id: return
     tok, pid, txt = os.environ.get('META_WA_TOKEN'), os.environ.get('WA_PHONE_NUMBER_ID') or pnid, os.environ.get('AUTO_REPLY_TEXT')
     if not (tok and pid and txt): log.warning('Auto-respuesta activada pero faltan META_WA_TOKEN/AUTO_REPLY_TEXT'); return
