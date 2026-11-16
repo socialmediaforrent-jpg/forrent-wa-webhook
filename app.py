@@ -1289,6 +1289,16 @@ _live_cache = {'t': 0.0, 'd': {}}
 def _portal_live(nombre):
     if nombre not in PORTAL_SYNC_NOMBRES:
         return None
+    # Rama CRM: clientes, teléfonos, productividad y cierres salen de las tablas crm_*.
+    # Inventario y captaciones siguen en portal_datos. Si el CRM aún no está cargado, se usa el push.
+    if nombre in ('clientes_asignados.json', 'clientes_telefonos.json', 'productividad.json', 'cierres.json'):
+        try:
+            import crm as _crm
+            d = _crm.portal_payload(nombre, q)
+            if d is not None:
+                return d
+        except Exception:
+            pass
     import time as _t
     now = _t.time()
     if now - _live_cache['t'] > 30:
