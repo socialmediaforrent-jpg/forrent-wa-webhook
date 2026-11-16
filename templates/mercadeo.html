@@ -5,6 +5,12 @@
 <style>
 .mk-head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
 .mk-plan{display:flex;gap:10px;align-items:center;margin:0 0 14px}
+.mk-sec{font-size:15px;margin:0 0 8px}
+.mk-redes{grid-template-columns:repeat(6,minmax(0,1fr))!important;max-width:500px;margin-top:0}
+.pl.mp-sec{cursor:default}
+.pl.mp-sec .mp-n{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#111;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.mk-mp{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--muted)}
+.mk-mp .pl{width:48px;flex:none}
 .mk-res{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:0 0 14px}
 @media(min-width:900px){.mk-res{grid-template-columns:repeat(10,minmax(0,1fr))}}
 .mk-res div{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:6px 4px;text-align:center;font-size:11px;line-height:1.2}
@@ -58,18 +64,40 @@ dialog.mk-dlg::backdrop{background:rgba(17,17,17,.45)}
 <div class="mk-head">
   <div>
     <h1 class="page">Mercadeo</h1>
-    <p class="lead">{% if es_admin %}Todos los inmuebles de For Rent{% elif ver_asesor %}Tus inmuebles y los de tu equipo{% else %}Tus inmuebles{% endif %} en los 10 portales. Un logo significa que el inmueble está publicado por For Rent en ese portal y el enlace fue verificado; se puede abrir, copiar y compartir con clientes. Una casilla vacía significa que aún no está publicado ahí. Inventario del {{ inv_fecha }}.</p>
+    <p class="lead">{% if es_admin %}Todos los inmuebles de For Rent{% elif ver_asesor %}Tus inmuebles y los de tu equipo{% else %}Tus inmuebles{% endif %} en los 10 Portales Inmobiliarios. Un logo significa que el inmueble está publicado por For Rent en ese portal y el enlace fue verificado; se puede abrir, copiar y compartir con clientes. Una casilla vacía significa que aún no está publicado ahí. Inventario del {{ inv_fecha }}.</p>
   </div>
 </div>
 
 {% if es_admin %}
-<div class="card mk-plan" aria-label="Planificador de anuncios">
+<a class="card mk-plan" href="/mercadeo/planificador" aria-label="Planificador de anuncios" style="text-decoration:none;color:inherit">
   {{ icon('calendar') }}
-  <div><b>Planificador de anuncios</b><p class="muted" style="margin:2px 0 0">Solo Presidencia. Se conecta aquí cuando esté listo.</p></div>
-</div>
+  <div><b>Planificador de anuncios</b><p class="muted" style="margin:2px 0 0">Mercadeo y Presidencia. Publicaciones programadas en redes.</p></div>
+</a>
 {% endif %}
 
-<div class="mk-res" aria-label="Inmuebles publicados por portal">
+<section aria-labelledby="redes-t" style="margin:0 0 16px">
+  <h2 id="redes-t" class="mk-sec">Redes Sociales</h2>
+  <div class="mk-grid mk-redes" role="list" aria-label="Redes Sociales de For Rent">
+    {% for r in redes %}
+      {% if r.visible %}
+      <a role="listitem" class="pl" href="{{ r.url }}" target="_blank" rel="noopener noreferrer"
+         data-url="{{ r.url }}" data-portal="{{ r.nombre }}" data-logo="/static/{{ r.logo }}" data-title="For Rent en {{ r.nombre }}"
+         title="{{ r.nombre }}: perfil de For Rent">
+        <img src="/static/{{ r.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ r.nombre }}: perfil de For Rent. Abrir opciones</span>
+      </a>
+      {% else %}
+      <span role="listitem" class="pl vacia" title="{{ r.nombre }}: sin enlace"><span class="sr">{{ r.nombre }}: sin enlace</span></span>
+      {% endif %}
+    {% endfor %}
+    <span role="listitem" class="pl mp-sec" title="Facebook Marketplace: enlaces por inmueble ({{ n_mp }} con enlace)">
+      <img src="/static/{{ mp_logo }}" alt="" width="38" height="38" loading="lazy"><span class="mp-n">{{ n_mp }}</span><span class="sr">Facebook Marketplace: {{ n_mp }} inmuebles con enlace. Los enlaces están en cada inmueble.</span>
+    </span>
+  </div>
+  <p class="muted" style="font-size:12px;margin:6px 0 0">Facebook Marketplace va por inmueble: el logo aparece en cada ficha cuando se carga su publicación.</p>
+</section>
+
+<h2 class="mk-sec" id="portales-t">Portales Inmobiliarios</h2>
+<div class="mk-res" aria-labelledby="portales-t">
   {% for p in resumen %}<div><img src="/static/{{ p.logo }}" alt="" width="26" height="26" loading="lazy"><b>{{ p.n }}</b>{{ p.nombre }}</div>{% endfor %}
 </div>
 
@@ -99,7 +127,7 @@ dialog.mk-dlg::backdrop{background:rgba(17,17,17,.45)}
       <div>
         <h2>{{ r.titulo }}</h2>
         <div class="mk-meta">{{ r.operacion }} · {{ r.tipo }} · {{ r.zona }}{% if r.precio %} · {{ r.precio }}{% endif %}<br>
-          {{ 'Propia' if r.origen == 'propio' else 'Alianza' }}{% if r.codigo %} · Cód. {{ r.codigo }}{% endif %}{% if ver_asesor and r.asesor %} · {{ r.asesor }}{% endif %} · {{ r.n_pub }}/10 portales</div>
+          {{ 'Propia' if r.origen == 'propio' else 'Alianza' }}{% if r.codigo %} · Cód. {{ r.codigo }}{% endif %}{% if ver_asesor and r.asesor %} · {{ r.asesor }}{% endif %} · {{ r.n_pub }}/10 Portales Inmobiliarios</div>
       </div>
     </div>
     <div class="mk-grid" role="list" aria-label="Portales de {{ r.titulo }}">
@@ -127,6 +155,33 @@ dialog.mk-dlg::backdrop{background:rgba(17,17,17,.45)}
         {% endif %}
       {% endfor %}
     </div>
+    <div class="mk-mp">
+      {% if r.mp %}
+      <a class="pl" href="{{ r.mp.url }}" target="_blank" rel="noopener noreferrer" data-url="{{ r.mp.url }}" data-portal="Facebook Marketplace"
+         data-logo="/static/{{ mp_logo }}" data-title="{{ r.titulo }}" title="Facebook Marketplace: publicado">
+        <img src="/static/{{ mp_logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">Facebook Marketplace: publicado. Abrir opciones</span>
+      </a>
+      {% else %}
+      <span class="pl vacia" title="Facebook Marketplace: sin enlace"><span class="sr">Facebook Marketplace: sin enlace</span></span>
+      {% endif %}
+      <span>Facebook Marketplace</span>
+    </div>
+    {% if puede_mp %}
+    <details class="mk-edit">
+      <summary>{{ 'Editar' if r.mp else 'Agregar' }} enlace de Marketplace</summary>
+      <form method="post" action="/mercadeo/marketplace">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="key" value="{{ r.key }}">
+        <input type="url" name="url" value="{{ r.mp.url if r.mp else '' }}" placeholder="https://www.facebook.com/marketplace/item/…" aria-label="Enlace de Marketplace" inputmode="url" style="grid-column:1/3">
+        <button type="submit" name="accion" value="guardar">Guardar</button>
+        {% if r.mp %}<button type="submit" name="accion" value="quitar" class="sec" formnovalidate>Quitar</button>{% endif %}
+      </form>
+      {% if r.mp_hist %}
+      <table><tbody>
+        {% for h in r.mp_hist %}<tr><td><b>{{ {'alta':'Agregado','reemplazo':'Cambiado','baja':'Quitado'}.get(h.accion, h.accion) }}</b></td><td>{{ h.por }} · {{ fmt(h.at) }}</td><td>{{ h.url_despues or h.url_antes }}</td></tr>{% endfor %}
+      </tbody></table>
+      {% endif %}
+    </details>
+    {% endif %}
     {% if es_admin %}
     <details class="mk-edit">
       <summary>Editar enlaces</summary>

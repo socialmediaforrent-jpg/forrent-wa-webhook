@@ -63,6 +63,15 @@ body.inbox-page .pagehint{display:none}
 .bub .tipo{display:inline-block;background:#111;color:#fff;border-radius:5px;padding:1px 6px;font-size:10px;margin-bottom:4px}
 .bub .st.leido{color:#0a6cff}
 .bub .st.fallo{color:#b91c1c;font-weight:700}
+.reply{background:#fff;border-top:1px solid var(--linea);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))}
+.reply form{display:flex;gap:8px;align-items:flex-end}
+.reply textarea{flex:1;resize:none;min-height:44px;max-height:160px;border:1px solid var(--linea);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;line-height:1.35}
+.reply textarea:focus{outline:none;border-color:#f0c9a8;box-shadow:0 0 0 3px #fff3ea}
+.reply button{min-height:44px;border:0;border-radius:12px;padding:0 16px;background:var(--naranja);color:#fff;font:inherit;font-weight:800;cursor:pointer}
+.reply button:disabled,.reply textarea:disabled{opacity:.5;cursor:not-allowed}
+.reply .nota{font-size:12px;color:#6b7280;margin:6px 2px 0}
+.reply .nota.err{color:#b42318;font-weight:650}
+.reply .nota.ok{color:#067647;font-weight:650}
 .inbox-empty{padding:40px 20px;text-align:center;color:#6b7280;font-size:15px;background:transparent;border:0}
 @media (max-width:720px){
   .inbox{grid-template-columns:1fr}
@@ -162,6 +171,18 @@ body.inbox-page .pagehint{display:none}
         </div>
       {% endfor %}
     </div>
+    {% if reply %}
+    <div class="reply" id="reply" data-puede="{{ '1' if reply.puede_enviar else '0' }}">
+      <form method="post" action="/panel/responder" id="reply-form" autocomplete="off">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="c" value="{{ current }}">
+        <textarea name="texto" id="reply-text" rows="1" maxlength="4096" aria-label="Escribe una respuesta"
+          placeholder="{{ 'Escribe una respuesta…' if reply.puede_enviar else 'Respuesta deshabilitada' }}" {% if not reply.puede_enviar %}disabled{% endif %}></textarea>
+        <button type="submit" id="reply-btn" {% if not reply.puede_enviar %}disabled{% endif %}>Responder</button>
+      </form>
+      <p class="nota{% if request.args.get('err') %} err{% elif request.args.get('env') %} ok{% endif %}" id="reply-nota" role="status" aria-live="polite">{% if request.args.get('err') %}{{ request.args.get('err') }}{% elif request.args.get('env') %}Mensaje enviado.{% elif reply.puede_enviar %}Texto libre, sin plantillas. Ventana de 24 h abierta hasta {{ reply.vence_txt }} (hora de Caracas).{% else %}{{ reply.motivo }}{% endif %}</p>
+    </div>
+    {% endif %}
     {% else %}
     <div class="inbox-empty">Elige una conversación para ver los mensajes.</div>
     {% endif %}
@@ -295,6 +316,7 @@ body.inbox-page .pagehint{display:none}
       const d = await r.json();
       paintList(d);
       if (!d.current) return;
+      paintReply(d.reply);
       const msgs = document.getElementById('msgs');
       if (!msgs) return;
       const headWho = document.querySelector('.thread-head .who');
@@ -318,6 +340,34 @@ body.inbox-page .pagehint{display:none}
         msgs.appendChild(bub);
       });
     }catch(e){}
+  }
+  function paintReply(r){
+    const box=document.getElementById('reply'); if(!box||!r) return;
+    const ta=document.getElementById('reply-text'), btn=document.getElementById('reply-btn'), nota=document.getElementById('reply-nota');
+    const puede=!!r.puede_enviar; box.dataset.puede=puede?'1':'0';
+    ta.disabled=!puede; btn.disabled=!puede || box.dataset.enviando==='1';
+    ta.placeholder=puede?'Escribe una respuesta…':'Respuesta deshabilitada';
+    if (!nota.classList.contains('err') && !nota.classList.contains('ok')){
+      nota.textContent = puede ? ('Texto libre, sin plantillas. Ventana de 24 h abierta hasta '+(r.vence_txt||'')+' (hora de Caracas).') : (r.motivo||'');
+    }
+  }
+  const form=document.getElementById('reply-form');
+  if (form){
+    form.addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const box=document.getElementById('reply'), ta=document.getElementById('reply-text'), btn=document.getElementById('reply-btn'), nota=document.getElementById('reply-nota');
+      if (!ta.value.trim()) return;
+      box.dataset.enviando='1'; btn.disabled=true; nota.className='nota'; nota.textContent='Enviando…';
+      try{
+        const r = await fetch('/panel/responder', {method:'POST', credentials:'same-origin', headers:{'Accept':'application/json'}, body:new FormData(form)});
+        let d={}; try{ d=await r.json(); }catch(e){}
+        if (r.ok && d.ok){ ta.value=''; nota.className='nota ok'; nota.textContent='Mensaje enviado.'; }
+        else { nota.className='nota err'; nota.textContent=(d && d.mensaje) || 'No se pudo enviar.'; }
+      }catch(e){ nota.className='nota err'; nota.textContent='Sin conexión. Intenta de nuevo.'; }
+      box.dataset.enviando='0';
+      await refresh();
+      setTimeout(() => { nota.classList.remove('ok','err'); }, 8000);
+    });
   }
   apply();
   setInterval(refresh, 30000);

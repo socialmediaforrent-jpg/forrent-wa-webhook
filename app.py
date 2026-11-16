@@ -15,6 +15,8 @@ Endpoints
   GET  / y /portal                   -> portal For Rent (sesión; redirige a /login)
   GET  /panel                        -> bandeja de entrada (sesión; José ve todas, asesores solo las suyas, solo lectura)
   GET  /panel/data                   -> JSON de la bandeja (para auto-actualizar)
+  POST /panel/responder              -> responder por WhatsApp desde la bandeja (sesión + CSRF; ventana 24 h; solo
+                                        si META_WA_TOKEN y WA_PHONE_NUMBER_ID existen). Mismos permisos que /panel.
   GET  /inventario                   -> inventario propios / alianza / red (solo lectura)
 
 Variables de entorno
@@ -28,6 +30,9 @@ Variables de entorno
   PORTAL_ESTATUS_URL          enlace del panel admin del Sistema de Clientes
   PORTAL_CIERRES_URL          enlace del panel admin de Cierres (Sistema Contable)
   SECRET_KEY                  firma de la cookie de sesión del portal (no es una contraseña de usuario)
+  META_WA_TOKEN, WA_PHONE_NUMBER_ID  también activan el botón «Responder» de la bandeja (sin ellas queda deshabilitado)
+  META_SOCIAL_INBOX=1         muestra Instagram/Facebook en la bandeja (solo admin, solo lectura) usando
+                              META_PAGE_TOKEN o META_PAGE_TOKEN_FILE (token de página). Apagado por defecto.
 """
 import csv, hashlib, hmac, json, logging, os, sqlite3, threading, time, urllib.request
 from pathlib import Path as _Path
@@ -43,6 +48,9 @@ import notif
 import portal_lib
 import mensajes
 import portales
+import bandeja
+import redes
+import marketplace
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('wa')
@@ -171,6 +179,10 @@ def init_db():
         portales.init(q, IS_PG)  # Mercadeo: crm_portal_links (aditiva)
     except Exception:
         log.exception('portales.init')
+    try:
+        marketplace.init(q, IS_PG)  # Redes Sociales: crm_marketplace_links + bitácora (aditivas)
+    except Exception:
+        log.exception('marketplace.init')
     seed_emails_perfil()
 
 
@@ -494,8 +506,30 @@ def require_login(fn):
                 return _panel_headers(make_response(jsonify({'error': 'auth'}), 401))
             return _login_redirect()
         g.user = user
+        if user.get('role') == 'mercadeo' and request.endpoint not in MERCADEO_ENDPOINTS:
+            # Mercadeo solo entra a su sección y al planificador (clientes, mensajes, cierres, etc. quedan fuera).
+            if request.method == 'GET' and request.endpoint == 'portal':
+                return redirect('/mercadeo')
+            return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
         return fn(*args, **kwargs)
     return wrapper
+
+
+# Rutas con sesión que el usuario de Mercadeo puede abrir. Todo lo demás le responde 403 (en el servidor).
+MERCADEO_ENDPOINTS = {'mercadeo', 'mercadeo_link', 'mercadeo_verificar', 'mercadeo_planificador'}
+ROLES_MERCADEO = ('admin', 'mercadeo')
+
+
+def require_roles(*roles):
+    """Como require_admin, pero con una lista de roles permitidos (se valida en el servidor)."""
+    def deco(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            if g.user.get('role') not in roles:
+                return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
+            return fn(*args, **kwargs)
+        return require_login(wrapper)
+    return deco
 
 
 def require_admin(fn):
@@ -507,7 +541,7 @@ def require_admin(fn):
     return require_login(wrapper)
 
 
-ROLE_LABEL = {'admin': 'Presidencia', 'lider': 'Líder comercial', 'asesor': 'Asesora'}
+ROLE_LABEL = {'admin': 'Presidencia', 'lider': 'Líder comercial', 'asesor': 'Asesora', 'mercadeo': 'Mercadeo'}
 
 
 @app.context_processor
@@ -516,6 +550,11 @@ def _portal_nav():
     if not u:
         return {'nav_main': [], 'nav_more': [], 'nav_more_keys': [], 'viewer': None, 'role_label': ''}
     role = u['role']
+    if role == 'mercadeo':
+        main = [{'href': '/mercadeo', 'label': 'Mercadeo', 'key': 'mercadeo', 'icon': 'megaphone'},
+                {'href': '/mercadeo/planificador', 'label': 'Planificador de anuncios', 'short': 'Planificador',
+                 'key': 'planificador', 'icon': 'calendar'}]
+        return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['mercadeo']}
     links = _portal_links()
     main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'},
             {'href': '/mis-clientes', 'label': 'Mis Clientes', 'short': 'Clientes', 'key': 'clientes', 'icon': 'users'}]
@@ -537,6 +576,8 @@ def _portal_nav():
     else:
         more.append({'href': '/inventario', 'label': 'Inventario General', 'key': 'inventario', 'icon': 'building'})
     more.append({'href': '/mercadeo', 'label': 'Mercadeo', 'key': 'mercadeo', 'icon': 'megaphone'})
+    if role == 'admin':
+        more.append({'href': '/mercadeo/planificador', 'label': 'Planificador de anuncios', 'key': 'planificador', 'icon': 'calendar'})
     more.append({'href': '/ofertas', 'label': 'Ofertas', 'key': 'ofertas', 'icon': 'tag'})
     more.append({'href': '/cierres', 'label': 'Cierres', 'key': 'cierres', 'icon': 'cash'})
     if role == 'admin':
@@ -729,7 +770,7 @@ def panel_conversations(user):
         c['unread'] = counts.get(c['wa_id'] or '', 0)
     out.sort(key=lambda x: x['sort'] or '', reverse=True)
     for c in out:
-        c.pop('sort', None)
+        c['_sort'] = c.pop('sort', None)
     return out
 
 
@@ -779,25 +820,94 @@ def panel_thread(wa_id):
     return msgs, thread_name, _fmt_phone(wa_id)
 
 
+def _ultimo_entrante(wa_id):
+    rows = q("""SELECT ts, received_at FROM wa_events
+                WHERE kind='message' AND direction='inbound' AND wa_id=%s
+                ORDER BY COALESCE(ts, received_at) DESC, id DESC LIMIT 1""", (wa_id,), fetch=True) or []
+    return _event_ts(rows[0]) if rows else ''
+
+
+def _telefonos_asesores():
+    """Teléfonos de asesores (perfil) para el filtro: nunca se comparten con clientes."""
+    try:
+        rows = q("SELECT telefono FROM asesor_perfil WHERE telefono IS NOT NULL AND telefono <> ''", fetch=True) or []
+    except Exception:
+        rows = []
+    return [r['telefono'] for r in rows]
+
+
+def _social_convos(user):
+    """IG/FB: solo admin y solo con META_SOCIAL_INBOX=1 (lectura por Graph API)."""
+    if user.get('role') != 'admin' or not bandeja.social_activo():
+        return []
+    out = []
+    for c in bandeja.social_conversaciones():
+        nombre = c['nombre']
+        out.append({
+            'wa_id': c['id'], 'href': '/panel?c=' + quote(c['id'], safe=''), 'name': nombre, 'phone': '',
+            'preview': ('Tú: ' if c['saliente'] else '') + (c['texto'] or 'Mensaje'),
+            'time': mensajes.hora_lista(c['ts'], _parse_caracas), 'time_full': _fmt_time(c['ts']),
+            'canal': c['canal'], 'canal_label': mensajes.canal_etiqueta(c['canal']),
+            'iniciales': mensajes.iniciales(nombre), 'color': mensajes.color_avatar(nombre), 'unread': 0,
+            '_sort': c['ts'],
+        })
+    return out
+
+
+def _es_social(conv_id):
+    return (conv_id or '').startswith(('ig:', 'fb:'))
+
+
 def _panel_payload(user, wa_id, *, marcar=False):
-    convos = panel_conversations(user)
     current = wa_id or ''
-    if current and not mensajes.puede_ver(user, current):
+    social = _es_social(current)
+    if current and social and (user.get('role') != 'admin' or not bandeja.social_activo()):
         return None
-    if current and marcar:
+    if current and not social and not mensajes.puede_ver(user, current):
+        return None
+    if current and marcar and not social:
         _marcar_visto(user, current)
-        # refresca unread de esa conversación
-        convos = panel_conversations(user)
-    msgs, name, phone = panel_thread(current) if current else ([], '', '')
+    convos = panel_conversations(user)
+    convos = _mezclar(convos, _social_convos(user))
+    if social and current:
+        hilo = bandeja.social_hilo(current) or {'canal': 'instagram' if current.startswith('ig:') else 'facebook', 'mensajes': []}
+        msgs, last_day = [], None
+        for m in hilo['mensajes']:
+            day = _fmt_day(m['ts'])
+            msgs.append({'direction': 'out' if m['saliente'] else 'in', 'text': m['texto'] or 'Mensaje',
+                         'type_label': '', 'status': '', 'status_class': '', 'time': _fmt_time(m['ts']),
+                         'day': day if day != last_day else ''})
+            last_day = day
+        cur = next((c for c in convos if c['wa_id'] == current), {})
+        name, phone = cur.get('name') or 'Cliente', cur.get('canal_label') or ''
+        reply = bandeja.estado_respuesta(hilo['canal'], '')
+    else:
+        msgs, name, phone = panel_thread(current) if current else ([], '', '')
+        reply = bandeja.estado_respuesta('whatsapp', _ultimo_entrante(current)) if current else None
+    if reply and reply.get('vence'):
+        reply['vence_txt'] = _fmt_time(reply['vence'])
     return {
         'conversations': convos,
         'current': current,
         'messages': msgs,
         'thread_name': name,
         'thread_phone': phone,
-        'solo_lectura': True,
+        'solo_lectura': not (reply and reply.get('puede_enviar')),
+        'reply': reply,
         'es_admin': user.get('role') == 'admin',
+        'csrf': portal_lib.csrf_token(user),
     }
+
+
+def _mezclar(wa, social):
+    """Une WhatsApp con IG/FB por fecha del último mensaje (más reciente primero)."""
+    def k(c):
+        dt = _parse_caracas(c.get('_sort') or '')
+        return dt.timestamp() if dt else 0
+    todos = sorted(list(wa) + list(social), key=k, reverse=True)
+    for c in todos:
+        c.pop('_sort', None)
+    return todos
 
 
 def _panel_headers(resp):
@@ -825,6 +935,52 @@ def panel_data():
     if data is None:
         return _panel_headers(Response('No tienes acceso a esta conversación.\n', 403))
     return _panel_headers(jsonify(data))
+
+
+@app.post('/panel/responder')
+@require_login
+def panel_responder():
+    """Responder por WhatsApp desde la bandeja. Todo se valida aquí (no en la pantalla):
+    sesión, CSRF, que el usuario pueda ver la conversación, ventana de 24 h, filtro de texto y límite por minuto."""
+    b = request.get_json(silent=True) if request.is_json else None
+    f = b if isinstance(b, dict) else request.form
+    quiere_json = request.is_json or request.accept_mimetypes.best == 'application/json'
+    wa = (f.get('c') or '').strip()
+
+    def resp(ok, msg, status):
+        if quiere_json:
+            return _panel_headers(make_response(jsonify({'ok': ok, 'mensaje': msg}), status))
+        destino = '/panel?c=' + quote(wa, safe='') + ('&env=1' if ok else '&err=' + quote(msg, safe=''))
+        return redirect(destino if wa else '/panel')
+
+    if not portal_lib.csrf_ok(g.user, f.get('csrf') or request.headers.get('X-CSRF-Token')):
+        return resp(False, 'La sesión expiró. Recarga la página.', 400)
+    if not wa:
+        return resp(False, 'Falta la conversación.', 400)
+    if _es_social(wa):
+        return resp(False, bandeja.estado_respuesta('instagram', '')['motivo'], 403)
+    if not mensajes.puede_ver(g.user, wa):
+        return resp(False, 'No tienes acceso a esta conversación.', 403)
+    est = bandeja.estado_respuesta('whatsapp', _ultimo_entrante(wa))
+    if not est['puede_enviar']:
+        return resp(False, est['motivo'], 409)
+    try:
+        texto = bandeja.revisar_texto(f.get('texto'), _telefonos_asesores())
+    except ValueError as e:
+        return resp(False, str(e), 400)
+    if not bandeja.limite_ok(g.user['user']):
+        return resp(False, 'Demasiados envíos seguidos. Espera un minuto.', 429)
+    try:
+        wamid = bandeja.enviar_wa(wa, texto)
+    except bandeja.EnvioError as e:
+        log.warning('Respuesta desde el portal rechazada (%s, código %s)', g.user['user'], e.codigo)
+        return resp(False, str(e), 502)
+    insert_event(kind='outbound', wamid=wamid, wa_id=wa, direction='outbound', msg_type='text', text=texto,
+                 ts=now_iso(), status='', auto=0, source='portal', phone_number_id=os.environ.get('WA_PHONE_NUMBER_ID'),
+                 data={'por': g.user['user'], 'canal': 'whatsapp'})
+    _marcar_visto(g.user, wa)
+    log.info('Respuesta enviada desde el portal por %s', g.user['user'])
+    return resp(True, 'Mensaje enviado.', 200)
 
 
 def _table_count(table, where='', args=()):
@@ -1292,9 +1448,10 @@ def _dashboard(user):
 # Inventario y captaciones los empuja la caja (Wasi/Rex, sin GHL) con una llave propia; sin llave, el endpoint
 # queda cerrado. El push de clientes queda solo como respaldo si el CRM no responde.
 PORTAL_SYNC_NOMBRES = ('clientes_asignados.json', 'cierres.json', 'clientes_telefonos.json',
-                       'inventario.json', 'captaciones.json', 'productividad.json')
+                       'inventario.json', 'captaciones.json', 'productividad.json', 'planificador.json')
 _SYNC_LISTA = {'clientes_asignados.json': 'clientes', 'clientes_telefonos.json': 'clientes', 'cierres.json': 'cierres',
-               'inventario.json': 'grupos', 'captaciones.json': 'items', 'productividad.json': 'por_asesor'}
+               'inventario.json': 'grupos', 'captaciones.json': 'items', 'productividad.json': 'por_asesor',
+               'planificador.json': 'posts'}
 _live_cache = {'t': 0.0, 'd': {}}
 
 
@@ -1775,7 +1932,7 @@ def inventario():
 def _mercadeo_items(user):
     """Inmuebles que este usuario puede ver en Mercadeo (filtro en servidor).
 
-    Admin (Presidencia): todo el inventario propio y en alianza de la inmobiliaria.
+    Admin (Presidencia) y Mercadeo: todo el inventario propio y en alianza de la inmobiliaria.
     Líder: sus captaciones y las de su equipo (mismo alcance que Mi Equipo).
     Asesora: solo sus captaciones (propias y en alianza), igual que Mis Captaciones.
     """
@@ -1785,7 +1942,7 @@ def _mercadeo_items(user):
     asesor_de = {}
     for c in cap_all:
         asesor_de.setdefault(portales.key_de(c), c.get('asesor') or '')
-    if user['role'] == 'admin':
+    if user['role'] in ROLES_MERCADEO:
         items = list(grupos.get('propio') or []) + list(grupos.get('alianza') or [])
     else:
         slugs = set(portal_lib.visible_slugs(user))
@@ -1795,7 +1952,7 @@ def _mercadeo_items(user):
 
 def _mercadeo_render(user, *, ok='', err='', status=200):
     inv, items, asesor_de = _mercadeo_items(user)
-    es_admin = user['role'] == 'admin'
+    es_admin = user['role'] in ROLES_MERCADEO   # Presidencia y Mercadeo administran enlaces y verificación
     f = request.args.get('f') or 'todos'
     if f not in ('propias', 'aliados', 'todos'):
         f = 'todos'
@@ -1804,6 +1961,12 @@ def _mercadeo_render(user, *, ok='', err='', status=200):
     except Exception:
         log.exception('mercadeo links')
         links = {}
+    try:
+        mp_links = marketplace.links_por_key(q)
+    except Exception:
+        log.exception('marketplace links')
+        mp_links = {}
+    puede_mp = user['role'] == 'admin'   # José y Luz (rol admin) editan Marketplace
     fichas = _fichas_publicas(items, inv)
     filas, n_prop, n_ali = [], 0, 0
     conteo = {p['key']: 0 for p in portales.PORTALES}
@@ -1822,15 +1985,19 @@ def _mercadeo_render(user, *, ok='', err='', status=200):
             **ficha, 'key': key, 'origen': origen, 'casillas': cas,
             'n_pub': sum(1 for c in cas if c['visible']),
             'asesor': _nombre_asesor(slug) if slug else '',
+            'mp': mp_links.get(key),
+            'mp_hist': marketplace.historial(q, key) if puede_mp and mp_links.get(key) else [],
         })
     resumen = [{**p, 'n': conteo[p['key']]} for p in portales.PORTALES]
     return _hdr(render_template(
         'mercadeo.html', filas=filas, f=f, n_prop=n_prop, n_ali=n_ali, n_todos=n_prop + n_ali,
         resumen=resumen, portales_lista=portales.PORTALES, es_admin=es_admin,
-        ver_asesor=user['role'] in ('admin', 'lider'),
+        ver_asesor=user['role'] in ('admin', 'lider', 'mercadeo'),
+        redes=redes.redes(), mp_logo=marketplace.LOGO, puede_mp=puede_mp,
+        n_mp=sum(1 for k in mp_links if k in {portales.key_de(x) for x in items}),
         job=portales.estado_job() if es_admin else None,
         inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''),
-        csrf=portal_lib.csrf_token(user) if es_admin else '', ok=ok, err=err,
+        csrf=portal_lib.csrf_token(user) if (es_admin or puede_mp) else '', ok=ok, err=err,
         fmt=_fmt_actualizado,
     ), status)
 
@@ -1839,14 +2006,16 @@ def _mercadeo_render(user, *, ok='', err='', status=200):
 @require_login
 def mercadeo():
     ok = {'1': 'Enlace guardado y verificado.', 'quitado': 'Enlace quitado.',
-          'verificando': 'Verificando todos los enlaces en segundo plano. Recarga en un minuto.'}.get(request.args.get('ok') or '', '')
+          'verificando': 'Verificando todos los enlaces en segundo plano. Recarga en un minuto.',
+          'mp': 'Enlace de Marketplace guardado.', 'mp_quitado': 'Enlace de Marketplace quitado.',
+          'mp_igual': 'Ese enlace de Marketplace ya estaba guardado.'}.get(request.args.get('ok') or '', '')
     return _mercadeo_render(g.user, ok=ok)
 
 
 @app.post('/mercadeo/link')
-@require_admin
+@require_roles(*ROLES_MERCADEO)
 def mercadeo_link():
-    """Solo Presidencia agrega, cambia o quita enlaces. Se verifica antes de guardar."""
+    """Solo Presidencia y Mercadeo agregan, cambian o quitan enlaces. Se verifica antes de guardar."""
     if not _csrf_ok():
         return _mercadeo_render(g.user, err='La sesión expiró. Vuelve a intentar.', status=400)
     f = request.form
@@ -1869,17 +2038,63 @@ def mercadeo_link():
         return _mercadeo_render(g.user, err=f'No se guardó: el enlace de {nombre} no responde ({detalle or "sin respuesta"}). '
                                              'Revisa que sea la ficha publicada del inmueble.', status=400)
     portales.guardar(q, it=it, portal=portal, url=url, estado=estado, http_status=http_status,
-                     fuente='manual (Presidencia)', nota=detalle or None, por=g.user['user'])
+                     fuente='manual (Mercadeo)' if g.user['role'] == 'mercadeo' else 'manual (Presidencia)',
+                     nota=detalle or None, por=g.user['user'])
     return redirect('/mercadeo?ok=1')
 
 
 @app.post('/mercadeo/verificar')
-@require_admin
+@require_roles(*ROLES_MERCADEO)
 def mercadeo_verificar():
     if not _csrf_ok():
         return _mercadeo_render(g.user, err='La sesión expiró. Vuelve a intentar.', status=400)
     portales.reverificar_todo(q)
     return redirect('/mercadeo?ok=verificando')
+
+
+@app.post('/mercadeo/marketplace')
+@require_admin
+def mercadeo_marketplace():
+    """Facebook Marketplace por inmueble: solo rol admin (José y Luz). Valida URL y deja bitácora (quién/cuándo)."""
+    if not _csrf_ok():
+        return _mercadeo_render(g.user, err='La sesión expiró. Vuelve a intentar.', status=400)
+    f = request.form
+    key, accion = (f.get('key') or '').strip(), f.get('accion') or 'guardar'
+    _, items, _ = _mercadeo_items(g.user)
+    it = next((x for x in items if portales.key_de(x) == key), None)
+    if not it:
+        return _mercadeo_render(g.user, err='No encontramos ese inmueble en el inventario.', status=400)
+    if accion == 'quitar':
+        marketplace.quitar(q, key=key, por=g.user['user'])
+        return redirect('/mercadeo?ok=mp_quitado')
+    url, e = marketplace.url_valida(f.get('url'))
+    if e:
+        return _mercadeo_render(g.user, err=e, status=400)
+    res = marketplace.guardar(q, key=key, codigo=portales.codigo_de(it), url=url, por=g.user['user'], is_pg=IS_PG)
+    return redirect('/mercadeo?ok=' + ('mp_igual' if res == 'sin_cambio' else 'mp'))
+
+
+@app.get('/mercadeo/planificador')
+@require_roles(*ROLES_MERCADEO)
+def mercadeo_planificador():
+    """Planificador de anuncios (Mercadeo y Presidencia). Solo lectura por ahora: muestra las publicaciones
+    programadas que la caja sube con /admin/portal-sync («planificador.json»). No publica nada."""
+    d = _portal_live('planificador.json') or {}
+    posts = []
+    for p in d.get('posts') or []:
+        if not isinstance(p, dict):
+            continue
+        posts.append({
+            'cuando': p.get('fecha_hora_toronto') or '',
+            'fecha': (p.get('fecha_hora_toronto') or '')[:10],
+            'cuentas': [c.strip() for c in str(p.get('cuentas') or '').split('|') if c.strip()],
+            'texto': p.get('texto') or '',
+            'media': [m.strip() for m in str(p.get('media_urls') or '').split('|') if m.strip().startswith('https://')],
+            'id': p.get('post_id') or '',
+        })
+    posts.sort(key=lambda x: x['cuando'])
+    return _hdr(render_template('planificador.html', posts=posts, fuente=d.get('fuente') or '',
+                                actualizado=_fmt_actualizado(d.get('actualizado') or '') if d else ''))
 
 
 # ---------------------------------------------------------------- portal de asesoras (fase 2)

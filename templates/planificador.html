@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% set nav = 'planificador' %}
+{% block title %}Planificador de anuncios{% endblock %}
+{% block body %}
+<style>
+.pf-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.pf-item{background:var(--card,#fff);border-radius:var(--r,12px);box-shadow:var(--sombra);padding:12px}
+.pf-when{font-weight:800;font-size:14px}
+.pf-acc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.pf-acc span{font-size:11.5px;font-weight:700;border:1px solid var(--linea);border-radius:999px;padding:2px 8px}
+.pf-txt{white-space:pre-wrap;font-size:13.5px;line-height:1.45;max-height:7.5em;overflow:hidden}
+.pf-item details summary{cursor:pointer;font-size:12.5px;font-weight:700;margin-top:6px}
+.pf-media a{font-size:12px;word-break:break-all;display:block}
+.pf-day{font-size:12px;font-weight:800;color:var(--muted);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+</style>
+<h1 class="page">Planificador de anuncios</h1>
+<p class="lead">Publicaciones programadas en las redes de For Rent (hora de Toronto, como en el planificador de origen). Solo lectura: desde aquí no se publica ni se borra nada.{% if actualizado %} Datos del {{ actualizado }}.{% endif %}</p>
+{% if not posts %}
+<div class="empty">Todavía no hay publicaciones cargadas en el planificador.</div>
+{% else %}
+<p class="muted">{{ posts|length }} publicaciones programadas.</p>
+<ul class="pf-list">
+{% set ns = namespace(dia='') %}
+{% for p in posts %}
+  {% if p.fecha != ns.dia %}{% set ns.dia = p.fecha %}<li class="pf-day">{{ p.fecha }}</li>{% endif %}
+  <li class="pf-item">
+    <div class="pf-when">{{ p.cuando }}</div>
+    <div class="pf-acc">{% for c in p.cuentas %}<span>{{ c }}</span>{% endfor %}</div>
+    <div class="pf-txt">{{ p.texto }}</div>
+    {% if p.media or p.texto|length > 280 %}
+    <details><summary>Ver todo{% if p.media %} · {{ p.media|length }} archivo(s){% endif %}</summary>
+      <div class="pf-txt" style="max-height:none">{{ p.texto }}</div>
+      <div class="pf-media">{% for m in p.media %}<a href="{{ m }}" target="_blank" rel="noopener noreferrer">{{ m }}</a>{% endfor %}</div>
+    </details>
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,17 @@
+{
+  "nota": "Perfiles oficiales de For Rent en redes. Solo enlaces reales. Casilla vacía = sin enlace confirmado. Se puede cambiar con la variable REDES_SOCIALES_JSON (mismo formato) sin tocar el código.",
+  "redes": {
+    "instagram": "https://www.instagram.com/forrent.grupoinmobiliario",
+    "facebook": "https://www.facebook.com/552585004598339",
+    "tiktok": "https://www.tiktok.com/@forrent.grupoinmo",
+    "youtube": "https://www.youtube.com/channel/UChfbVol9e7YtGsw_SqYR-qw",
+    "linkedin": ""
+  },
+  "fuentes": {
+    "instagram": "Cuenta conectada en Meta y GHL: forrent.grupoinmobiliario (IG 17841455210156889)",
+    "facebook": "Página For Rent Grupo Inmobiliario C.A. (id 552585004598339, app Meta y GHL)",
+    "tiktok": "@forrent.grupoinmo (enlaces de videos publicados por For Rent)",
+    "youtube": "Canal «For Rent Grupo Inmobiliario» conectado en GHL (UChfbVol9e7YtGsw_SqYR-qw)",
+    "linkedin": "Sin perfil encontrado en los archivos"
+  }
+}

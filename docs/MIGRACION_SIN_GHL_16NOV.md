@@ -45,3 +45,34 @@ Copia local de Postgres (dump del 15-nov + `crm_import` del export GHL del 15-no
   atribuciones ni etiquetas de origen). El café debe seguir con GHL hasta el corte.
 - Enlaces: la lista del 16-nov da 47 agregados + 23 sin cambio (igual a la carga de la mañana); segunda corrida
   70 sin cambio (idempotente); reemplazo registrado con URL anterior; dominio ajeno rechazado.
+
+## 5. Rama `feat/bandeja-unificada` (16-nov-2026) — NO publicada
+Punto de restauración: etiqueta `v-pre-bandeja-16nov` = `95d6564` (main en producción).
+Todo es aditivo: tablas nuevas `crm_marketplace_links` y `crm_marketplace_links_log`; ninguna tabla existente cambia.
+
+**Bandeja (Mensajes, `/panel`)**
+- Botón «Responder» por WhatsApp: `POST /panel/responder` (sesión + CSRF). En el servidor: mismos permisos que
+  `/panel` (admin ve todo; asesora/líder solo sus clientes asignados desde el 31-oct y sus propios), ventana de 24 h
+  desde el último mensaje del cliente (nunca inicia, sin plantillas), filtro wa.me y teléfonos de asesores,
+  máx. 20 envíos/min por usuario. El envío queda en `wa_events` como `outbound`, `source='portal'`, `data.por`.
+- Solo envía si existen `META_WA_TOKEN` y `WA_PHONE_NUMBER_ID`; sin ellas la caja aparece deshabilitada con la razón.
+- Instagram/Facebook: lectura por Graph API solo con `META_SOCIAL_INBOX=1` + `META_PAGE_TOKEN` (o `META_PAGE_TOKEN_FILE`).
+  Solo admin (no hay forma segura aún de ligar un chat IG/FB al cliente de una asesora). Responder IG/FB: deshabilitado
+  hasta que Meta apruebe la revisión de la app. Apagado por defecto.
+
+**Rol Mercadeo** (usuario `mercadeo`, contraseña en `MERCADEO_PASSWORD_SHA256`; sin variable nadie entra)
+- Solo abre `/mercadeo`, `/mercadeo/planificador`, `/mercadeo/link`, `/mercadeo/verificar`. Todo lo demás: 403 en el
+  servidor (`MERCADEO_ENDPOINTS`). Administra enlaces de portales igual que Presidencia. No ve clientes ni mensajes.
+- `/mercadeo/planificador`: lista (solo lectura) de publicaciones programadas que la caja sube por
+  `/admin/portal-sync` con el nombre nuevo `planificador.json` (`{"posts": [...]}`). No publica nada.
+
+**Mercadeo**: sección «Portales Inmobiliarios» (antes «10 portales», misma función) y nueva «Redes Sociales»
+(Instagram, Facebook, TikTok, YouTube, LinkedIn + Facebook Marketplace). Enlaces en `data/redes_sociales.json`
+(o `REDES_SOCIALES_JSON`); solo https del dominio de cada red; LinkedIn vacío (no hay perfil en los archivos).
+Marketplace va por inmueble: `POST /mercadeo/marketplace`, solo rol admin, URL `facebook.com/marketplace/...`,
+bitácora quién/cuándo/antes/después.
+
+**Luz** pasa a rol `admin` en `data/asesores.json` (ve todos los clientes, mensajes e inmuebles, como José).
+
+Pruebas: `python -m pytest tests/` (SQLite local, sin red). Variables nuevas a crear en Render al publicar:
+`MERCADEO_PASSWORD_SHA256` (y opcionales `META_SOCIAL_INBOX`, `META_PAGE_TOKEN`).
