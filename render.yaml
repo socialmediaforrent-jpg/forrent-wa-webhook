@@ -1,6 +1,8 @@
 databases:
   - name: forrent-wa-db
-    plan: free
+    # Igual al plan real en Render (basic 256 MB, de pago desde 15-nov-2026). Con «free» aquí, una sincronización
+    # del Blueprint intentaría bajar el plan.
+    plan: basic-256mb
     region: oregon
     postgresMajorVersion: "17"
     databaseName: forrent_wa_db
@@ -11,7 +13,8 @@ services:
   - type: web
     name: forrent-wa-webhook
     runtime: python
-    plan: free
+    # Igual al plan real (Starter 0.5 CPU / 512 MB). Con «free» una sincronización del Blueprint lo bajaría.
+    plan: starter
     region: oregon
     branch: main
     buildCommand: pip install -r requirements.txt
@@ -35,10 +38,16 @@ services:
         sync: false
       - key: PORTAL_ASESORES_SHA256
         sync: false
+      # Llave de Inventario SOLO para /admin/portal-links (importar/exportar enlaces). En Render va el SHA-256.
+      # Sin esta variable, Inventario no puede usar esas rutas (la caja sí, con PORTAL_SYNC_KEY).
+      - key: INVENTARIO_LINKS_KEY_SHA256
+        sync: false
       - key: SECRET_KEY
         generateValue: true
         sync: false
       - key: GRAPH_VERSION
         value: v27.0
+      # OJO: el Blueprint (autoSync) reescribe estos dos valores en cada sincronización. Si se activa la respuesta
+      # automática en el panel de Render, cambiar también aquí o la próxima sincronización la apaga.
       - key: AUTO_REPLY_ENABLED
         value: "0"
