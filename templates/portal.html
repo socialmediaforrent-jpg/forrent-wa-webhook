@@ -15,6 +15,10 @@
   <p class="kicker">{{ role_label }}</p>
   <h1 class="page">Resumen de operación</h1>
   <p class="lead">Cifras de las copias actuales del portal; cada tarjeta indica su fecha. Si no hay dato fiable, se muestra vacío.</p>
+  {% from '_icons.html' import icon %}
+  <div class="cards cards-inicio">
+    <a class="card" href="/mis-asignaciones"><h2>{{ icon('userplus') }} Mis Asignaciones</h2><p>Embudo comercial de los clientes asignados.</p></a>
+  </div>
   {% include '_dash.html' %}
   <section class="dash-sec">
     <h2>Accesos</h2>

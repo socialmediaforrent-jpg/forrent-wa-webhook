@@ -113,6 +113,142 @@ def resumen_fases(clientes):
     return {'total': total, 'con': con, 'pct': pct, 'grupos': grupos}
 
 
+# Embudo «Mis Asignaciones» (vista nueva; no altera FASE_DEFS ni los valores de estatus).
+# Cada baldosa usa solo estatus ya existentes. Si no hay clientes en ese estatus, el conteo es 0.
+# No se inventan números ni se crean estatus nuevos.
+#
+# Mapeo (prioridad: situacion, luego estado, luego estatus; Perdido queda fuera del embudo):
+#   Nuevas Asignaciones           → Sin estatus, Nuevo, No contactado
+#   Contactado                    → Contactado
+#   En Búsqueda                   → Buscando
+#   Agendado                      → Visita agendada
+#   Oferta enviada/recibida       → Oferta realizada
+#   Oferta aceptada               → Oferta aceptada
+#   Reserva agendada              → Reserva agendada
+#   Reserva Firmada               → Reserva firmada
+#   Inmueble Registrado/Notariado → Documento notariado, Documento registrado
+#   Inmueble Entregado            → Inmueble entregado
+#
+# Reconocidos pero sin baldosa en este embudo (no se cuentan aquí):
+#   Esperando, En espera, En proceso, Visita realizada, Documento privado,
+#   Recuperado, Negociación (si no trae una situación más específica).
+ASIGNACIONES_ESTATUS = {
+    'Sin estatus': 'nuevas',
+    'Nuevo': 'nuevas',
+    'No contactado': 'nuevas',
+    'Contactado': 'contactado',
+    'Buscando': 'busqueda',
+    'Visita agendada': 'agendado',
+    'Oferta realizada': 'oferta',
+    'Oferta aceptada': 'oferta_aceptada',
+    'Reserva agendada': 'reserva_agendada',
+    'Reserva firmada': 'reserva_firmada',
+    'Documento notariado': 'registrado',
+    'Documento registrado': 'registrado',
+    'Inmueble entregado': 'entregado',
+}
+ASIGNACIONES_RECONOCIDOS = set(ESTATUS_OPCIONES) | {
+    'En proceso', 'Negociación', 'En espera', 'Esperando',
+}
+ASIGNACIONES_EMBUDO = (
+    {
+        'id': 'nuevas', 'n': 1, 'titulo': 'Nuevas Asignaciones', 'tono': 'peach',
+        'icono': 'userplus', 'simple': True,
+        'tiles': (
+            {'id': 'nuevas', 'label': 'Nuevas Asignaciones', 'icono': 'userplus',
+             'estatus': ('Sin estatus', 'Nuevo', 'No contactado')},
+        ),
+    },
+    {
+        'id': 'proceso', 'n': 2, 'titulo': 'En Proceso', 'tono': 'gray',
+        'icono': 'refresh', 'simple': False,
+        'tiles': (
+            {'id': 'contactado', 'label': 'Contactado', 'icono': 'phone',
+             'estatus': ('Contactado',)},
+            {'id': 'busqueda', 'label': 'En Búsqueda', 'icono': 'search',
+             'estatus': ('Buscando',)},
+            {'id': 'agendado', 'label': 'Agendado', 'icono': 'calendar-check',
+             'estatus': ('Visita agendada',)},
+        ),
+    },
+    {
+        'id': 'negociacion', 'n': 3, 'titulo': 'En Negociación', 'tono': 'lavender',
+        'icono': 'handshake', 'simple': False,
+        'tiles': (
+            {'id': 'oferta', 'label': 'Oferta enviada/recibida', 'icono': 'send',
+             'estatus': ('Oferta realizada',)},
+            {'id': 'oferta_aceptada', 'label': 'Oferta aceptada', 'icono': 'check-circle',
+             'estatus': ('Oferta aceptada',)},
+            {'id': 'reserva_agendada', 'label': 'Reserva agendada', 'icono': 'calendar-clock',
+             'estatus': ('Reserva agendada',)},
+        ),
+    },
+    {
+        'id': 'entrega', 'n': 4, 'titulo': 'Entrega de Inmueble', 'tono': 'green',
+        'icono': 'house', 'simple': False,
+        'tiles': (
+            {'id': 'reserva_firmada', 'label': 'Reserva Firmada', 'icono': 'doc-check',
+             'estatus': ('Reserva firmada',)},
+            {'id': 'registrado', 'label': 'Inmueble Registrado/Notariado', 'icono': 'stamp',
+             'estatus': ('Documento notariado', 'Documento registrado')},
+            {'id': 'entregado', 'label': 'Inmueble Entregado', 'icono': 'key',
+             'estatus': ('Inmueble entregado',)},
+        ),
+    },
+)
+_TILE_DEFS = {t['id']: {**t, 'fase_id': f['id'], 'fase_titulo': f['titulo']}
+              for f in ASIGNACIONES_EMBUDO for t in f['tiles']}
+
+
+def canon_estatus_asignacion(estado='', situacion='', estatus='', tg=''):
+    """Valor de estatus que alimenta el embudo, o None si no aplica (perdido u otro no mapeado)."""
+    if es_perdido(estado, situacion, estatus, tg):
+        return None
+    encontrados = [(raw or '').strip() for raw in (situacion, estado, estatus)]
+    if not any(encontrados):
+        return 'Sin estatus'
+    for v in encontrados:
+        if not v:
+            continue
+        if v in ASIGNACIONES_ESTATUS:
+            return v
+        if v in ASIGNACIONES_RECONOCIDOS:
+            return None
+    return None
+
+
+def tile_de_asignacion(estado='', situacion='', estatus='', tg=''):
+    v = canon_estatus_asignacion(estado, situacion, estatus, tg)
+    return ASIGNACIONES_ESTATUS.get(v) if v else None
+
+
+def resumen_asignaciones(clientes):
+    """Conteos reales por baldosa. No inventa filas ni cifras."""
+    buckets = {tid: [] for tid in _TILE_DEFS}
+    for c in clientes:
+        c = dict(c)
+        e, si, st = c.get('estado') or '', c.get('situacion') or '', c.get('estatus') or c.get('status') or ''
+        tid = tile_de_asignacion(e, si, st, c.get('tg') or '')
+        fid, lab = fase_de(e, si, st, c.get('tg') or '')
+        c['fase'], c['fase_label'] = fid, lab
+        c['tile'] = tid
+        if tid:
+            buckets[tid].append(c)
+    fases = []
+    for f in ASIGNACIONES_EMBUDO:
+        tiles = []
+        for t in f['tiles']:
+            lista = buckets[t['id']]
+            tiles.append({**t, 'n': len(lista), 'clientes': lista})
+        fases.append({**f, 'tiles': tiles, 'n_total': sum(t['n'] for t in tiles)})
+    return {
+        'fases': fases,
+        'tiles': {t['id']: t for f in fases for t in f['tiles']},
+        'en_embudo': sum(f['n_total'] for f in fases),
+        'total': len(clientes),
+    }
+
+
 # Campos de comisión que un asesor SÍ puede ver. Nada de líder ni totales que permitan inferirlo.
 ASESOR_CALC_KEYS = ('asesor', 'forrent', 'inmobiliaria')
 LIDER_KEY_RE = re.compile(r'lider|líder|leader', re.I)

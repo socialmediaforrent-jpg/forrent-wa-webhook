@@ -280,3 +280,45 @@ form.grid button:active,button.btn:active,.login-form button:active,.btn-sum:act
 .tabs a:active,.tabs button:active,.tabs a.is-pressed,.tabs button.is-pressed,.sheet a:active,.sheet button:active,.sheet a.is-pressed,.sheet button.is-pressed,.sidebar nav a.is-pressed{background:var(--naranja-suave)}
 a.card:active,a.card.is-pressed,a.kpi:active,a.kpi.is-pressed{border-color:#f6b98a;transform:scale(.985)}
 button[aria-disabled="true"]{pointer-events:none}
+
+/* Mis Asignaciones: embudo comercial (no altera las tarjetas de fase existentes). */
+.cards-inicio{margin:0 0 18px}
+.embudo{max-width:560px;margin:0 auto 8px;display:flex;flex-direction:column;align-items:stretch}
+.embudo-fase{display:block;border-radius:28px;padding:16px 16px 18px;text-decoration:none;color:inherit;box-shadow:var(--sombra)}
+.embudo-fase.simple{display:flex;align-items:center;gap:12px;padding:18px 20px;min-height:76px;border:2px solid transparent}
+.embudo-fase-cab{display:flex;align-items:center;gap:10px;padding:2px 6px 14px}
+.embudo-fase-tit{font-size:17px;letter-spacing:-.02em;color:#1a1c21;line-height:1.2}
+.embudo-fase-tit b{font-weight:800}
+.embudo-fase-ico{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.7)}
+.embudo-fase-ico .i{width:22px;height:22px}
+.embudo-fase.simple .embudo-n{margin-left:auto;font-size:22px;font-weight:800;letter-spacing:-.03em}
+.embudo-flecha{display:grid;place-items:center;height:28px;color:#c0c4cc}
+.embudo-flecha-ico{width:22px;height:22px}
+.embudo-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.embudo-tile{background:#fff;border-radius:20px;padding:16px 8px 14px;text-decoration:none;color:inherit;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;box-shadow:0 1px 2px rgba(17,17,17,.04),0 8px 18px rgba(17,17,17,.04);border:2px solid transparent;min-height:132px}
+.embudo-tile-ico{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:#f6f7f9}
+.embudo-tile-ico .i{width:26px;height:26px}
+.embudo-tile .embudo-n{font-size:20px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.embudo-tile-lab{font-size:12px;font-weight:700;color:#2a2e36;line-height:1.25;max-width:100%;overflow-wrap:break-word;padding:0 2px}
+.embudo-fase.simple.on,.embudo-tile.on{border-color:var(--naranja)}
+a.embudo-fase.simple:hover,a.embudo-tile:hover{transform:translateY(-1px);transition:transform .15s,border-color .15s}
+
+.tono-peach{background:#fdeee4}
+.tono-peach .embudo-fase-ico,.tono-peach .embudo-fase-ico .i{color:#e07a3a}
+.tono-gray{background:#eef0f3}
+.tono-gray .embudo-fase-ico,.tono-gray .embudo-fase-ico .i{color:#6a8f96}
+.tono-lavender{background:#eee8f8}
+.tono-lavender .embudo-fase-ico,.tono-lavender .embudo-fase-ico .i{color:#7b5ea7}
+.tono-green{background:#e7f6ec}
+.tono-green .embudo-fase-ico,.tono-green .embudo-fase-ico .i{color:#3a9a5c}
+
+.ico-contactado,.ico-oferta{color:#2aa7a8}
+.ico-busqueda{color:#d4a017}
+.ico-agendado,.ico-reserva_agendada,.ico-entregado{color:#1f9d5c}
+.ico-oferta_aceptada,.ico-reserva_firmada{color:#3b6dff}
+.ico-registrado{color:#7b5cff}
+
+.embudo-lista{margin-top:28px;scroll-margin-top:12px;padding-top:8px}
+.embudo-lista h2{font-size:17px;margin:0 0 4px}
+.embudo-lista .lead a{color:var(--naranja);font-weight:700;text-decoration:none}
+.embudo-lista .lead a:hover{text-decoration:underline}

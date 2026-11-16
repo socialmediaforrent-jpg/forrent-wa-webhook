@@ -1578,6 +1578,36 @@ def _asesor_clientes(user):
     return out, actualizado
 
 
+
+def _clientes_asignaciones(user):
+    """Solo asignados del ejercicio vigente (corte 31-oct-2026). Sin propios.
+
+    Admin (José, Luz): todos. Asesora y líder: solo los suyos. Filtro en servidor.
+    """
+    es_admin = user.get('role') == 'admin'
+    if es_admin:
+        items, actualizado, _fuente = portal_lib.load_asignados()
+    else:
+        items, actualizado, _fuente = portal_lib.load_asignados(slug=user['user'])
+    out = []
+    for r in items:
+        rec = {
+            'id': r.get('id'), 'nombre': r.get('nombre') or 'Cliente', 'telefono': '',
+            'estatus': r.get('estatus') or 'Sin estatus',
+            'estado': r.get('estado') or '', 'situacion': r.get('situacion') or '',
+            'origen': 'Asignado por For Rent',
+            'origen_nota': '', 'busca': r.get('operacion') or '',
+            'inmueble': r.get('inmueble') or '', 'editable': False,
+            'asignado_at': r.get('asignado_at') or '',
+        }
+        if es_admin:
+            slug = (r.get('asesor') or '').strip()
+            rec['asesor'] = slug
+            rec['asesor_nombre'] = _nombre_asesor(slug) if slug else ''
+        out.append(rec)
+    return out, actualizado
+
+
 def _cierres_vista(user, *, full):
     items = portal_lib.load_cierres(slug=user['user'], full=full)
     for c in items:
@@ -2082,6 +2112,26 @@ def clientes_propios():
             'status': r['status'],
         })
     return _panel_headers(render_template('propios.html', filas=filas))
+
+
+
+@app.get('/mis-asignaciones')
+@require_login
+def mis_asignaciones():
+    """Embudo comercial de asignaciones. Mercadeo queda en 403 por require_login."""
+    clientes, actualizado = _clientes_asignaciones(g.user)
+    embudo = portal_lib.resumen_asignaciones(clientes)
+    tile_id = (request.args.get('e') or '').strip()
+    tile = embudo['tiles'].get(tile_id) if tile_id else None
+    listados = list(tile['clientes']) if tile else []
+    return _panel_headers(render_template(
+        'asignaciones.html',
+        embudo=embudo, tile=tile, listados=listados,
+        csrf=portal_lib.csrf_token(g.user),
+        estatus_opciones=portal_lib.ESTATUS_OPCIONES,
+        mostrar_asesor=g.user.get('role') == 'admin',
+        cli_fecha=portal_lib.fmt_fecha(actualizado) if actualizado else 'fecha no disponible',
+    ))
 
 
 @app.get('/mis-clientes')

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Mis Asignaciones · For Rent Online</title>
+{% include '_head_icons.html' %}
+{% include '_brand.css.html' %}
+</head>
+<body>
+{% from '_icons.html' import icon %}
+{% from '_cli_table.html' import cli_table, cli_js %}
+{% set nav='portal' %}
+{% include '_top.html' %}
+<main class="wrap-page">
+  <p class="kicker">{{ role_label }}</p>
+  <h1 class="page">Mis Asignaciones</h1>
+  <p class="lead">Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí.{% if cli_fecha %} Copia del {{ cli_fecha }}.{% endif %}</p>
+
+  <div class="embudo" aria-label="Embudo comercial">
+    {% for f in embudo.fases %}
+    {% if not loop.first %}<div class="embudo-flecha" aria-hidden="true">{{ icon('chev', 'embudo-flecha-ico') }}</div>{% endif %}
+    {% if f.simple %}
+      {% set t = f.tiles[0] %}
+      <a class="embudo-fase tono-{{ f.tono }} simple{% if tile and tile.id==t.id %} on{% endif %}" href="/mis-asignaciones?e={{ t.id }}">
+        <span class="embudo-fase-ico" aria-hidden="true">{{ icon(f.icono) }}</span>
+        <span class="embudo-fase-tit"><b>{{ f.n }}. {{ f.titulo }}</b></span>
+        <span class="embudo-n">{{ t.n }}</span>
+      </a>
+    {% else %}
+    <section class="embudo-fase tono-{{ f.tono }}">
+      <header class="embudo-fase-cab">
+        <span class="embudo-fase-ico" aria-hidden="true">{{ icon(f.icono) }}</span>
+        <span class="embudo-fase-tit"><b>{{ f.n }}. {{ f.titulo }}</b></span>
+      </header>
+      <div class="embudo-tiles">
+        {% for t in f.tiles %}
+        <a class="embudo-tile{% if tile and tile.id==t.id %} on{% endif %}" href="/mis-asignaciones?e={{ t.id }}">
+          <span class="embudo-tile-ico ico-{{ t.id }}" aria-hidden="true">{{ icon(t.icono) }}</span>
+          <span class="embudo-n">{{ t.n }}</span>
+          <span class="embudo-tile-lab">{{ t.label|replace("/", "/​") }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  {% if tile %}
+  <section class="dash-sec embudo-lista" id="lista">
+    <h2>{{ tile.label }} <span class="muted">({{ tile.n }})</span></h2>
+    <p class="lead" style="margin-bottom:10px"><a href="/mis-asignaciones">Volver al embudo</a></p>
+    {{ cli_table(listados, csrf, estatus_opciones, 'No hay clientes en este estatus.', mostrar_asesor=mostrar_asesor, sid='asig') }}
+    {{ cli_js() }}
+  </section>
+  {% endif %}
+{% if tile %}<script>document.getElementById("lista")&&document.getElementById("lista").scrollIntoView({block:"start"});</script>{% endif %}
+</main>
+</body>
+</html>
