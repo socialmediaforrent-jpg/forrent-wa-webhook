@@ -1381,6 +1381,26 @@ def portal_sync_estado():
     return jsonify(_sync_resumen())
 
 
+@app.post('/admin/crm-write')
+def crm_write_api():
+    """Escrituras al CRM propio. Misma llave que el portal-sync. No imprime cargas."""
+    if not os.environ.get('PORTAL_SYNC_KEY'):
+        return jsonify({'error': 'sync no configurado'}), 503
+    if not _sync_key_ok():
+        return jsonify({'error': 'forbidden'}), 403
+    body = request.get_json(silent=True) or {}
+    op = body.get('op') or ''
+    data = body.get('data') if isinstance(body.get('data'), dict) else {k: v for k, v in body.items() if k != 'op'}
+    try:
+        import crm_write
+        out = crm_write.apply(q, op, data)
+        _live_cache['t'] = 0.0
+        return jsonify(out), (200 if out.get('ok') else 400)
+    except Exception:
+        log.exception('crm-write op=%s', op)
+        return jsonify({'ok': False, 'error': 'crm-write falló'}), 500
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     user = _current_user()
@@ -1539,6 +1559,19 @@ def asesor_nuevo_cliente():
             return _render_clientes(g.user, flash_err='Ya tienes un cliente con ese teléfono.', form=datos)
         log.error('No se pudo guardar cliente propio: %s', type(e).__name__)
         return _render_clientes(g.user, flash_err='No se pudo guardar. Inténtalo de nuevo.', form=datos)
+    try:
+        rows = q('SELECT id FROM asesor_clientes WHERE asesor_slug=%s AND telefono=%s ORDER BY id DESC LIMIT 1',
+                 (g.user['user'], datos['telefono']), fetch=True) or []
+        import crm_write
+        crm_write.upsert_propio(q, {
+            'propio_id': rows[0]['id'] if rows else None,
+            'name': datos['nombre'], 'phone': datos['telefono'], 'asesor_slug': g.user['user'],
+            'operacion': datos['operacion'], 'estatus': datos['status'], 'estado': datos['status'],
+            'origen': 'Propio', 'source_kind': 'asesor',
+        })
+        _live_cache['t'] = 0.0
+    except Exception:
+        log.exception('crm propio')
     return redirect('/mis-clientes?ok=1')
 
 
@@ -1556,6 +1589,12 @@ def asesor_estatus_cliente(cid):
     if not portal_lib.can_edit_propio(g.user, rows[0]['asesor_slug']):
         return _panel_headers(Response('No puedes editar este cliente.\n', 403))
     q('UPDATE asesor_clientes SET status=%s, updated_at=%s WHERE id=%s', (status, now_iso(), cid))
+    try:
+        import crm_write
+        crm_write.update_propio_status(q, cid, status)
+        _live_cache['t'] = 0.0
+    except Exception:
+        log.exception('crm propio status')
     return redirect('/mis-clientes?ok=estatus')
 
 
@@ -1860,6 +1899,16 @@ def visitas():
         else:
             q('INSERT INTO asesor_visitas (asesor_slug, fecha, hora, cliente, inmueble, nota, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s)',
               (u['user'], fecha, hora, cliente, _txt(f, 'inmueble', 160), (f.get('nota') or '').strip()[:400], now_iso()))
+            try:
+                import crm_write
+                crm_write.insert_visit(q, {
+                    'asesor_slug': u['user'], 'fecha': fecha, 'hora': hora, 'cliente': cliente,
+                    'inmueble': _txt(f, 'inmueble', 160), 'nota': (f.get('nota') or '').strip()[:400],
+                    'source': 'portal',
+                })
+                _live_cache['t'] = 0.0
+            except Exception:
+                log.exception('crm visita')
             return redirect('/visitas?ok=1')
     cli, act = _clientes_estatus(u['user'])
     por_estatus = [c for c in cli if c['estatus'] == 'Visita agendada']
@@ -1901,6 +1950,16 @@ def ofertas():
         else:
             q('INSERT INTO asesor_ofertas (asesor_slug, tipo, cliente, inmueble, monto, fecha, nota, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)',
               (u['user'], tipo, cliente, _txt(f, 'inmueble', 160), _txt(f, 'monto', 40), fecha, (f.get('nota') or '').strip()[:400], now_iso()))
+            try:
+                import crm_write
+                crm_write.insert_offer(q, {
+                    'asesor_slug': u['user'], 'tipo': tipo, 'cliente': cliente,
+                    'inmueble': _txt(f, 'inmueble', 160), 'monto': _txt(f, 'monto', 40),
+                    'fecha': fecha, 'nota': (f.get('nota') or '').strip()[:400], 'source': 'portal',
+                })
+                _live_cache['t'] = 0.0
+            except Exception:
+                log.exception('crm oferta')
             return redirect(f'/ofertas?t={tipo}&ok=1')
     t = request.args.get('t') or 'recibidas'
     t = 'realizada' if t.startswith('realizada') else 'recibida'
