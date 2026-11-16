@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% set nav = 'mercadeo' %}
+{% block title %}Mercadeo{% endblock %}
+{% block body %}
+<style>
+.mk-head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.mk-plan{display:flex;gap:10px;align-items:center;margin:0 0 14px}
+.mk-res{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:0 0 14px}
+@media(min-width:900px){.mk-res{grid-template-columns:repeat(10,minmax(0,1fr))}}
+.mk-res div{background:#fff;border:1px solid var(--linea);border-radius:10px;padding:6px 4px;text-align:center;font-size:11px;line-height:1.2}
+.mk-res img{width:26px;height:26px;display:block;margin:0 auto 3px;border-radius:6px}
+.mk-res b{display:block;font-size:14px}
+.mk-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.mk-item{background:var(--card,#fff);border-radius:var(--r,12px);box-shadow:var(--sombra);padding:12px}
+.mk-top{display:flex;gap:10px;align-items:flex-start}
+.mk-top img.th{width:64px;height:64px;object-fit:cover;border-radius:10px;flex:none;background:#eef0f4}
+.mk-top .th.ph{width:64px;height:64px;border-radius:10px;background:#eef0f4;flex:none}
+.mk-top h2{font-size:14px;margin:0 0 3px;line-height:1.3}
+.mk-meta{font-size:12px;color:var(--muted);line-height:1.45}
+.mk-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:10px}
+@media(min-width:700px){.mk-grid{grid-template-columns:repeat(10,minmax(0,1fr))}}
+.pl{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;max-height:56px;min-height:44px;border-radius:10px;border:1px solid var(--linea);background:#fff;padding:5px;cursor:pointer;font:inherit;color:inherit;text-decoration:none}
+.pl img{width:100%;height:100%;max-width:38px;max-height:38px;object-fit:contain;border-radius:7px}
+.pl:focus-visible{outline:3px solid var(--naranja);outline-offset:2px}
+.pl.vacia{background:#fafbfc;border-style:dashed;cursor:default}
+.pl.caido img{filter:grayscale(1);opacity:.45}
+.pl.caido::after{content:'!';position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#b42318;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.pl.pend img{opacity:.35}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+dialog.mk-dlg{border:0;border-radius:16px;padding:18px;max-width:420px;width:calc(100% - 32px);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+dialog.mk-dlg::backdrop{background:rgba(17,17,17,.45)}
+.mk-dlg h3{margin:0 0 4px;font-size:16px;display:flex;gap:8px;align-items:center}
+.mk-dlg h3 img{width:28px;height:28px;border-radius:6px}
+.mk-dlg .u{font-size:12px;color:var(--muted);word-break:break-all;margin:0 0 12px}
+.mk-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mk-acts a,.mk-acts button,.mk-alt a,.mk-alt button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border-radius:10px;border:1px solid var(--linea);background:#fff;font:inherit;font-weight:700;font-size:14px;color:#111;text-decoration:none;cursor:pointer}
+.mk-acts .go{background:var(--naranja);border-color:var(--naranja);color:#fff}
+.mk-acts svg,.mk-alt svg{width:18px;height:18px}
+.mk-alt{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.mk-alt.on{display:grid}
+.mk-warn{font-size:12px;background:#fff7ed;color:#9a3d04;border-radius:8px;padding:6px 8px;margin:10px 0 0}
+.mk-msg{font-size:13px;color:#067647;min-height:18px;margin-top:8px}
+.mk-close{margin-top:12px;width:100%;min-height:42px;border-radius:10px;border:0;background:#eef0f4;font:inherit;font-weight:700;cursor:pointer}
+.mk-edit{margin-top:10px;border-top:1px solid var(--linea);padding-top:8px}
+.mk-edit summary{cursor:pointer;font-size:13px;font-weight:700;color:#30343d}
+.mk-edit form{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
+@media(min-width:700px){.mk-edit form{grid-template-columns:160px 1fr auto auto}}
+.mk-edit select,.mk-edit input{font:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--linea);border-radius:10px;min-height:42px;width:100%;box-sizing:border-box}
+.mk-edit button{min-height:42px;height:42px;align-self:start;border-radius:10px;border:0;padding:0 14px;font:inherit;font-weight:700;cursor:pointer;background:var(--naranja);color:#fff}
+.mk-edit button.sec{background:#fff;color:#b42318;border:1px solid #fecdca}
+.mk-edit table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.mk-edit td{padding:4px 6px;border-top:1px solid #eef0f4;vertical-align:top}
+.mk-edit td:last-child{word-break:break-all}
+</style>
+{% from '_icons.html' import icon %}
+<div class="mk-head">
+  <div>
+    <h1 class="page">Mercadeo</h1>
+    <p class="lead">{% if es_admin %}Todos los inmuebles de For Rent{% elif ver_asesor %}Tus inmuebles y los de tu equipo{% else %}Tus inmuebles{% endif %} en los 10 portales. Un logo significa que el inmueble está publicado y el enlace fue verificado; una casilla vacía, que aún no está en ese portal. Inventario del {{ inv_fecha }}.</p>
+  </div>
+</div>
+
+{% if es_admin %}
+<div class="card mk-plan" aria-label="Planificador de anuncios">
+  {{ icon('calendar') }}
+  <div><b>Planificador de anuncios</b><p class="muted" style="margin:2px 0 0">Solo Presidencia. Se conecta aquí cuando esté listo.</p></div>
+</div>
+{% endif %}
+
+<div class="mk-res" aria-label="Inmuebles publicados por portal">
+  {% for p in resumen %}<div><img src="/static/{{ p.logo }}" alt="" width="26" height="26" loading="lazy"><b>{{ p.n }}</b>{{ p.nombre }}</div>{% endfor %}
+</div>
+
+{% if es_admin %}
+<form method="post" action="/mercadeo/verificar" style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="submit" class="btn-sum" style="border:0" {% if job and job.corriendo %}disabled{% endif %}>{{ icon('link') }}&nbsp;Verificar todos los enlaces</button>
+  <span class="muted">{% if job and job.corriendo %}Verificando {{ job.hechos }} de {{ job.total }}…{% elif job and job.fin %}Última verificación: {{ fmt(job.fin) }} · {% for k, v in job.resumen.items() %}{{ k }}: {{ v }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</span>
+</form>
+{% endif %}
+
+<nav class="tabs" aria-label="Filtro">
+  <a href="/mercadeo?f=todos" class="{{ 'on' if f=='todos' else '' }}">Todos ({{ n_todos }})</a>
+  <a href="/mercadeo?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propias ({{ n_prop }})</a>
+  <a href="/mercadeo?f=aliados" class="{{ 'on' if f=='aliados' else '' }}">Alianza ({{ n_ali }})</a>
+</nav>
+<input class="search" id="q" type="search" placeholder="Buscar por zona, tipo, código{% if ver_asesor %}, asesora{% endif %} o título…" autocomplete="off" aria-label="Buscar inmuebles">
+
+{% if not filas %}
+<div class="empty">No hay inmuebles en este filtro.</div>
+{% else %}
+<ul class="mk-list" id="mk">
+{% for r in filas %}
+  <li class="mk-item" data-s="{{ (r.titulo ~ ' ' ~ r.zona ~ ' ' ~ r.tipo ~ ' ' ~ r.operacion ~ ' ' ~ r.codigo ~ ' ' ~ r.asesor)|lower }}">
+    <div class="mk-top">
+      {% if r.fotos %}<img class="th" src="{{ r.fotos[0].thumb }}" alt="" width="64" height="64" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="th ph" aria-hidden="true"></span>{% endif %}
+      <div>
+        <h2>{{ r.titulo }}</h2>
+        <div class="mk-meta">{{ r.operacion }} · {{ r.tipo }} · {{ r.zona }}{% if r.precio %} · {{ r.precio }}{% endif %}<br>
+          {{ 'Propia' if r.origen == 'propio' else 'Alianza' }}{% if r.codigo %} · Cód. {{ r.codigo }}{% endif %}{% if ver_asesor and r.asesor %} · {{ r.asesor }}{% endif %} · {{ r.n_pub }}/10 portales</div>
+      </div>
+    </div>
+    <div class="mk-grid" role="list" aria-label="Portales de {{ r.titulo }}">
+      {% for c in r.casillas %}
+        {% if c.visible %}
+        <a role="listitem" class="pl" href="{{ c.url }}" target="_blank" rel="noopener noreferrer"
+           data-url="{{ c.url }}" data-portal="{{ c.nombre }}" data-logo="/static/{{ c.logo }}" data-title="{{ r.titulo }}" data-int="{{ 1 if c.interno else 0 }}"
+           title="{{ c.nombre }}: publicado. {{ c.etiqueta }}{% if c.verificado_en %} ({{ fmt(c.verificado_en) }}){% endif %}">
+          <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: publicado. Abrir opciones</span>
+        </a>
+        {% elif c.caido %}
+        <span role="listitem" class="pl caido" tabindex="0" title="{{ c.nombre }}: el enlace dejó de responder{% if c.verificado_en %} ({{ fmt(c.verificado_en) }}){% endif %}">
+          <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: el enlace dejó de responder</span>
+        </span>
+        {% elif c.pendiente and es_admin %}
+        <span role="listitem" class="pl pend" title="{{ c.nombre }}: enlace sin verificar">
+          <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: enlace sin verificar</span>
+        </span>
+        {% else %}
+        <span role="listitem" class="pl vacia" title="{{ c.nombre }}: no publicado"><span class="sr">{{ c.nombre }}: no publicado</span></span>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% if es_admin %}
+    <details class="mk-edit">
+      <summary>Editar enlaces</summary>
+      <form method="post" action="/mercadeo/link">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="key" value="{{ r.key }}">
+        <select name="portal" aria-label="Portal">{% for p in portales_lista %}<option value="{{ p.key }}">{{ p.nombre }}</option>{% endfor %}</select>
+        <input type="url" name="url" placeholder="https://… (ficha del inmueble en ese portal)" aria-label="Enlace" inputmode="url">
+        <button type="submit" name="accion" value="guardar">Guardar</button>
+        <button type="submit" name="accion" value="quitar" class="sec" formnovalidate>Quitar</button>
+      </form>
+      {% set con = r.casillas|selectattr('url')|list %}
+      {% if con %}
+      <table><tbody>
+        {% for c in con %}<tr><td><b>{{ c.nombre }}</b></td><td>{{ c.etiqueta or c.estado }}{% if c.verificado_en %} · {{ fmt(c.verificado_en) }}{% endif %}{% if c.fuente %}<br><span class="muted">Fuente: {{ c.fuente }}</span>{% endif %}{% if c.nota %}<br><span class="muted">{{ c.nota }}</span>{% endif %}</td><td><a href="{{ c.url }}" target="_blank" rel="noopener noreferrer">{{ c.url }}</a></td></tr>{% endfor %}
+      </tbody></table>
+      {% endif %}
+    </details>
+    {% endif %}
+  </li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<dialog class="mk-dlg" id="dlg" aria-labelledby="dlg-t">
+  <h3 id="dlg-t"><img id="dlg-logo" src="" alt=""><span id="dlg-p"></span></h3>
+  <p class="u" id="dlg-u"></p>
+  <div class="mk-acts">
+    <a id="dlg-go" class="go" href="#" target="_blank" rel="noopener noreferrer">{{ icon('external') }}Ir</a>
+    <button type="button" id="dlg-copy">{{ icon('copy') }}Copiar</button>
+    <button type="button" id="dlg-share">{{ icon('share') }}Compartir</button>
+  </div>
+  <div class="mk-alt" id="dlg-alt">
+    <a id="dlg-wa" href="#" target="_blank" rel="noopener noreferrer">{{ icon('chat') }}WhatsApp</a>
+    <button type="button" id="dlg-copy2">{{ icon('copy') }}Copiar enlace</button>
+  </div>
+  <p class="mk-warn" id="dlg-int" hidden>Enlace interno: según la regla de For Rent, los enlaces de Rex y Wasi no se envían a clientes.</p>
+  <div class="mk-msg" id="dlg-msg" role="status" aria-live="polite"></div>
+  <button type="button" class="mk-close" id="dlg-x">Cerrar</button>
+</dialog>
+
+<script>
+(function(){
+  var qi=document.getElementById('q');
+  if(qi){qi.addEventListener('input',function(){var t=qi.value.trim().toLowerCase();document.querySelectorAll('#mk .mk-item').forEach(function(li){li.style.display=!t||li.dataset.s.indexOf(t)>-1?'':'none';});});}
+  var d=document.getElementById('dlg'); if(!d||typeof d.showModal!=='function')return; /* sin <dialog>: el logo abre el enlace directo */
+  var cur=null, msg=document.getElementById('dlg-msg'), alt=document.getElementById('dlg-alt');
+  function say(t){msg.textContent=t;}
+  function copiar(u){
+    if(navigator.clipboard&&window.isSecureContext){return navigator.clipboard.writeText(u).then(function(){say('Enlace copiado.');},function(){fallback(u);});}
+    fallback(u);
+  }
+  function fallback(u){var ta=document.createElement('textarea');ta.value=u;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';d.appendChild(ta);ta.select();
+    var ok=false;try{ok=document.execCommand('copy');}catch(e){}d.removeChild(ta);say(ok?'Enlace copiado.':'No se pudo copiar; mantén presionado el enlace de arriba para copiarlo.');}
+  document.addEventListener('click',function(e){
+    var a=e.target.closest('a.pl[data-url]'); if(!a)return;
+    e.preventDefault(); cur=a;
+    document.getElementById('dlg-p').textContent=a.dataset.portal;
+    document.getElementById('dlg-logo').src=a.dataset.logo;
+    document.getElementById('dlg-u').textContent=a.dataset.url;
+    document.getElementById('dlg-go').href=a.dataset.url;
+    document.getElementById('dlg-wa').href='https://wa.me/?text='+encodeURIComponent(a.dataset.title+' '+a.dataset.url);
+    document.getElementById('dlg-int').hidden=a.dataset.int!=='1';
+    alt.classList.remove('on'); say(''); d.showModal();
+  });
+  document.getElementById('dlg-copy').onclick=function(){if(cur)copiar(cur.dataset.url);};
+  document.getElementById('dlg-copy2').onclick=function(){if(cur)copiar(cur.dataset.url);};
+  document.getElementById('dlg-share').onclick=function(){
+    if(!cur)return; var data={title:cur.dataset.title,text:cur.dataset.title,url:cur.dataset.url};
+    if(navigator.share&&(!navigator.canShare||navigator.canShare(data))){
+      navigator.share(data).then(function(){say('Compartido.');},function(err){if(err&&err.name==='AbortError')return;alt.classList.add('on');say('Elige cómo compartir.');});
+    }else{alt.classList.add('on');say('Elige cómo compartir.');}
+  };
+  document.getElementById('dlg-x').onclick=function(){d.close();};
+  d.addEventListener('click',function(e){if(e.target===d)d.close();});
+})();
+</script>
+{% endblock %}

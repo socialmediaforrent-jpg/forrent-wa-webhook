@@ -39,6 +39,7 @@ from flask import Flask, Response, abort, g, jsonify, make_response, redirect, r
 import notif
 import portal_lib
 import mensajes
+import portales
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('wa')
@@ -163,6 +164,10 @@ def init_db():
     q("CREATE TABLE IF NOT EXISTS bak_pre_ghl_import_raw_events AS SELECT * FROM raw_events")
     q(f"""CREATE TABLE IF NOT EXISTS portal_datos (
         nombre TEXT PRIMARY KEY, datos {JSONT}, actualizado TEXT)""")
+    try:
+        portales.init(q, IS_PG)  # Mercadeo: crm_portal_links (aditiva)
+    except Exception:
+        log.exception('portales.init')
     seed_emails_perfil()
 
 
@@ -528,6 +533,7 @@ def _portal_nav():
         more.append({'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'key': 'captaciones', 'icon': 'key'})
     else:
         more.append({'href': '/inventario', 'label': 'Inventario General', 'key': 'inventario', 'icon': 'building'})
+    more.append({'href': '/mercadeo', 'label': 'Mercadeo', 'key': 'mercadeo', 'icon': 'megaphone'})
     more.append({'href': '/ofertas', 'label': 'Ofertas', 'key': 'ofertas', 'icon': 'tag'})
     more.append({'href': '/cierres', 'label': 'Cierres', 'key': 'cierres', 'icon': 'cash'})
     if role == 'admin':
@@ -1617,6 +1623,117 @@ def inventario():
         n_propio=len(prop), n_alianza=len(ali), n_red=len(red), n_todos=len(prop) + len(ali),
     ))
 
+
+
+# ---------------------------------------------------------------- Mercadeo: 10 portales por inmueble
+def _mercadeo_items(user):
+    """Inmuebles que este usuario puede ver en Mercadeo (filtro en servidor).
+
+    Admin (Presidencia): todo el inventario propio y en alianza de la inmobiliaria.
+    Líder: sus captaciones y las de su equipo (mismo alcance que Mi Equipo).
+    Asesora: solo sus captaciones (propias y en alianza), igual que Mis Captaciones.
+    """
+    inv = _inventario()
+    grupos = inv.get('grupos') or {}
+    cap_all = portal_lib.load_captaciones()
+    asesor_de = {}
+    for c in cap_all:
+        asesor_de.setdefault(portales.key_de(c), c.get('asesor') or '')
+    if user['role'] == 'admin':
+        items = list(grupos.get('propio') or []) + list(grupos.get('alianza') or [])
+    else:
+        slugs = set(portal_lib.visible_slugs(user))
+        items = [c for c in cap_all if c.get('asesor') in slugs]
+    return inv, items, asesor_de
+
+
+def _mercadeo_render(user, *, ok='', err='', status=200):
+    inv, items, asesor_de = _mercadeo_items(user)
+    es_admin = user['role'] == 'admin'
+    f = request.args.get('f') or 'todos'
+    if f not in ('propias', 'aliados', 'todos'):
+        f = 'todos'
+    try:
+        links = portales.links_por_key(q)
+    except Exception:
+        log.exception('mercadeo links')
+        links = {}
+    fichas = _fichas_publicas(items, inv)
+    filas, n_prop, n_ali = [], 0, 0
+    conteo = {p['key']: 0 for p in portales.PORTALES}
+    for it, ficha in zip(items, fichas):
+        origen = it.get('origen') or ''
+        n_prop += origen == 'propio'
+        n_ali += origen == 'alianza'
+        if f == 'propias' and origen != 'propio' or f == 'aliados' and origen != 'alianza':
+            continue
+        key = portales.key_de(it)
+        cas = portales.casillas(links.get(key))
+        for c in cas:
+            conteo[c['key']] += c['visible']
+        slug = it.get('asesor') or asesor_de.get(key) or ''
+        filas.append({
+            **ficha, 'key': key, 'origen': origen, 'casillas': cas,
+            'n_pub': sum(1 for c in cas if c['visible']),
+            'asesor': _nombre_asesor(slug) if slug else '',
+        })
+    resumen = [{**p, 'n': conteo[p['key']]} for p in portales.PORTALES]
+    return _hdr(render_template(
+        'mercadeo.html', filas=filas, f=f, n_prop=n_prop, n_ali=n_ali, n_todos=n_prop + n_ali,
+        resumen=resumen, portales_lista=portales.PORTALES, es_admin=es_admin,
+        ver_asesor=user['role'] in ('admin', 'lider'),
+        job=portales.estado_job() if es_admin else None,
+        inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''),
+        csrf=portal_lib.csrf_token(user) if es_admin else '', ok=ok, err=err,
+        fmt=_fmt_actualizado,
+    ), status)
+
+
+@app.get('/mercadeo')
+@require_login
+def mercadeo():
+    ok = {'1': 'Enlace guardado y verificado.', 'quitado': 'Enlace quitado.',
+          'verificando': 'Verificando todos los enlaces en segundo plano. Recarga en un minuto.'}.get(request.args.get('ok') or '', '')
+    return _mercadeo_render(g.user, ok=ok)
+
+
+@app.post('/mercadeo/link')
+@require_admin
+def mercadeo_link():
+    """Solo Presidencia agrega, cambia o quita enlaces. Se verifica antes de guardar."""
+    if not _csrf_ok():
+        return _mercadeo_render(g.user, err='La sesión expiró. Vuelve a intentar.', status=400)
+    f = request.form
+    key, portal, accion = (f.get('key') or '').strip(), (f.get('portal') or '').strip(), f.get('accion') or 'guardar'
+    if portal not in portales.PORTAL_KEYS:
+        return _mercadeo_render(g.user, err='Portal no válido.', status=400)
+    _, items, _ = _mercadeo_items(g.user)
+    it = next((x for x in items if portales.key_de(x) == key), None)
+    if not it:
+        return _mercadeo_render(g.user, err='No encontramos ese inmueble en el inventario.', status=400)
+    nombre = portales.POR_KEY[portal]['nombre']
+    if accion == 'quitar':
+        portales.quitar(q, key=key, portal=portal, por=g.user['user'])
+        return redirect('/mercadeo?ok=quitado')
+    url, e = portales.url_valida(portal, f.get('url'))
+    if e:
+        return _mercadeo_render(g.user, err=e, status=400)
+    estado, http_status, detalle = portales.verificar(portal, url, timeout=8)
+    if estado == 'caido':
+        return _mercadeo_render(g.user, err=f'No se guardó: el enlace de {nombre} no responde ({detalle or "sin respuesta"}). '
+                                             'Revisa que sea la ficha publicada del inmueble.', status=400)
+    portales.guardar(q, it=it, portal=portal, url=url, estado=estado, http_status=http_status,
+                     fuente='manual (Presidencia)', nota=detalle or None, por=g.user['user'])
+    return redirect('/mercadeo?ok=1')
+
+
+@app.post('/mercadeo/verificar')
+@require_admin
+def mercadeo_verificar():
+    if not _csrf_ok():
+        return _mercadeo_render(g.user, err='La sesión expiró. Vuelve a intentar.', status=400)
+    portales.reverificar_todo(q)
+    return redirect('/mercadeo?ok=verificando')
 
 
 # ---------------------------------------------------------------- portal de asesoras (fase 2)

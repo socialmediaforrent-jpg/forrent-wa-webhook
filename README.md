@@ -23,3 +23,14 @@ Se registran en la tabla `email_outbox` (pantalla /admin/correos). `EMAIL_MODE=l
 `ASSIGN_EMAIL_MODE=omitir` (por defecto) evita duplicar el aviso de asignación que ya envía la rutina de la caja.
 Los correos iniciales de `asesor_perfil` se cargan (solo si el perfil no tiene correo) desde `TABLA_ASESORES_GHL_WASI.csv`, `config/asesores_whatsapp.json` y `asesores_emails_iniciales.json`; la asesora puede editarlos después.
 Las solicitudes de captación las aprueba el líder del equipo (José puede aprobar todas) en `/aprobaciones`. Al aprobar se avisa a la asesora y a `socialmediaforrent@gmail.com` para cargar el inventario; el snapshot de inventario no se modifica solo.
+
+## Mercadeo de portales (rama mercadeo-portales)
+`/mercadeo`: cada inmueble con 10 casillas en este orden: Mercado Libre, Rex, Wasi, Bienes Online, Agentiz, Housy, Anuto,
+Propiedash, ZonaVen y Encuadras. Logo = publicado con enlace verificado; casilla vacía = no publicado. Cada logo abre
+Ir / Copiar / Compartir (Web Share API; si no está, WhatsApp o copiar). Asesora: sus captaciones; líder: las suyas y las
+de su equipo; Presidencia: todo el inventario, más el lugar del planificador. Solo Presidencia agrega, cambia o quita
+enlaces (`POST /mercadeo/link`, con CSRF; solo https y solo el dominio del portal) y lanza `POST /mercadeo/verificar`.
+Datos en `crm_portal_links` (+ `crm_portal_links_log`), tablas nuevas (ver `migrations/002_portal_links.sql`).
+`portal_links_import.py` (se corre en la caja) carga solo enlaces reales: ML activos del panel del día, fichas Wasi y Rex
+del inventario diario. Estados: `ok` (respondió), `protegido` (el portal bloquea robots y el enlace viene de fuente
+verificada), `caido` (dejó de responder; no se muestra como publicado), `pendiente`. Sin GHL. Logos locales en `static/portales/`.
