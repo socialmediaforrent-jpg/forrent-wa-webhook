@@ -245,6 +245,8 @@ def delete_test(q, test_id: str) -> int:
     """Borra un contacto de prueba (ghl_id o registro_id). Solo ids que empiezan por test_crm_."""
     if not str(test_id).startswith('test_crm_'):
         raise ValueError('solo se pueden borrar ids de prueba test_crm_')
+    for tbl in ('crm_visits', 'crm_offers', 'crm_reservations', 'crm_phase_events', 'crm_respuestas', 'crm_assignments'):
+        q(f"DELETE FROM {tbl} WHERE ghl_id=%s", (test_id,))
     rows = q(
         "DELETE FROM crm_contacts WHERE ghl_id=%s OR registro_id=%s RETURNING id",
         (test_id, test_id), fetch=True,
