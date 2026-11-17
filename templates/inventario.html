@@ -4,24 +4,179 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Inventario General · For Rent Online</title>
+<title>Inmuebles · For Rent Online</title>
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
+<link rel="stylesheet" href="{{ static_v('inmuebles.css') }}">
 </head>
 <body>
-{% from '_cap_table.html' import cap_table %}
 {% set nav='inventario' %}
 {% include '_top.html' %}
+{% macro sel_txt(vals) %}{{ vals|join(', ') }}{% endmacro %}
+{% set qs_sin = request.query_string.decode() %}
 <main class="wrap-page">
-  <h1 class="page">Inventario General</h1>
-  <p class="lead">Solo lectura. Copia del {{ actualizado }}. Sin datos de captadores ni enlaces de Rex o Wasi.</p>
-  <nav class="tabs" aria-label="Filtro">
-    <a href="/inventario?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propias de For Rent ({{ n_propio }})</a>
-    <a href="/inventario?f=aliados" class="{{ 'on' if f=='aliados' else '' }}">Aliados ({{ n_alianza }})</a>
-    <a href="/inventario?f=todos" class="{{ 'on' if f=='todos' else '' }}">Todos ({{ n_todos }})</a>
-  </nav>
-  <input class="search" id="q" type="search" placeholder="Buscar por zona, tipo, código o título…" autocomplete="off">
-  {{ cap_table(filas, 'No hay inmuebles en este filtro.', sid='inv') }}
+<div class="wz">
+  <div class="wz-bar">
+    <h1>Inmuebles</h1>
+    <div class="wz-seg" role="tablist" aria-label="Vista">
+      <button type="button" class="on" data-vista="lista" role="tab" aria-selected="true">Lista</button>
+      <button type="button" data-vista="mapa" role="tab" aria-selected="false">Mapa</button>
+    </div>
+    <a class="wz-plus" href="/mis-captaciones" title="Nueva captación (la revisa la líder; el inventario no cambia hasta que se apruebe)" aria-label="Nueva captación">+</a>
+  </div>
+  {% if copia_prueba %}<div class="wz-proto">{{ copia_prueba }}</div>{% endif %}
+  <form class="wz-search" method="get" action="/inventario" role="search">
+    {% for k, v in args.items(multi=True) if k != 'q' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <input type="search" name="q" value="{{ args.get('q', '') }}" placeholder="Buscar" aria-label="Buscar por título, código, zona o tipo" autocomplete="off">
+  </form>
+  <div class="wz-res">
+    <span><b>{{ filas|length }}</b> resultados <span style="color:#8a93a3">· {{ listas[lista] }}</span></span>
+    <button type="button" class="wz-filtrar" id="wz-abrir">Filtrar <span class="ico" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span>
+      {% if n_activos %}<span class="n">{{ n_activos }}</span>{% endif %}</button>
+  </div>
+
+  <div id="wz-lista">
+  {% if not filas %}<div class="wz-empty">No hay inmuebles con estos filtros. <a href="/inventario">Limpiar</a></div>{% else %}
+  <ul class="wz-cards">
+  {% for it in filas %}
+    {% set fotos = it.fotos or [] %}
+    {% set ver = '/inventario/ver?k=' ~ (it.key|urlencode) ~ '&volver=' ~ (('/inventario?' ~ qs_sin)|urlencode) %}
+    <li class="wz-card" data-share="{{ loop.index0 }}">
+      <div class="wz-gal">
+        {% if fotos %}
+        <div class="wz-track" data-n="{{ fotos|length }}">
+          {% for f in fotos %}<img src="{{ f.thumb or f.full }}" alt="{{ it.titulo }} · foto {{ loop.index }}" loading="lazy" referrerpolicy="no-referrer">{% endfor %}
+        </div>
+        <span class="wz-count">1/{{ fotos|length }}</span>
+        {% if fotos|length > 1 %}<span class="wz-dots" aria-hidden="true">{% for f in fotos[:8] %}<i class="{{ 'on' if loop.first else '' }}"></i>{% endfor %}</span>{% endif %}
+        {% else %}<div class="wz-noimg">Sin fotos</div>{% endif %}
+        <span class="wz-chip">{{ 'Propia' if it.origen == 'propio' else 'Aliado' }}</span>
+        {% if it.solo_cliente_directo %}<span class="wz-chip sd">Solo cliente directo</span>{% endif %}
+        <button type="button" class="wz-kebab" aria-label="Opciones" aria-haspopup="menu">⋮</button>
+        <div class="wz-menu" role="menu" hidden>
+          <a href="{{ ver }}" role="menuitem">Ver detalle</a>
+          {% if it.codigo %}<button type="button" role="menuitem" data-copiar="{{ it.codigo }}">Copiar código</button>{% endif %}
+          <button type="button" role="menuitem" data-compartir="{{ loop.index0 }}">Compartir (sin enlaces)</button>
+        </div>
+      </div>
+      <div class="wz-body">
+        <div class="wz-tl">
+          <h2 class="wz-title">{{ it.titulo }}</h2>
+          <button type="button" class="wz-share" data-compartir="{{ loop.index0 }}" aria-label="Compartir">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg></button>
+        </div>
+        <div class="wz-row">
+          {% if it.codigo %}<span class="wz-code"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg>{{ it.codigo }}</span><span class="wz-sep">|</span>{% endif %}
+          <span class="wz-st {{ 'dest' if it.destacado else ('disp' if it.estado == 'Disponible' else '') }}">{{ it.estado }}</span>
+        </div>
+        <div class="wz-tn">{{ it.tipo_negocio }}</div>
+        <div class="wz-loc">En {{ it.lugar or it.zona }}</div>
+        {% if ver_encargado %}
+        <div class="wz-enc"><span>Encargado del inmueble<br><b>{{ it.encargado or 'Sin dato' }}</b></span><span aria-hidden="true">›</span></div>
+        {% endif %}
+        <div class="wz-price">Precio {{ it.operacion or '' }}: <b>{{ it.precio or 'Sin dato' }}</b></div>
+        <div class="wz-foot">
+          <span class="wz-area"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h6V3M15 21v-6h6"/></svg>{% if it.m2 %}{{ '%.1f'|format(it.m2) }} m²{% else %}<span style="color:#9aa1ad">Sin m²</span>{% endif %}
+          {% if it.habitaciones %}&nbsp;· {{ it.habitaciones }} hab.{% endif %}</span>
+          <a class="wz-ver" href="{{ ver }}">Ver detalle ›</a>
+        </div>
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+  </div>
+  <div id="wz-mapa" class="wz-map" hidden>
+    <b>Mapa</b><br>
+    {% if con_coord %}{{ con_coord }} de {{ total }} inmuebles tienen coordenadas.{% else %}Ninguno de los {{ total }} inmuebles tiene coordenadas cargadas (Wasi no las trae: latitud y longitud vacías). Cuando Inventario las cargue en Wasi, aquí aparecerán en el mapa.{% endif %}
+  </div>
+  <p class="lead" style="font-size:12.5px;color:#7a8396;margin-top:14px">Solo lectura. Copia del {{ actualizado }}. Propias ({{ n_propio }}) y aliados ({{ n_alianza }}); sin la red ni enlaces de Rex o Wasi.</p>
+</div>
 </main>
+
+<dialog class="wz-dlg" id="wz-filtros" aria-labelledby="wz-ft">
+  <form method="get" action="/inventario">
+    <div class="hd"><b id="wz-ft">Filtrar</b><button type="button" data-cerrar aria-label="Cerrar">×</button></div>
+    <div class="sc">
+      {% if args.get('q') %}<input type="hidden" name="q" value="{{ args.get('q') }}">{% endif %}
+      <div class="wz-two">
+        <label>Lista de<select name="lista">{% for k, v in listas.items() %}<option value="{{ k }}" {{ 'selected' if k == lista else '' }}>{{ v }}</option>{% endfor %}</select></label>
+        <label>Ordenar por<select name="orden">{% for k, v in ordenes.items() %}<option value="{{ k }}" {{ 'selected' if k == orden else '' }}>{{ v }}</option>{% endfor %}</select></label>
+      </div>
+      <div class="wz-fh"><b>Filtros</b><a href="/inventario">↺ Limpiar</a></div>
+      {% for key, titulo, ico in [('tipo', 'Tipo de inmueble', '🏠'), ('zona', 'Ubicación', '📍'), ('op', 'Tipo de negocio', '🤝'), ('estado', 'Estado para difusión', '📣')] %}
+      {% set sel = args.getlist(key) %}
+      <details class="wz-acc" {{ 'open' if sel else '' }}>
+        <summary><span class="ic" aria-hidden="true">{{ ico }}</span><span class="t">{{ titulo }}{% if sel %}<span class="sel">{{ sel_txt(sel) }}</span>{% endif %}</span>
+          {% if sel %}<a class="x" href="#" data-limpiar="{{ key }}" aria-label="Quitar filtro {{ titulo }}">×</a>{% endif %}<span class="ch">›</span></summary>
+        <div class="opts">{% for v in opts[key] %}<label><input type="checkbox" name="{{ key }}" value="{{ v }}" {{ 'checked' if v in sel else '' }}>{{ v }}</label>{% endfor %}</div>
+        {% if key == 'zona' %}<div class="nota">Ciudad, estado y país solo vienen de Wasi en las propias; por eso se filtra por zona.</div>{% endif %}
+        {% if key == 'estado' %}<div class="nota">«Disponible» = aliados y propias sin ficha Wasi. La lista diaria no trae inactivos.</div>{% endif %}
+      </details>
+      {% endfor %}
+      <details class="wz-acc off">
+        <summary><span class="ic" aria-hidden="true">✅</span><span class="t">Disponibilidad<span class="sel">Disponible</span></span><span class="ch">›</span></summary>
+        <div class="nota">El inventario del portal solo trae lo disponible hoy. Vendidos y alquilados no llegan todavía.</div>
+      </details>
+      <details class="wz-acc" {{ 'open' if args.get('amin') or args.get('amax') else '' }}>
+        <summary><span class="ic" aria-hidden="true">📐</span><span class="t">Área útil (m²){% if args.get('amin') or args.get('amax') %}<span class="sel">{{ args.get('amin') or '0' }} – {{ args.get('amax') or '∞' }}</span>{% endif %}</span><span class="ch">›</span></summary>
+        <div class="wz-rng"><label>Desde<input type="number" inputmode="numeric" name="amin" value="{{ args.get('amin', '') }}" min="0"></label><label>Hasta<input type="number" inputmode="numeric" name="amax" value="{{ args.get('amax', '') }}" min="0"></label></div>
+      </details>
+      <details class="wz-acc off">
+        <summary><span class="ic" aria-hidden="true">🌳</span><span class="t">Área terreno</span><span class="ch">›</span></summary>
+        <div class="nota">Casi ningún inmueble tiene área de terreno en Wasi; el filtro se activa cuando haya datos.</div>
+      </details>
+      <details class="wz-acc" {{ 'open' if args.get('pmin') or args.get('pmax') else '' }}>
+        <summary><span class="ic" aria-hidden="true">💲</span><span class="t">Precio (US$){% if args.get('pmin') or args.get('pmax') %}<span class="sel">{{ args.get('pmin') or '0' }} – {{ args.get('pmax') or '∞' }}</span>{% endif %}</span><span class="ch">›</span></summary>
+        <div class="wz-rng"><label>Desde<input type="number" inputmode="numeric" name="pmin" value="{{ args.get('pmin', '') }}" min="0"></label><label>Hasta<input type="number" inputmode="numeric" name="pmax" value="{{ args.get('pmax', '') }}" min="0"></label></div>
+      </details>
+      <details class="wz-acc" {{ 'open' if args.get('hab') or args.get('fotos') else '' }}>
+        <summary><span class="ic" aria-hidden="true">🛏️</span><span class="t">Habitaciones y fotos</span><span class="ch">›</span></summary>
+        <div class="wz-rng"><label>Habitaciones mín.<input type="number" inputmode="numeric" name="hab" value="{{ args.get('hab', '') }}" min="0"></label>
+          <label style="flex-direction:row;align-items:center;gap:8px;margin-top:18px"><input type="checkbox" name="fotos" value="1" {{ 'checked' if args.get('fotos') else '' }}> Solo con fotos</label></div>
+      </details>
+    </div>
+    <div class="ft"><a href="/inventario">Limpiar</a><button type="submit">Aplicar</button></div>
+  </form>
+</dialog>
+<script type="application/json" id="wz-share-txt">{{ compartir_textos|tojson }}</script>
+<script>
+(function(){
+  var dlg = document.getElementById('wz-filtros');
+  document.getElementById('wz-abrir').addEventListener('click', function(){ if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open',''); });
+  dlg.addEventListener('click', function(e){
+    if (e.target === dlg || e.target.hasAttribute('data-cerrar')) dlg.close();
+    var x = e.target.closest('[data-limpiar]');
+    if (x){ e.preventDefault(); dlg.querySelectorAll('input[name="' + x.dataset.limpiar + '"]').forEach(function(i){ i.checked = false; }); dlg.querySelector('form').submit(); }
+  });
+  document.querySelectorAll('.wz-seg button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.wz-seg button').forEach(function(o){ o.classList.toggle('on', o === b); o.setAttribute('aria-selected', o === b); });
+      document.getElementById('wz-lista').hidden = b.dataset.vista !== 'lista';
+      document.getElementById('wz-mapa').hidden = b.dataset.vista !== 'mapa';
+    });
+  });
+  document.querySelectorAll('.wz-track').forEach(function(t){
+    var gal = t.parentNode, cnt = gal.querySelector('.wz-count'), dots = gal.querySelectorAll('.wz-dots i'), n = +t.dataset.n;
+    t.addEventListener('scroll', function(){
+      var i = Math.round(t.scrollLeft / t.clientWidth);
+      cnt.textContent = (i + 1) + '/' + n;
+      dots.forEach(function(d, j){ d.classList.toggle('on', j === Math.min(i, dots.length - 1)); });
+    }, {passive: true});
+  });
+  var txt = []; try { txt = JSON.parse(document.getElementById('wz-share-txt').textContent || '[]'); } catch (e) {}
+  function aviso(m){ var a = document.createElement('div'); a.textContent = m; a.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;z-index:99;font-size:14px'; document.body.appendChild(a); setTimeout(function(){ a.remove(); }, 1800); }
+  function copiar(t){ if (navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ aviso('Copiado'); }); }
+  document.addEventListener('click', function(e){
+    var k = e.target.closest('.wz-kebab');
+    document.querySelectorAll('.wz-menu').forEach(function(m){ if (!k || m !== k.nextElementSibling) m.hidden = true; });
+    if (k){ var m = k.nextElementSibling; m.hidden = !m.hidden; return; }
+    var c = e.target.closest('[data-copiar]'); if (c){ copiar(c.dataset.copiar); return; }
+    var s = e.target.closest('[data-compartir]');
+    if (s){ var t = txt[+s.dataset.compartir] || ''; if (navigator.share) navigator.share({text: t}).catch(function(){}); else copiar(t); }
+  });
+})();
+</script>
 </body>
 </html>

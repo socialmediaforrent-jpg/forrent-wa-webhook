@@ -51,6 +51,7 @@ import portales
 import bandeja
 import redes
 import marketplace
+import inmuebles
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('wa')
@@ -336,7 +337,7 @@ app.jinja_env.globals['idem_token'] = idem_token
 # ---------------------------------------------------------------- F4 móvil: caché de estáticos versionados
 # Solo CSS y logos/favicons enlazados con ?v=<hash del archivo>. Al cambiar el archivo cambia el hash y la URL.
 # El HTML con datos de clientes sigue con su Cache-Control actual (private, no-store).
-STATIC_VERSIONADOS = {'app.css', 'logo.webp', 'logo-1200.webp', 'logo.png', 'favicon.ico', 'favicon-32.png'}
+STATIC_VERSIONADOS = {'app.css', 'inmuebles.css', 'logo.webp', 'logo-1200.webp', 'logo.png', 'favicon.ico', 'favicon-32.png'}
 _static_hash = {}
 
 
@@ -358,6 +359,7 @@ def static_v(name):
 
 
 app.jinja_env.globals['static_v'] = static_v
+app.jinja_env.globals['copia_prueba'] = os.environ.get('PORTAL_COPIA_PRUEBA', '').strip()
 
 
 @app.after_request
@@ -2005,20 +2007,70 @@ def asesor_estatus_cliente(cid):
 @app.get('/inventario')
 @require_login
 def inventario():
-    """Inventario General: solo lectura para todos los roles (autorizado por José)."""
-    data = _inventario()
+    """Inmuebles (estilo Wasi): solo lectura para todos los roles (autorizado por José). Sin la red, como antes."""
+    data, fichas = _inmuebles_fichas(g.user)
+    filas, lista, orden = inmuebles.filtrar(fichas, request.args, mias=_inmuebles_mias(g.user))
     grupos = data.get('grupos') or {}
-    prop, ali, red = grupos.get('propio') or [], grupos.get('alianza') or [], grupos.get('red') or []
-    f = request.args.get('f') or 'propias'
-    if f not in ('propias', 'aliados', 'todos'):
-        f = 'propias'
-    filas = prop if f == 'propias' else ali if f == 'aliados' else (prop + ali)
     return _panel_headers(render_template(
         'inventario.html',
         actualizado=_fmt_actualizado(data.get('actualizado') or ''),
-        filas=_fichas_publicas(filas, data), f=f,
-        n_propio=len(prop), n_alianza=len(ali), n_red=len(red), n_todos=len(prop) + len(ali),
+        filas=filas, total=len(fichas), lista=lista, orden=orden, args=request.args,
+        listas=inmuebles.LISTAS, ordenes=inmuebles.ORDENES, opts=inmuebles.opciones(fichas),
+        n_propio=len(grupos.get('propio') or []), n_alianza=len(grupos.get('alianza') or []),
+        n_activos=_inmuebles_n_filtros(request.args),
+        con_coord=sum(1 for f in fichas if f.get('lat')),
+        ver_encargado=g.user['role'] in ROLES_MERCADEO,
+        compartir_textos=[inmuebles.compartir_texto(f) for f in filas],
     ))
+
+
+@app.get('/inventario/ver')
+@require_login
+def inventario_ver():
+    _, fichas = _inmuebles_fichas(g.user)
+    k = request.args.get('k') or ''
+    f = next((x for x in fichas if x['key'] == k), None)
+    if not f:
+        return _hdr(render_template('inmueble.html', f=None), 404)
+    cas = []
+    if g.user['role'] in ROLES_MERCADEO:   # Presidencia y Mercadeo ya ven los portales en Mercadeo
+        try:
+            cas = [c for c in portales.casillas(portales.links_por_key(q).get(k)) if c['visible']]
+        except Exception:
+            log.exception('inmueble portales')
+    return _hdr(render_template('inmueble.html', f=f, portales_pub=cas, compartir=inmuebles.compartir_texto(f),
+                                ver_encargado=g.user['role'] in ROLES_MERCADEO,
+                                volver=_volver_inv(request.args.get('volver'))))
+
+
+def _volver_inv(v):
+    v = v or ''
+    return v if v.startswith('/inventario') and '//' not in v and '\\' not in v else '/inventario'
+
+
+def _inmuebles_fichas(user):
+    data = _inventario()
+    grupos = data.get('grupos') or {}
+    items = list(grupos.get('propio') or []) + list(grupos.get('alianza') or [])
+    encargado_de = {}
+    if user['role'] in ROLES_MERCADEO:
+        for c in portal_lib.load_captaciones():
+            encargado_de.setdefault(portales.key_de(c), c.get('asesor') or '')
+    out = []
+    for it, fp in zip(items, _fichas_publicas(items, data)):
+        slug = encargado_de.get(portales.key_de(it)) or ''
+        out.append(inmuebles.ficha(it, fp, encargado=_nombre_asesor(slug) if slug else ''))
+    return data, out
+
+
+def _inmuebles_mias(user):
+    slugs = set(portal_lib.visible_slugs(user))
+    return {portales.key_de(c) for c in portal_lib.load_captaciones() if c.get('asesor') in slugs}
+
+
+def _inmuebles_n_filtros(args):
+    n = sum(len(args.getlist(k)) for k in ('tipo', 'op', 'zona', 'estado'))
+    return n + sum(1 for k in ('pmin', 'pmax', 'amin', 'amax', 'hab', 'fotos') if args.get(k))
 
 
 
