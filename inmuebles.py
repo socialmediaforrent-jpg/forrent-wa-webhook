@@ -122,7 +122,8 @@ def filtrar(fichas, args, *, mias=None):
     if orden in ('mayor', 'menor'):
         out.sort(key=lambda f: (f.get('precio_n') is None, (-(f.get('precio_n') or 0)) if orden == 'mayor' else (f.get('precio_n') or 0)))
     else:
-        out.sort(key=lambda f: f.get('actualizado_en') or '', reverse=(orden == 'reciente'))
+        # por día de actualización; dentro del mismo día, primero los que tienen fotos (como Wasi)
+        out.sort(key=lambda f: ((f.get('actualizado_en') or '')[:10], bool(f.get('fotos'))), reverse=(orden == 'reciente'))
     return out, lista, orden
 
 

@@ -179,6 +179,24 @@ MERCADEO_USER = 'mercadeo'
 MERCADEO_PERFIL = {'user': MERCADEO_USER, 'name': 'Mercadeo For Rent', 'role': 'mercadeo', 'equipo': [], 'lider': ''}
 
 
+INVENTARIO_USER = 'inventario'
+INVENTARIO_PERFIL = {'user': INVENTARIO_USER, 'name': 'Inventario For Rent', 'role': 'inventario', 'equipo': [], 'lider': ''}
+
+
+def _inventario_activo():
+    return bool(os.environ.get('INVENTARIO_PASSWORD') or os.environ.get('INVENTARIO_PASSWORD_SHA256'))
+
+
+def _inventario_password_ok(password):
+    """Login propio de Inventario (solo lectura de Inmuebles): INVENTARIO_PASSWORD_SHA256 (o INVENTARIO_PASSWORD)."""
+    plain, sha = os.environ.get('INVENTARIO_PASSWORD'), os.environ.get('INVENTARIO_PASSWORD_SHA256')
+    if plain:
+        return hmac.compare_digest(password, plain)
+    if sha:
+        return hmac.compare_digest(sha256_hex(password), sha.strip().lower())
+    return False
+
+
 def _mercadeo_password_ok(password):
     """Login propio de Mercadeo: MERCADEO_PASSWORD_SHA256 (o MERCADEO_PASSWORD). Sin variable, no entra nadie."""
     plain, sha = os.environ.get('MERCADEO_PASSWORD'), os.environ.get('MERCADEO_PASSWORD_SHA256')
@@ -196,6 +214,8 @@ def identify_user(username, password):
     user = username.strip().lower()
     if user == MERCADEO_USER:
         return dict(MERCADEO_PERFIL) if _mercadeo_password_ok(password) else None
+    if user == INVENTARIO_USER:
+        return dict(INVENTARIO_PERFIL) if _inventario_password_ok(password) else None
     if user == 'jose':
         plain, sha = os.environ.get('PANEL_PASSWORD'), os.environ.get('PANEL_PASSWORD_SHA256')
         ok = False
@@ -235,6 +255,9 @@ def user_by_username(username):
         if os.environ.get('MERCADEO_PASSWORD') or os.environ.get('MERCADEO_PASSWORD_SHA256'):
             return dict(MERCADEO_PERFIL)
         return None
+    if user == INVENTARIO_USER:
+        # Sin variable de contraseña, la sesión abierta también deja de valer.
+        return dict(INVENTARIO_PERFIL) if _inventario_activo() else None
     meta = asesor_by_user(user)
     if not meta:
         return None
@@ -249,7 +272,7 @@ def user_by_username(username):
 
 def visible_slugs(user):
     """Slugs de asesor cuyos datos puede ver este usuario."""
-    if user['role'] == 'mercadeo':
+    if user['role'] in ('mercadeo', 'inventario'):
         return []
     if user['role'] == 'admin':
         return [a['user'] for a in asesores_meta()]

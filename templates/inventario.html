@@ -22,7 +22,7 @@
       <button type="button" class="on" data-vista="lista" role="tab" aria-selected="true">Lista</button>
       <button type="button" data-vista="mapa" role="tab" aria-selected="false">Mapa</button>
     </div>
-    <a class="wz-plus" href="/mis-captaciones" title="Nueva captación (la revisa la líder; el inventario no cambia hasta que se apruebe)" aria-label="Nueva captación">+</a>
+    {% if viewer.role != 'inventario' %}<a class="wz-plus" href="/mis-captaciones" title="Nueva captación (la revisa la líder; el inventario no cambia hasta que se apruebe)" aria-label="Nueva captación">+</a>{% else %}<span style="width:38px"></span>{% endif %}
   </div>
   {% if copia_prueba %}<div class="wz-proto">{{ copia_prueba }}</div>{% endif %}
   <form class="wz-search" method="get" action="/inventario" role="search">
@@ -101,7 +101,7 @@
     <div class="sc">
       {% if args.get('q') %}<input type="hidden" name="q" value="{{ args.get('q') }}">{% endif %}
       <div class="wz-two">
-        <label>Lista de<select name="lista">{% for k, v in listas.items() %}<option value="{{ k }}" {{ 'selected' if k == lista else '' }}>{{ v }}</option>{% endfor %}</select></label>
+        <label>Lista de<select name="lista">{% for k, v in listas.items() if not (k == 'mias' and viewer.role == 'inventario') %}<option value="{{ k }}" {{ 'selected' if k == lista else '' }}>{{ v }}</option>{% endfor %}</select></label>
         <label>Ordenar por<select name="orden">{% for k, v in ordenes.items() %}<option value="{{ k }}" {{ 'selected' if k == orden else '' }}>{{ v }}</option>{% endfor %}</select></label>
       </div>
       <div class="wz-fh"><b>Filtros</b><a href="/inventario">↺ Limpiar</a></div>

@@ -142,3 +142,62 @@ def test_compartir_sin_enlaces():
 
 def test_texto_plano():
     assert inmuebles.texto_plano('<p>Hola&nbsp;<b>mundo</b></p><script>x</script>') == 'Hola\xa0mundo'
+
+
+# ------------------------------------------------------------ Rol Inventario (solo lectura de Inmuebles)
+@pytest.fixture
+def inv_pw(monkeypatch):
+    monkeypatch.setenv('INVENTARIO_PASSWORD_SHA256', hashlib.sha256(b'clave-inv').hexdigest())
+    monkeypatch.delenv('INVENTARIO_PASSWORD', raising=False)
+    yield
+
+
+def test_login_inventario(inv_pw):
+    assert portal_lib.identify_user('inventario', 'clave-inv')['role'] == 'inventario'
+    assert portal_lib.identify_user('Inventario', 'mala') is None
+
+
+def test_inventario_sin_variable_no_entra(monkeypatch):
+    monkeypatch.delenv('INVENTARIO_PASSWORD_SHA256', raising=False)
+    monkeypatch.delenv('INVENTARIO_PASSWORD', raising=False)
+    assert portal_lib.identify_user('inventario', 'cualquiera') is None
+    assert portal_lib.user_by_username('inventario') is None
+    assert cliente('inventario').get('/inventario').status_code in (302, 401)
+
+
+def test_inventario_ve_inmuebles_con_encargado_y_menu(inv_pw):
+    c = cliente('inventario')
+    h = html(c.get('/inventario'))
+    assert 'Encargado del inmueble' in h and 'Ana' in h and 'RED NO DEBE SALIR' not in h
+    assert '>Inmuebles<' in h and 'Inventario General' not in h
+    assert 'href="/mis-captaciones"' not in h and 'value="mias"' not in h
+    d = html(c.get('/inventario/ver?k=' + quote('c:10542820')))
+    assert 'Encargado del inmueble' in d and 'href="/mercadeo"' not in d
+    assert c.get('/portal').headers['Location'].endswith('/inventario')
+
+
+def test_inventario_no_entra_a_nada_mas(inv_pw):
+    """Toda ruta con sesión distinta de Inmuebles responde 403 a Inventario (GET y POST)."""
+    anon, c = appmod.app.test_client(), cliente('inventario')
+    revisadas = 0
+    for rule in appmod.app.url_map.iter_rules():
+        if rule.arguments or rule.endpoint in ('static', 'inventario', 'inventario_ver', 'portal', 'login', 'logout'):
+            continue
+        for m in ('GET', 'POST'):
+            if m not in rule.methods:
+                continue
+            ra = anon.open(rule.rule, method=m)
+            protegida = ra.status_code in (302, 401) and '/login' in (ra.headers.get('Location') or '/login')
+            if not protegida:
+                continue
+            rc = c.open(rule.rule, method=m)
+            assert rc.status_code in (401, 403), (rule.rule, m, rc.status_code)
+            revisadas += 1
+    assert revisadas > 20
+
+
+def test_otros_roles_sin_cambios():
+    assert 'Encargado del inmueble' not in html(cliente('ana').get('/inventario'))
+    assert cliente('ana').get('/mis-clientes').status_code == 200
+    h = html(cliente('jose').get('/inventario'))
+    assert 'Encargado del inmueble' in h and '>Inmuebles<' in h

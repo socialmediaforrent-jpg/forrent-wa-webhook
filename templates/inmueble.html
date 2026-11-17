@@ -74,7 +74,7 @@
   {% if ver_encargado %}
   <div class="wz-sec">
     <h3>Encargado del inmueble</h3>
-    <div class="wz-encard"><span class="av">{{ (f.encargado or '?')[:1] }}</span><div><b>{{ f.encargado or 'Sin dato' }}</b><div class="wz-loc">Asesora captadora (solo lo ven Presidencia y Mercadeo)</div></div></div>
+    <div class="wz-encard"><span class="av">{{ (f.encargado or '?')[:1] }}</span><div><b>{{ f.encargado or 'Sin dato' }}</b><div class="wz-loc">Asesora captadora (solo lo ven Presidencia e Inventario)</div></div></div>
   </div>
   {% endif %}
 
@@ -103,7 +103,7 @@
   <div class="wz-sec">
     <h3>Publicado en</h3>
     <div class="wz-ports">{% for c in portales_pub %}<img src="/static/{{ c.logo }}" alt="{{ c.nombre }}" title="{{ c.nombre }}">{% endfor %}</div>
-    <p class="wz-loc" style="margin:8px 0 0">Los enlaces se gestionan en <a href="/mercadeo">Mercadeo</a>.</p>
+    {% if viewer and viewer.role == 'admin' %}<p class="wz-loc" style="margin:8px 0 0">Los enlaces se gestionan en <a href="/mercadeo">Mercadeo</a>.</p>{% else %}<p class="wz-loc" style="margin:8px 0 0">Portales donde está publicado y verificado.</p>{% endif %}
   </div>
   {% endif %}
   <script type="application/json" id="wz-txt">{{ compartir|tojson }}</script>

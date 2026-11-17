@@ -601,9 +601,19 @@ def require_login(fn):
             if request.method == 'GET' and request.endpoint == 'portal':
                 return redirect('/mercadeo')
             return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
+        if user.get('role') == 'inventario' and request.endpoint not in INVENTARIO_ENDPOINTS:
+            # Inventario: solo Inmuebles, en lectura (todo lo demás 403 en el servidor).
+            if request.method == 'GET' and request.endpoint == 'portal':
+                return redirect('/inventario')
+            return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
         return fn(*args, **kwargs)
     return wrapper
 
+
+# Inventario solo abre Inmuebles (lista y ficha), ambas GET de solo lectura.
+INVENTARIO_ENDPOINTS = {'inventario', 'inventario_ver'}
+# Quién ve el encargado (captador) y los portales en Inmuebles.
+ROLES_VER_ENCARGADO = ('admin', 'mercadeo', 'inventario')
 
 # Rutas con sesión que el usuario de Mercadeo puede abrir. Todo lo demás le responde 403 (en el servidor).
 MERCADEO_ENDPOINTS = {'mercadeo', 'mercadeo_link', 'mercadeo_verificar', 'mercadeo_planificador'}
@@ -631,7 +641,7 @@ def require_admin(fn):
     return require_login(wrapper)
 
 
-ROLE_LABEL = {'admin': 'Presidencia', 'lider': 'Líder comercial', 'asesor': 'Asesora', 'mercadeo': 'Mercadeo'}
+ROLE_LABEL = {'admin': 'Presidencia', 'lider': 'Líder comercial', 'asesor': 'Asesora', 'mercadeo': 'Mercadeo', 'inventario': 'Inventario'}
 
 
 @app.context_processor
@@ -645,11 +655,14 @@ def _portal_nav():
                 {'href': '/mercadeo/planificador', 'label': 'Planificador de anuncios', 'short': 'Planificador',
                  'key': 'planificador', 'icon': 'calendar'}]
         return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['mercadeo']}
+    if role == 'inventario':
+        main = [{'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'}]
+        return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['inventario']}
     links = _portal_links()
     main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'},
             {'href': '/mis-clientes', 'label': 'Mis Clientes', 'short': 'Clientes', 'key': 'clientes', 'icon': 'users'}]
     if role == 'admin':
-        main.append({'href': '/inventario', 'label': 'Inventario General', 'short': 'Inventario', 'key': 'inventario', 'icon': 'building'})
+        main.append({'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'})
         main.append({'href': '/panel', 'label': 'Mensajes', 'key': 'mensajes', 'icon': 'chat'})
     else:
         main.append({'href': '/panel', 'label': 'Mensajes', 'key': 'mensajes', 'icon': 'chat'})
@@ -664,7 +677,7 @@ def _portal_nav():
     if role == 'admin':
         more.append({'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'key': 'captaciones', 'icon': 'key'})
     else:
-        more.append({'href': '/inventario', 'label': 'Inventario General', 'key': 'inventario', 'icon': 'building'})
+        more.append({'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'})
     more.append({'href': '/mercadeo', 'label': 'Mercadeo', 'key': 'mercadeo', 'icon': 'megaphone'})
     if role == 'admin':
         more.append({'href': '/mercadeo/planificador', 'label': 'Planificador de anuncios', 'key': 'planificador', 'icon': 'calendar'})
@@ -2019,7 +2032,7 @@ def inventario():
         n_propio=len(grupos.get('propio') or []), n_alianza=len(grupos.get('alianza') or []),
         n_activos=_inmuebles_n_filtros(request.args),
         con_coord=sum(1 for f in fichas if f.get('lat')),
-        ver_encargado=g.user['role'] in ROLES_MERCADEO,
+        ver_encargado=g.user['role'] in ROLES_VER_ENCARGADO,
         compartir_textos=[inmuebles.compartir_texto(f) for f in filas],
     ))
 
@@ -2033,13 +2046,13 @@ def inventario_ver():
     if not f:
         return _hdr(render_template('inmueble.html', f=None), 404)
     cas = []
-    if g.user['role'] in ROLES_MERCADEO:   # Presidencia y Mercadeo ya ven los portales en Mercadeo
+    if g.user['role'] in ROLES_VER_ENCARGADO:   # Presidencia e Inventario (solo lectura); Mercadeo ya los ve en su sección
         try:
             cas = [c for c in portales.casillas(portales.links_por_key(q).get(k)) if c['visible']]
         except Exception:
             log.exception('inmueble portales')
     return _hdr(render_template('inmueble.html', f=f, portales_pub=cas, compartir=inmuebles.compartir_texto(f),
-                                ver_encargado=g.user['role'] in ROLES_MERCADEO,
+                                ver_encargado=g.user['role'] in ROLES_VER_ENCARGADO,
                                 volver=_volver_inv(request.args.get('volver'))))
 
 
@@ -2053,7 +2066,7 @@ def _inmuebles_fichas(user):
     grupos = data.get('grupos') or {}
     items = list(grupos.get('propio') or []) + list(grupos.get('alianza') or [])
     encargado_de = {}
-    if user['role'] in ROLES_MERCADEO:
+    if user['role'] in ROLES_VER_ENCARGADO:
         for c in portal_lib.load_captaciones():
             encargado_de.setdefault(portales.key_de(c), c.get('asesor') or '')
     out = []
