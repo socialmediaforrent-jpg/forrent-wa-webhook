@@ -1,40 +1,421 @@
 {% extends 'base.html' %}
 {% set nav = 'planificador' %}
-{% block title %}Planificador de anuncios{% endblock %}
+{% block title %}Planificador de redes sociales{% endblock %}
 {% block body %}
+{% set redes_ok = ['facebook','instagram','tiktok','pinterest'] %}
 <style>
-.pf-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-.pf-item{background:var(--card,#fff);border-radius:var(--r,12px);box-shadow:var(--sombra);padding:12px}
-.pf-when{font-weight:800;font-size:14px}
-.pf-acc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
-.pf-acc span{font-size:11.5px;font-weight:700;border:1px solid var(--linea);border-radius:999px;padding:2px 8px}
-.pf-txt{white-space:pre-wrap;font-size:13.5px;line-height:1.45;max-height:7.5em;overflow:hidden}
-.pf-item details summary{cursor:pointer;font-size:12.5px;font-weight:700;margin-top:6px}
-.pf-media a{font-size:12px;word-break:break-all;display:block}
-.pf-day{font-size:12px;font-weight:800;color:var(--muted);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+body{--pz:var(--naranja);--pz-s:var(--naranja-suave)}
+.pz [hidden],.pzd [hidden],.pz-sheet [hidden]{display:none !important}
+.pz{margin:-14px -16px 0;padding:0 0 90px;background:#fff;min-height:calc(100vh - var(--appbar))}
+@media (min-width:960px){.pz{margin:0 auto;max-width:560px;border-radius:var(--r);box-shadow:var(--sombra)}}
+.pz-top{display:flex;align-items:center;gap:6px;padding:10px 8px 6px}
+.pz-top h1{flex:1;margin:0;font-size:18px;font-weight:800;letter-spacing:-.01em}
+.pz-ib{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;border-radius:999px;color:var(--negro);cursor:pointer;text-decoration:none;position:relative;touch-action:manipulation}
+.pz-ib svg{width:22px;height:22px}
+.pz-ib .pz-dotf{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--pz);display:none}
+.pz-ib.on .pz-dotf{display:block}
+.pz-sec{padding:4px 16px 8px}
+.pz-row{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;margin:6px 0 8px}
+.pz-link{border:0;background:none;color:var(--pz);font:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:4px}
+.pz-accs{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}
+.pz-accs::-webkit-scrollbar{display:none}
+.pz-add{flex:0 0 auto;width:46px;height:46px;border-radius:50%;border:1.5px dashed #c9ced9;background:#fff;color:var(--pz);font-size:26px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.av{position:relative;flex:0 0 auto;width:46px;height:46px;border-radius:50%;background:#fff;border:1px solid var(--linea);padding:0;cursor:pointer}
+.av img.lg{width:100%;height:100%;border-radius:50%;object-fit:contain;padding:6px}
+.av img.bd{position:absolute;right:-3px;bottom:-3px;width:18px;height:18px;border-radius:5px;border:2px solid #fff;box-sizing:content-box}
+.av.off{opacity:.35}
+.av.sm{width:34px;height:34px}.av.sm img.lg{padding:4px}.av.sm img.bd{width:14px;height:14px}
+.pz-vbar{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;font-weight:800;font-size:15px}
+.pz-mnav{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700;font-size:15px;padding:4px 16px}
+.pz-mnav span{min-width:170px;text-align:center}
+.pz-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:4px 10px 8px;row-gap:2px;text-align:center}
+.pz-grid .wd{font-size:12px;color:var(--muted);font-weight:700;padding:6px 0}
+.pz-d{position:relative;height:44px;border:0;background:none;font:inherit;font-size:14.5px;font-weight:600;color:var(--negro);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;touch-action:manipulation}
+.pz-d b{width:34px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:999px;font-weight:600}
+.pz-d.fuera{color:#b9bfcc}
+.pz-d.hoy b{background:var(--pz-s);color:var(--naranja-2);font-weight:800}
+.pz-d.sel b{background:var(--pz);color:#fff;font-weight:800}
+.pz-d i{width:5px;height:5px;border-radius:50%;background:transparent}
+.pz-d.con i{background:var(--pz)}
+.pz-d.sel i{background:var(--pz)}
+.pz-dayh{display:flex;align-items:center;gap:8px;padding:12px 16px 6px;font-weight:800;font-size:15px;border-top:1px solid var(--linea)}
+.pz-dayh::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--pz)}
+.pz-dayh small{margin-left:auto;font-weight:600;color:var(--muted);font-size:12.5px}
+.pz-list{list-style:none;margin:0;padding:0}
+.pc{padding:14px 16px;border-bottom:8px solid var(--fondo)}
+.pc-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:#e9f6ee;color:#16794c}
+.chip.Error{background:#fdecec;color:#b42318}.chip.Borrador,.chip.Pendiente{background:#f1f2f5;color:#4a5160}.chip.Publicado{background:#e8f0fe;color:#1d4fb8}
+.pc-t{font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word;margin:0}
+.pc-t.cut{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pc-mas{border:0;background:none;padding:2px 0;font:inherit;font-size:13.5px;font-weight:800;color:var(--pz);cursor:pointer}
+.pc-m{margin:10px 0;border-radius:12px;overflow:hidden;background:#eef0f4;aspect-ratio:4/5;max-height:420px;display:flex;align-items:center;justify-content:center;color:#9aa1b0}
+.pc-m video,.pc-m img{width:100%;height:100%;object-fit:cover;display:block;background:#000}
+.pc-m svg{width:44px;height:44px}
+.pc-f{display:flex;align-items:flex-end;gap:12px;font-size:12px;color:var(--muted)}
+.pc-f div{flex:1}.pc-f strong{display:block;color:var(--negro);font-size:13px;font-weight:700;margin-top:2px}
+.pc-accs{display:flex;align-items:center}.pc-accs .av{margin-left:-8px}.pc-accs .n{font-size:12px;font-weight:800;color:var(--muted);margin-left:4px}
+.pz-empty{padding:28px 16px;text-align:center;color:var(--muted);font-size:14px}
+.pz-lgh{padding:14px 16px 4px;font-weight:800;font-size:14px;color:var(--muted);background:#fff;position:sticky;top:calc(var(--appbar) + 44px);z-index:3}
+.pz-mini{position:fixed;left:0;right:0;top:var(--appbar);z-index:30;background:rgba(255,255,255,.98);border-bottom:1px solid var(--linea);display:none;align-items:center;gap:10px;padding:0 16px;height:44px;font-weight:800;font-size:14.5px;cursor:pointer}
+.pz-mini.show{display:flex}.pz-mini .d{margin-left:auto;display:flex;align-items:center;gap:6px}.pz-mini .d::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--pz)}
+@media (min-width:960px){.pz-mini{left:var(--side)}}
+.pz-fab{position:fixed;right:18px;bottom:calc(var(--bottom) + 18px + env(safe-area-inset-bottom));z-index:35;width:56px;height:56px;border-radius:50%;border:0;background:var(--pz);color:#fff;font-size:30px;line-height:1;box-shadow:0 6px 18px rgba(229,91,1,.35);cursor:pointer;display:flex;align-items:center;justify-content:center}
+@media (min-width:960px){.pz-fab{bottom:28px}}
+dialog.pzd{border:0;padding:0;margin:0;max-width:none;max-height:none;width:100%;height:100%;background:#fff}
+dialog.pzd::backdrop{background:rgba(17,17,17,.4)}
+@media (min-width:960px){dialog.pzd{width:480px;height:86vh;margin:auto;border-radius:16px}}
+.pzd-in{display:flex;flex-direction:column;height:100%}
+.pzd-h{display:flex;align-items:center;gap:6px;padding:10px 8px;border-bottom:1px solid var(--linea)}
+.pzd-h h2{flex:1;margin:0;font-size:17px;font-weight:800}
+.pzd-b{flex:1;overflow:auto;padding:12px 16px 24px}
+.pz-btn{border:0;border-radius:10px;background:var(--pz);color:#fff;font:inherit;font-weight:800;font-size:14px;padding:9px 16px;cursor:pointer}
+.pz-btn:disabled{background:#e3e5ea;color:#9aa1b0;cursor:default}
+.pz-btn.red{background:none;color:#d92d20;padding:9px 8px}
+.pz-search{width:100%;box-sizing:border-box;border:1px solid var(--linea);border-radius:12px;padding:11px 12px 11px 38px;font:inherit;font-size:15px;background:#f8f9fb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%235b6475' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") 12px center no-repeat}
+.pz-chips{display:flex;gap:8px;margin:12px 0 6px}
+.pz-chips button{border:1px solid var(--linea);background:#fff;border-radius:999px;padding:7px 14px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;color:var(--negro)}
+.pz-chips button.on{background:var(--pz-s);border-color:var(--pz);color:var(--naranja-2)}
+.pz-opt{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid #f0f1f4;cursor:pointer;font-size:15px}
+.pz-opt input{width:20px;height:20px;accent-color:var(--naranja);margin:0;flex:0 0 auto}
+.pz-opt .nm{flex:1;min-width:0}.pz-opt .nm small{display:block;color:var(--muted);font-size:12px;text-transform:capitalize}
+.pz-opt.dis{opacity:.55;cursor:default}
+.pz-fs{margin:6px 0 18px}
+.pz-fs h3{display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:15px;font-weight:800}
+.pz-fs h3 svg{width:18px;height:18px;color:var(--muted)}
+.pz-fs h3 .pz-link{margin-left:auto;font-size:13px}
+.pz-nota{font-size:12.5px;color:var(--muted);margin:2px 0 6px}
+.pz-addu{display:flex;align-items:center;gap:10px;padding:8px 2px;color:var(--muted);font-size:14px;font-weight:700}
+.pz-addu span{width:36px;height:36px;border-radius:50%;border:1.5px dashed #c9ced9;display:flex;align-items:center;justify-content:center;font-size:20px}
+.pz-sheet{position:fixed;inset:auto 0 0 0;margin:0;width:100%;max-width:none;border:0;border-radius:18px 18px 0 0;padding:8px 8px calc(12px + env(safe-area-inset-bottom));background:#fff}
+.pz-sheet::backdrop{background:rgba(17,17,17,.4)}
+.pz-sheet .grab{width:40px;height:4px;border-radius:4px;background:#d9dce4;margin:4px auto 10px}
+.pz-sheet button.v{display:flex;align-items:center;gap:14px;width:100%;border:0;background:none;font:inherit;font-size:15.5px;font-weight:700;padding:14px 12px;border-radius:10px;cursor:pointer;color:var(--negro)}
+.pz-sheet button.v svg{width:22px;height:22px}
+.pz-sheet button.v.on{color:var(--naranja-2);background:var(--pz-s)}
+.pz-toast{position:fixed;left:16px;right:16px;bottom:calc(var(--bottom) + 86px);z-index:60;background:#111;color:#fff;border-radius:12px;padding:12px 14px;font-size:13.5px;display:none}
+.pz-menu{position:absolute;right:16px;z-index:20;background:#fff;border:1px solid var(--linea);border-radius:12px;box-shadow:0 8px 30px rgba(17,17,17,.14);padding:6px;min-width:190px}
+.pz-menu a,.pz-menu button{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:14px;font-weight:600;padding:10px;border-radius:8px;color:var(--negro);text-decoration:none;cursor:pointer}
+.pc{position:relative}
+.pz-src{font-size:12px;color:var(--muted);padding:2px 16px 8px}
 </style>
-<h1 class="page">Planificador de anuncios</h1>
-<p class="lead">Publicaciones programadas en las redes de For Rent (hora de Toronto, como en el planificador de origen). Solo lectura: desde aquí no se publica ni se borra nada.{% if actualizado %} Datos del {{ actualizado }}.{% endif %}</p>
-{% if not posts %}
-<div class="empty">Todavía no hay publicaciones cargadas en el planificador.</div>
-{% else %}
-<p class="muted">{{ posts|length }} publicaciones programadas.</p>
-<ul class="pf-list">
-{% set ns = namespace(dia='') %}
-{% for p in posts %}
-  {% if p.fecha != ns.dia %}{% set ns.dia = p.fecha %}<li class="pf-day">{{ p.fecha }}</li>{% endif %}
-  <li class="pf-item">
-    <div class="pf-when">{{ p.cuando }}</div>
-    <div class="pf-acc">{% for c in p.cuentas %}<span>{{ c }}</span>{% endfor %}</div>
-    <div class="pf-txt">{{ p.texto }}</div>
-    {% if p.media or p.texto|length > 280 %}
-    <details><summary>Ver todo{% if p.media %} · {{ p.media|length }} archivo(s){% endif %}</summary>
-      <div class="pf-txt" style="max-height:none">{{ p.texto }}</div>
-      <div class="pf-media">{% for m in p.media %}<a href="{{ m }}" target="_blank" rel="noopener noreferrer">{{ m }}</a>{% endfor %}</div>
-    </details>
-    {% endif %}
-  </li>
-{% endfor %}
-</ul>
-{% endif %}
+
+{% macro svg(n) -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if n=='back' -%}<path d="M15 5l-7 7 7 7"/>
+{%- elif n=='filter' -%}<path d="M4 7h16M7 12h10M10 17h4"/>
+{%- elif n=='compose' -%}<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>
+{%- elif n=='grid' -%}<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>
+{%- elif n=='cols' -%}<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M9 4v16M15 4v16"/>
+{%- elif n=='list' -%}<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>
+{%- elif n=='prev' -%}<path d="M15 6l-6 6 6 6"/>
+{%- elif n=='next' -%}<path d="M9 6l6 6-6 6"/>
+{%- elif n=='dots' -%}<circle cx="12" cy="5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="19" r="1.4" fill="currentColor"/>
+{%- elif n=='doc' -%}<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>
+{%- elif n=='status' -%}<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>
+{%- elif n=='check' -%}<path d="M20 6 9 17l-5-5"/>
+{%- elif n=='user' -%}<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>
+{%- elif n=='noimg' -%}<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9M3 3l18 18"/>
+{%- endif -%}</svg>
+{%- endmacro %}
+
+<div class="pz" id="pz">
+  <div class="pz-top">
+    <a class="pz-ib" href="/mercadeo" aria-label="Volver a Mercadeo">{{ svg('back') }}</a>
+    <h1>Planificador de redes sociales</h1>
+    <button class="pz-ib" type="button" id="pz-fbtn" aria-label="Filtros">{{ svg('filter') }}<span class="pz-dotf"></span></button>
+    <button class="pz-ib" type="button" data-crear aria-label="Crear publicación">{{ svg('compose') }}</button>
+  </div>
+
+  <section class="pz-sec" aria-label="Cuentas">
+    <div class="pz-row"><span>Cuenta(s)</span>{% if cuentas %}<button class="pz-link" type="button" id="pz-vertodo">Ver todo</button>{% endif %}</div>
+    <div class="pz-accs" id="pz-accs">
+      <button class="pz-add" type="button" data-crear aria-label="Crear publicación">+</button>
+      {% for c in cuentas %}
+      <button class="av" type="button" data-acc="{{ c.id }}" title="{{ c.nombre }} ({{ c.red|capitalize }})" aria-pressed="false">
+        <img class="lg" src="{{ static_v('logo.webp') }}" alt="" width="46" height="46">
+        {% if c.red in redes_ok %}<img class="bd" src="/static/redes/{{ c.red }}.svg" alt="{{ c.red }}">{% endif %}
+      </button>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if not posts %}
+  <div class="pz-empty">Todavía no hay publicaciones cargadas en el planificador.</div>
+  {% else %}
+  <div class="pz-vbar"><span id="pz-vlabel">Vista mensual</span><button class="pz-ib" type="button" id="pz-vbtn" aria-label="Cambiar vista">{{ svg('grid') }}</button></div>
+  <div id="pz-cal">
+    <div class="pz-mnav"><button class="pz-ib" type="button" id="pz-prev" aria-label="Anterior">{{ svg('prev') }}</button><span id="pz-mes"></span><button class="pz-ib" type="button" id="pz-next" aria-label="Siguiente">{{ svg('next') }}</button></div>
+    <div class="pz-grid" id="pz-grid"></div>
+  </div>
+  <div class="pz-dayh" id="pz-dayh"></div>
+  <ul class="pz-list" id="pz-list"></ul>
+  <div class="pz-mini" id="pz-mini" role="button" tabindex="0"><span id="pz-mini-v">Vista mensual</span><span class="d" id="pz-mini-d"></span></div>
+  {% endif %}
+  <p class="pz-src">Solo lectura · publicaciones programadas en el Social Planner de GHL (hora de Toronto).{% if actualizado %} Datos del {{ actualizado }}.{% endif %}</p>
+
+  {# Respaldo sin JavaScript: la lista de siempre. #}
+  <noscript>
+  <ul class="pz-list">
+  {% for p in posts %}<li class="pc"><div class="pc-h"><span class="chip">{{ p.estado }}</span></div><p class="pc-t">{{ p.texto }}</p>
+  <div class="pc-f"><div>Programado para<strong>{{ p.cuando }}</strong></div><div>{{ p.cuentas|join(', ') }}</div></div>
+  {% for m in p.media %}<a href="{{ m }}" target="_blank" rel="noopener noreferrer">Ver archivo</a>{% endfor %}</li>{% endfor %}
+  </ul>
+  </noscript>
+</div>
+
+<button class="pz-fab" type="button" data-crear aria-label="Crear publicación">+</button>
+<div class="pz-toast" id="pz-toast" role="status"></div>
+
+{# Hoja «Seleccione la(s) cuenta(s)» #}
+<dialog class="pzd" id="pz-dacc" aria-label="Seleccione la(s) cuenta(s)">
+  <div class="pzd-in">
+    <div class="pzd-h"><button class="pz-ib" type="button" data-close aria-label="Cerrar">{{ svg('back') }}</button><h2 id="pz-dacc-t">Seleccione la(s) cuenta(s)</h2><button class="pz-btn" type="button" id="pz-crear" disabled>Crear</button></div>
+    <div class="pzd-b">
+      <input class="pz-search" type="search" id="pz-q" placeholder="Buscar cuentas" autocomplete="off">
+      <div class="pz-chips" id="pz-chips"><button type="button" class="on" data-chip="todo">Todo</button><button type="button" data-chip="cuentas">Cuenta(s)</button><button type="button" data-chip="grupos">Grupo(s)</button></div>
+      <div id="pz-accl">
+      {% for c in cuentas %}
+        <label class="pz-opt" data-name="{{ (c.nombre ~ ' ' ~ c.red)|lower }}"><input type="checkbox" value="{{ c.id }}">
+          <span class="av sm"><img class="lg" src="{{ static_v('logo.webp') }}" alt="" width="34" height="34">{% if c.red in redes_ok %}<img class="bd" src="/static/redes/{{ c.red }}.svg" alt="">{% endif %}</span>
+          <span class="nm">{{ c.nombre }}<small>{{ c.red }}</small></span></label>
+      {% else %}
+        <p class="pz-nota">No hay cuentas en los datos del planificador.</p>
+      {% endfor %}
+      </div>
+      <p class="pz-nota" id="pz-nogr" hidden>No hay grupos de cuentas en los datos del planificador.</p>
+      <p class="pz-nota" id="pz-crear-nota">«Crear» abre el Social Planner de GHL, donde se crean las publicaciones, y copia los nombres de las cuentas elegidas.</p>
+    </div>
+  </div>
+</dialog>
+
+{# Filtros #}
+<dialog class="pzd" id="pz-dfil" aria-label="Filtros">
+  <div class="pzd-in">
+    <div class="pzd-h"><button class="pz-ib" type="button" data-close aria-label="Cerrar">{{ svg('back') }}</button><h2>Filtros</h2><button class="pz-btn red" type="button" id="pz-reset">Restablecer</button><button class="pz-btn" type="button" id="pz-aplicar" disabled>Aplicar</button></div>
+    <div class="pzd-b" id="pz-fbody">
+      <div class="pz-fs" data-grp="tipo"><h3>{{ svg('doc') }}Tipo de contenido<button class="pz-link" type="button" data-all>Deseleccionar todo</button></h3>
+        {% for t in tipos %}<label class="pz-opt"><input type="checkbox" value="{{ t }}" checked><span class="nm">{{ t }}</span></label>{% endfor %}</div>
+      <div class="pz-fs" data-grp="estado"><h3>{{ svg('status') }}Estado<button class="pz-link" type="button" data-all>Deseleccionar todo</button></h3>
+        {% for t in estados %}<label class="pz-opt"><input type="checkbox" value="{{ t }}" checked><span class="nm">{{ t }}</span></label>{% endfor %}</div>
+      <div class="pz-fs" data-grp="aprobacion"><h3>{{ svg('check') }}Estado de aprobación<button class="pz-link" type="button" data-all>Seleccionar todo</button></h3>
+        {% for t in aprobaciones %}<label class="pz-opt"><input type="checkbox" value="{{ t }}"><span class="nm">{{ t }}</span></label>{% endfor %}
+        <p class="pz-nota">Los datos actuales del planificador no traen aprobación; sin marcar, no filtra.</p></div>
+      <div class="pz-fs" data-grp="autor"><h3>{{ svg('user') }}Creado por</h3>
+        {% for a in autores %}<label class="pz-opt"><input type="checkbox" value="{{ a }}"><span class="nm">{{ a }}</span></label>{% else %}
+        <div class="pz-addu"><span>+</span>Añadir</div><p class="pz-nota">Los datos actuales no traen quién creó cada publicación.</p>{% endfor %}</div>
+      <div class="pz-fs"><h3>{{ svg('user') }}Aprobador</h3><div class="pz-addu"><span>+</span>Añadir</div><p class="pz-nota">Los datos actuales no traen aprobador.</p></div>
+    </div>
+  </div>
+</dialog>
+
+{# Hoja de vistas #}
+<dialog class="pz-sheet" id="pz-dview" aria-label="Vista">
+  <div class="grab"></div>
+  <button class="v" type="button" data-view="mes">{{ svg('grid') }}Vista mensual</button>
+  <button class="v" type="button" data-view="semana">{{ svg('cols') }}Vista semanal</button>
+  <button class="v" type="button" data-view="lista">{{ svg('list') }}Vista de lista</button>
+</dialog>
+
+<script type="application/json" id="pz-data">{{ {'posts': posts, 'cuentas': cuentas, 'hoy': hoy, 'ghl': ghl_url}|tojson }}</script>
+<script>
+(function(){
+var D=JSON.parse(document.getElementById('pz-data').textContent), P=D.posts, ACC={}, LOGO={{ static_v('logo.webp')|tojson }};
+D.cuentas.forEach(function(c){ACC[c.id]=c;});
+var REDES={{ redes_ok|tojson }};
+var MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+var MESC=['ene','feb','mar','abr','may','jun','jul','ago','sept','oct','nov','dic'];
+var DIA=['dom','lun','mar','mié','jue','vie','sáb'];
+function $(id){return document.getElementById(id);}
+function el(t,c,txt){var e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e;}
+function ymd(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+function parse(s){var a=s.split('-');return new Date(+a[0],+a[1]-1,+a[2]);}
+function toast(t){var x=$('pz-toast');x.textContent=t;x.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(function(){x.style.display='none';},4200);}
+function openD(d){if(d.showModal)d.showModal();else d.setAttribute('open','');}
+function closeD(d){if(d.close)d.close();else d.removeAttribute('open');}
+document.querySelectorAll('dialog').forEach(function(d){d.addEventListener('click',function(e){if(e.target===d||e.target.closest('[data-close]'))closeD(d);});});
+
+/* ---------- filtros (cuentas de la fila + hoja Filtros) ---------- */
+var F={acc:{}, tipo:null, estado:null, aprobacion:null, autor:null};
+function pasa(p){
+  var ks=Object.keys(F.acc); if(ks.length && !p.cuentas.some(function(c){return F.acc[c];})) return false;
+  if(F.tipo && F.tipo.indexOf(p.tipo)<0) return false;
+  if(F.estado && F.estado.indexOf(p.estado)<0) return false;
+  if(F.aprobacion && F.aprobacion.length && F.aprobacion.indexOf(p.aprobacion)<0) return false;
+  if(F.autor && F.autor.length && F.autor.indexOf(p.creado_por)<0) return false;
+  return true;
+}
+var porDia={};
+function indexar(){porDia={};P.forEach(function(p){if(pasa(p))(porDia[p.fecha]=porDia[p.fecha]||[]).push(p);});}
+
+/* ---------- estado de vista ---------- */
+if(!P.length) { wireCrear(); return; }
+var LBL={mes:'Vista mensual',semana:'Vista semanal',lista:'Vista de lista'};
+var vista='mes'; try{vista=localStorage.getItem('pz_vista')||'mes';}catch(e){}
+if(!LBL[vista]) vista='mes';
+var sel=D.hoy, cur=parse(D.hoy);
+if(!porDiaAll(D.hoy)){ var f=P.filter(function(p){return p.fecha>=D.hoy;})[0]; if(f){sel=f.fecha;cur=parse(sel);} }
+function porDiaAll(d){return P.some(function(p){return p.fecha===d;});}
+
+/* ---------- tarjetas ---------- */
+/* Videos e imágenes se cargan solo cuando la tarjeta se acerca a la pantalla. */
+var LZ='IntersectionObserver' in window ? new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var t=e.target;t.src=t.dataset.src;LZ.unobserve(t);}});},{rootMargin:'400px 0px'}) : null;
+function lazy(t){ if(LZ) LZ.observe(t); else t.src=t.dataset.src; }
+function avatar(id,cls){
+  var c=ACC[id]||{red:'',nombre:id}, b=el('span','av '+(cls||'sm')); b.title=c.nombre+(c.red?' ('+c.red+')':'');
+  var i=el('img','lg');i.src=LOGO;i.alt='';b.appendChild(i);
+  if(REDES.indexOf(c.red)>=0){var g=el('img','bd');g.src='/static/redes/'+c.red+'.svg';g.alt=c.red;b.appendChild(g);}
+  return b;
+}
+function fechaLarga(s){var d=parse(s.slice(0,10));var h=s.slice(11,16);if(h.charAt(0)==='0')h=h.slice(1);return d.getDate()+' '+MESC[d.getMonth()]+' '+d.getFullYear()+(h?' '+h:'');}
+function card(p){
+  var li=el('li','pc'), h=el('div','pc-h');
+  h.appendChild(el('span','chip '+p.estado,p.estado));
+  var mb=el('button','pz-ib');mb.type='button';mb.setAttribute('aria-label','Opciones');mb.innerHTML={{ svg('dots')|tojson }};
+  mb.addEventListener('click',function(e){e.stopPropagation();menu(li,p);});
+  h.appendChild(mb); li.appendChild(h);
+  var t=el('p','pc-t cut',p.texto); li.appendChild(t);
+  var mas=el('button','pc-mas','… más'); mas.type='button'; mas.hidden=true;
+  mas.addEventListener('click',function(){var c=t.classList.toggle('cut');mas.textContent=c?'… más':'menos';});
+  li.appendChild(mas);
+  requestAnimationFrame(function(){ if(t.scrollHeight>t.clientHeight+2) mas.hidden=false; });
+  var m=el('div','pc-m');
+  if(p.thumb){var im=el('img');im.loading='lazy';im.dataset.src=p.thumb;lazy(im);im.alt='';m.appendChild(im);}
+  else if(p.media.length && /\.(mp4|mov|webm)(\?|$)/i.test(p.media[0])){var v=el('video');v.preload='metadata';v.muted=true;v.playsInline=true;v.controls=true;v.dataset.src=p.media[0]+'#t=0.5';lazy(v);m.appendChild(v);}
+  else if(p.media.length){var im2=el('img');im2.loading='lazy';im2.dataset.src=p.media[0];lazy(im2);im2.alt='';im2.onerror=function(){m.innerHTML={{ svg('noimg')|tojson }};};m.appendChild(im2);}
+  else m.innerHTML={{ svg('noimg')|tojson }};
+  li.appendChild(m);
+  var f=el('div','pc-f'), a=el('div');a.appendChild(document.createTextNode('Tipo de contenido'));a.appendChild(el('strong','',p.tipo||'—'));
+  var b=el('div');b.appendChild(document.createTextNode('Programado para'));b.appendChild(el('strong','',fechaLarga(p.cuando)));
+  var ac=el('span','pc-accs'); p.cuentas.slice(0,3).forEach(function(c){ac.appendChild(avatar(c));}); if(p.cuentas.length>3) ac.appendChild(el('span','n','+'+(p.cuentas.length-3)));
+  f.appendChild(a);f.appendChild(b);f.appendChild(ac);li.appendChild(f);
+  return li;
+}
+var abierto=null;
+function menu(li,p){
+  if(abierto){abierto.remove();abierto=null;}
+  var m=el('div','pz-menu'); m.style.top='48px';
+  p.media.forEach(function(u,i){var a=el('a','',p.media.length>1?'Ver archivo '+(i+1):'Ver archivo');a.href=u;a.target='_blank';a.rel='noopener noreferrer';m.appendChild(a);});
+  var c=el('button','','Copiar texto');c.type='button';c.addEventListener('click',function(){copiar(p.texto,'Texto copiado.');});m.appendChild(c);
+  var g=el('a','','Abrir en GHL');g.href=D.ghl;g.target='_blank';g.rel='noopener noreferrer';m.appendChild(g);
+  li.appendChild(m); abierto=m;
+}
+document.addEventListener('click',function(e){if(abierto&&!e.target.closest('.pz-menu')){abierto.remove();abierto=null;}});
+function copiar(t,msg){ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function(){toast(msg);},function(){toast(msg);}); else toast(msg); }
+
+/* ---------- calendario ---------- */
+var grid=$('pz-grid'), list=$('pz-list');
+function diaBtn(d,fuera){
+  var k=ymd(d), b=el('button','pz-d'); b.type='button'; b.dataset.d=k;
+  if(fuera) b.classList.add('fuera'); if(k===D.hoy) b.classList.add('hoy'); if(k===sel) b.classList.add('sel'); if(porDia[k]) b.classList.add('con');
+  b.appendChild(el('b','',d.getDate())); b.appendChild(el('i'));
+  b.setAttribute('aria-label',d.getDate()+' '+MES[d.getMonth()]+(porDia[k]?', '+porDia[k].length+' publicaciones':''));
+  return b;
+}
+function pintarCal(){
+  var frag=document.createDocumentFragment();
+  ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(function(w){frag.appendChild(el('div','wd',w));});
+  if(vista==='mes'){
+    $('pz-mes').textContent=MES[cur.getMonth()]+' de '+cur.getFullYear();
+    var ini=new Date(cur.getFullYear(),cur.getMonth(),1), d=new Date(ini); d.setDate(1-ini.getDay());
+    var fin=new Date(cur.getFullYear(),cur.getMonth()+1,0), n=Math.ceil((ini.getDay()+fin.getDate())/7)*7;
+    for(var i=0;i<n;i++){frag.appendChild(diaBtn(new Date(d),d.getMonth()!==cur.getMonth()));d.setDate(d.getDate()+1);}
+  } else {
+    var s=new Date(cur); s.setDate(cur.getDate()-cur.getDay()); var e=new Date(s); e.setDate(s.getDate()+6);
+    $('pz-mes').textContent=s.getDate()+' '+MESC[s.getMonth()]+' – '+e.getDate()+' '+MESC[e.getMonth()]+' '+e.getFullYear();
+    for(var j=0;j<7;j++){var x=new Date(s);x.setDate(s.getDate()+j);frag.appendChild(diaBtn(x,false));}
+  }
+  grid.textContent=''; grid.appendChild(frag);
+}
+function etiquetaDia(k){var d=parse(k);return DIA[d.getDay()]+' '+d.getDate();}
+function pintarLista(){
+  list.textContent=''; var frag=document.createDocumentFragment();
+  if(vista==='lista'){
+    var ks=Object.keys(porDia).sort();
+    if(!ks.length) frag.appendChild(el('li','pz-empty','No hay publicaciones con estos filtros.'));
+    ks.forEach(function(k){var d=parse(k);frag.appendChild(el('li','pz-lgh',DIA[d.getDay()]+' '+d.getDate()+' '+MESC[d.getMonth()]+' · '+porDia[k].length+(porDia[k].length===1?' publicación':' publicaciones')));porDia[k].forEach(function(p){frag.appendChild(card(p));});});
+    $('pz-dayh').hidden=true;
+  } else {
+    var ps=porDia[sel]||[]; $('pz-dayh').hidden=false;
+    $('pz-dayh').textContent=etiquetaDia(sel); var sm=el('small','',ps.length?ps.length+(ps.length===1?' publicación':' publicaciones'):''); $('pz-dayh').appendChild(sm);
+    if(!ps.length) frag.appendChild(el('li','pz-empty','No hay publicaciones programadas este día.'));
+    ps.forEach(function(p){frag.appendChild(card(p));});
+  }
+  list.appendChild(frag);
+  $('pz-mini-d').textContent=vista==='lista'?'':etiquetaDia(sel);
+}
+function pintar(){
+  indexar();
+  $('pz-vlabel').textContent=LBL[vista]; $('pz-mini-v').textContent=LBL[vista];
+  $('pz-cal').hidden=(vista==='lista');
+  document.querySelectorAll('#pz-dview .v').forEach(function(b){b.classList.toggle('on',b.dataset.view===vista);});
+  if(vista!=='lista') pintarCal(); pintarLista();
+}
+grid.addEventListener('click',function(e){
+  var b=e.target.closest('.pz-d'); if(!b) return;
+  var prev=grid.querySelector('.sel'); if(prev) prev.classList.remove('sel'); b.classList.add('sel');
+  sel=b.dataset.d;
+  if(b.classList.contains('fuera')){cur=parse(sel);pintarCal();}
+  pintarLista();
+});
+function mover(n){ if(vista==='mes'){cur=new Date(cur.getFullYear(),cur.getMonth()+n,1);} else {cur=new Date(cur);cur.setDate(cur.getDate()+7*n);sel=ymd(cur);} pintarCal(); if(vista==='semana') pintarLista(); }
+$('pz-prev').addEventListener('click',function(){mover(-1);});
+$('pz-next').addEventListener('click',function(){mover(1);});
+var sx=null; $('pz-cal').addEventListener('touchstart',function(e){sx=e.touches[0].clientX;},{passive:true});
+$('pz-cal').addEventListener('touchend',function(e){if(sx==null)return;var dx=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(dx)>50)mover(dx<0?1:-1);},{passive:true});
+
+/* ---------- vistas ---------- */
+$('pz-vbtn').addEventListener('click',function(){openD($('pz-dview'));});
+$('pz-dview').addEventListener('click',function(e){var b=e.target.closest('[data-view]');if(!b)return;vista=b.dataset.view;try{localStorage.setItem('pz_vista',vista);}catch(_){}
+  if(vista!=='lista'){cur=parse(sel);} closeD($('pz-dview')); pintar();});
+
+/* ---------- cabecera compacta al bajar ---------- */
+var mini=$('pz-mini');
+if('IntersectionObserver' in window){ new IntersectionObserver(function(es){var v=es[0];mini.classList.toggle('show',!v.isIntersecting&&v.boundingClientRect.top<0);}).observe($('pz-vlabel').parentNode); }
+mini.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
+
+/* ---------- fila de cuentas: tocar un avatar filtra ---------- */
+$('pz-accs').addEventListener('click',function(e){var b=e.target.closest('.av');if(!b)return;var id=b.dataset.acc;
+  if(F.acc[id]) delete F.acc[id]; else F.acc[id]=true;
+  var any=Object.keys(F.acc).length;
+  document.querySelectorAll('#pz-accs .av').forEach(function(x){var on=!!F.acc[x.dataset.acc];x.setAttribute('aria-pressed',on);x.classList.toggle('off',any&&!on);});
+  toast(any?'Mostrando solo: '+Object.keys(F.acc).map(function(k){return ACC[k].nombre;}).join(', '):'Mostrando todas las cuentas');
+  pintar();});
+
+/* ---------- hoja Filtros ---------- */
+var fb=$('pz-fbody'), snap='';
+function leerF(){var o={};fb.querySelectorAll('[data-grp]').forEach(function(g){o[g.dataset.grp]=[].map.call(g.querySelectorAll('input:checked'),function(i){return i.value;});});return o;}
+function estadoF(){return JSON.stringify(leerF());}
+function rotulos(){fb.querySelectorAll('[data-grp]').forEach(function(g){var b=g.querySelector('[data-all]');if(!b)return;var ins=g.querySelectorAll('input');var all=[].every.call(ins,function(i){return i.checked;});b.textContent=all?'Deseleccionar todo':'Seleccionar todo';});}
+$('pz-fbtn').addEventListener('click',function(){snap=estadoF();$('pz-aplicar').disabled=true;rotulos();openD($('pz-dfil'));});
+fb.addEventListener('change',function(){rotulos();$('pz-aplicar').disabled=(estadoF()===snap);});
+fb.addEventListener('click',function(e){var b=e.target.closest('[data-all]');if(!b)return;e.preventDefault();var g=b.closest('[data-grp]'),ins=g.querySelectorAll('input');var all=[].every.call(ins,function(i){return i.checked;});ins.forEach(function(i){i.checked=!all;});rotulos();$('pz-aplicar').disabled=(estadoF()===snap);});
+$('pz-reset').addEventListener('click',function(){fb.querySelectorAll('[data-grp="tipo"] input,[data-grp="estado"] input').forEach(function(i){i.checked=true;});fb.querySelectorAll('[data-grp="aprobacion"] input,[data-grp="autor"] input').forEach(function(i){i.checked=false;});rotulos();$('pz-aplicar').disabled=(estadoF()===snap);});
+$('pz-aplicar').addEventListener('click',function(){var o=leerF();F.tipo=o.tipo;F.estado=o.estado;F.aprobacion=o.aprobacion;F.autor=o.autor||null;
+  var def=fb.querySelectorAll('[data-grp="tipo"] input:not(:checked),[data-grp="estado"] input:not(:checked),[data-grp="aprobacion"] input:checked,[data-grp="autor"] input:checked').length>0;
+  $('pz-fbtn').classList.toggle('on',def); closeD($('pz-dfil')); pintar();});
+
+wireCrear();
+pintar();
+
+/* ---------- «+»: Seleccione la(s) cuenta(s) → Crear ---------- */
+function wireCrear(){
+  var d=$('pz-dacc'), cr=$('pz-crear'), modo='crear';
+  function abrir(m){modo=m;$('pz-dacc-t').textContent=m==='ver'?'Cuenta(s)':'Seleccione la(s) cuenta(s)';cr.hidden=(m==='ver');$('pz-crear-nota').hidden=(m==='ver');
+    d.querySelectorAll('#pz-accl input').forEach(function(i){i.disabled=(m==='ver');});openD(d);}
+  document.querySelectorAll('[data-crear]').forEach(function(b){b.addEventListener('click',function(){abrir('crear');});});
+  var vt=$('pz-vertodo'); if(vt) vt.addEventListener('click',function(){abrir('ver');});
+  d.addEventListener('change',function(){cr.disabled=!d.querySelector('#pz-accl input:checked');});
+  $('pz-q').addEventListener('input',function(){var q=this.value.trim().toLowerCase();d.querySelectorAll('#pz-accl .pz-opt').forEach(function(o){o.hidden=q&&o.dataset.name.indexOf(q)<0;});});
+  $('pz-chips').addEventListener('click',function(e){var b=e.target.closest('[data-chip]');if(!b)return;d.querySelectorAll('#pz-chips button').forEach(function(x){x.classList.toggle('on',x===b);});
+    var gr=b.dataset.chip==='grupos';$('pz-accl').hidden=gr;$('pz-nogr').hidden=!gr;});
+  cr.addEventListener('click',function(){
+    var ns=[].map.call(d.querySelectorAll('#pz-accl input:checked'),function(i){var c=ACC[i.value];return c.nombre+' ('+c.red+')';});
+    window.open(D.ghl,'_blank','noopener');
+    copiar(ns.join(', '),'Abriendo el Social Planner de GHL. Cuentas copiadas: '+ns.join(', '));
+    closeD(d);
+  });
+}
+})();
+</script>
 {% endblock %}

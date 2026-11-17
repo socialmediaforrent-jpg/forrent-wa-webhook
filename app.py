@@ -2171,24 +2171,57 @@ def mercadeo_marketplace():
 @app.get('/mercadeo/planificador')
 @require_roles(*ROLES_MERCADEO)
 def mercadeo_planificador():
-    """Planificador de anuncios (Mercadeo y Presidencia). Solo lectura por ahora: muestra las publicaciones
-    programadas que la caja sube con /admin/portal-sync («planificador.json»). No publica nada."""
+    """Planificador de redes sociales (Mercadeo y Presidencia). Solo lectura: muestra las publicaciones
+    programadas que la caja sube con /admin/portal-sync («planificador.json»). No publica nada.
+    Las cuentas salen de las mismas publicaciones (campo «cuentas», red:nombre); no se inventa ninguna.
+    El «+» abre el Social Planner de GHL, que es donde hoy se crean las publicaciones."""
     d = _portal_live('planificador.json') or {}
-    posts = []
+    posts, cuentas = [], {}
     for p in d.get('posts') or []:
         if not isinstance(p, dict):
             continue
+        cs = [c.strip() for c in str(p.get('cuentas') or '').split('|') if c.strip()]
+        for c in cs:
+            red, _, nombre = c.partition(':')
+            if not nombre:
+                red, nombre = '', red
+            cuentas.setdefault(c, {'id': c, 'red': red.strip().lower(), 'nombre': nombre.strip()})
+        thumb = str(p.get('thumbnail') or '').strip()
         posts.append({
             'cuando': p.get('fecha_hora_toronto') or '',
             'fecha': (p.get('fecha_hora_toronto') or '')[:10],
-            'cuentas': [c.strip() for c in str(p.get('cuentas') or '').split('|') if c.strip()],
+            'cuentas': cs,
             'texto': p.get('texto') or '',
             'media': [m.strip() for m in str(p.get('media_urls') or '').split('|') if m.strip().startswith('https://')],
+            'thumb': thumb if thumb.startswith('https://') else '',
+            # El export es de publicaciones programadas (GHL status «scheduled», type «post»); si la caja
+            # algún día manda otro estado/tipo, se muestra tal cual.
+            'estado': PLANIF_ESTADO.get(str(p.get('status') or 'scheduled').lower(), str(p.get('status') or '')),
+            'tipo': PLANIF_TIPO.get(str(p.get('type') or 'post').lower(), str(p.get('type') or '')),
+            # Aprobación y autor solo si la caja los manda (el export actual no los trae).
+            'aprobacion': PLANIF_APROB.get(str(p.get('approval_status') or '').lower(), ''),
+            'creado_por': str(p.get('created_by_name') or '').strip(),
             'id': p.get('post_id') or '',
         })
     posts.sort(key=lambda x: x['cuando'])
-    return _hdr(render_template('planificador.html', posts=posts, fuente=d.get('fuente') or '',
+    orden = {'facebook': 0, 'instagram': 1, 'tiktok': 2, 'pinterest': 3}
+    cuentas = sorted(cuentas.values(), key=lambda c: (orden.get(c['red'], 9), c['nombre'].lower()))
+    hoy = datetime.now(ZoneInfo('America/Toronto')).strftime('%Y-%m-%d')
+    return _hdr(render_template('planificador.html', posts=posts, cuentas=cuentas, hoy=hoy,
+                                estados=list(PLANIF_ESTADO.values()), tipos=list(PLANIF_TIPO.values()),
+                                aprobaciones=list(PLANIF_APROB.values()),
+                                autores=sorted({x['creado_por'] for x in posts if x['creado_por']}),
+                                ghl_url=os.environ.get('GHL_SOCIAL_PLANNER_URL') or GHL_SOCIAL_PLANNER_URL,
+                                fuente=d.get('fuente') or '',
                                 actualizado=_fmt_actualizado(d.get('actualizado') or '') if d else ''))
+
+
+# Etiquetas como en el Social Planner de GHL (filtros «Tipo de contenido» y «Estado»).
+PLANIF_ESTADO = {'published': 'Publicado', 'failed': 'Error', 'scheduled': 'Programado', 'draft': 'Borrador',
+                 'in_review': 'En revisión', 'pending': 'Pendiente'}
+PLANIF_TIPO = {'post': 'Editor de publicaciones', 'recurring': 'Publicación recurrente', 'csv': 'Publicación CSV'}
+PLANIF_APROB = {'approved': 'Aprobado', 'rejected': 'Rechazado'}
+GHL_SOCIAL_PLANNER_URL = 'https://app.gohighlevel.com/v2/location/SoaYbhOIqKFRrHHVo7vY/marketing/social-planner'
 
 
 # ---------------------------------------------------------------- portal de asesoras (fase 2)
