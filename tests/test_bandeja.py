@@ -110,7 +110,8 @@ def test_responder_envia_y_registra(monkeypatch):
     assert r.status_code == 200 and r.get_json()['ok']
     assert enviados[0]['to'] == CLI_ANA and enviados[0]['text']['body'] == 'US$750 al mes' and enviados[0]['type'] == 'text'
     row = appmod.q("SELECT source, wamid, data FROM wa_events WHERE kind='outbound'", fetch=True)[0]
-    assert row['source'] == 'portal' and row['wamid'] == 'wamid.PRUEBA' and 'ana' in row['data']
+    datos = row['data'] if isinstance(row['data'], str) else json.dumps(row['data'])  # SQLite: texto; Postgres: JSONB
+    assert row['source'] == 'portal' and row['wamid'] == 'wamid.PRUEBA' and 'ana' in datos
     assert 'tok-prueba' not in r.get_data(as_text=True)
 
 

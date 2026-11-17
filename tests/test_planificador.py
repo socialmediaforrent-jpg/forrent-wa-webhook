@@ -189,3 +189,29 @@ def test_sin_codigo_de_publicacion_en_redes():
     src = open(os.path.join(ROOT, 'planificador.py')).read() + open(os.path.join(ROOT, 'app.py')).read()
     for s in ('graph.facebook.com/v', '/media_publish', 'open.tiktokapis.com', 'api.pinterest.com'):
         assert s not in src
+
+
+# ------------------------------------------------------------ publicador (simulación)
+def test_publicador_simulacion_nunca_toma_ghl_ni_cuentas_apagadas():
+    import publicador
+    from datetime import datetime, timezone
+    q = appmod.q
+    q("UPDATE social_posts SET programado_utc='2020-01-01T00:00:00+00:00' WHERE origen='ghl_import'")  # vencidas a propósito
+    guardar(texto='PRUEBA vencida')
+    pid = ultimo()['id']
+    q("UPDATE social_posts SET programado_utc='2020-01-01T00:00:00+00:00' WHERE id=%s", (pid,))
+    el, apag, venc = publicador.pendientes(q)
+    assert el == [] and venc >= 1                                            # todas las cuentas nacen apagadas
+    assert all(r['origen'] == 'portal' for r, _ in el)
+    q("UPDATE social_accounts SET publicar_auto=1 WHERE clave=%s", (FB,))
+    try:
+        el, _, _ = publicador.pendientes(q)
+        assert pid in [r['id'] for r, _ in el] and all(r['origen'] == 'portal' for r, _ in el)
+        assert all(cs == [FB] for _, cs in el)
+    finally:
+        q("UPDATE social_accounts SET publicar_auto=0")
+    antes = q('SELECT COUNT(*) AS n FROM social_posts WHERE estado=%s', ('Programado',), fetch=True)[0]['n']
+    assert publicador.correr(q)['modo'] == 'simulacion'
+    assert q('SELECT COUNT(*) AS n FROM social_posts WHERE estado=%s', ('Programado',), fetch=True)[0]['n'] == antes
+    src = open(os.path.join(ROOT, 'publicador.py')).read()
+    assert 'urllib' not in src and 'requests' not in src and 'http' not in src.replace('https://', '')

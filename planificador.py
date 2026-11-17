@@ -38,13 +38,19 @@ def init(q, is_pg):
     blob = 'BYTEA' if is_pg else 'BLOB'
     q(f"""CREATE TABLE IF NOT EXISTS social_accounts (
         id {serial}, clave TEXT NOT NULL UNIQUE, red TEXT NOT NULL, nombre TEXT NOT NULL, ext_id TEXT,
-        activa INTEGER NOT NULL DEFAULT 1, origen TEXT, created_at TEXT NOT NULL)""")
+        activa INTEGER NOT NULL DEFAULT 1, origen TEXT, created_at TEXT NOT NULL,
+        publicar_auto INTEGER NOT NULL DEFAULT 0)""")  # interruptor por cuenta: 0 = apagado (todas nacen apagadas)
     q(f"""CREATE TABLE IF NOT EXISTS social_posts (
         id {serial}, origen TEXT NOT NULL, ext_id TEXT, estado TEXT NOT NULL, tipo TEXT NOT NULL,
         texto TEXT NOT NULL DEFAULT '', media TEXT NOT NULL DEFAULT '[]', cuentas TEXT NOT NULL DEFAULT '[]',
         programado_local TEXT, programado_utc TEXT,
         creado_por TEXT, creado_por_nombre TEXT, aprobacion TEXT, aprobador TEXT, aprobador_nombre TEXT, aprobado_at TEXT,
         created_at TEXT NOT NULL, updated_at TEXT NOT NULL, actualizado_por TEXT, deleted_at TEXT, deleted_by TEXT)""")
+    try:  # por si la tabla ya existía sin el interruptor (aditivo; todas quedan apagadas)
+        q('ALTER TABLE social_accounts ADD COLUMN publicar_auto INTEGER NOT NULL DEFAULT 0')
+    except Exception as e:
+        if 'exist' not in str(e).lower() and 'duplicate' not in str(e).lower():
+            raise
     q('CREATE INDEX IF NOT EXISTS social_posts_prog ON social_posts (programado_local)')
     q(f"""CREATE TABLE IF NOT EXISTS social_media (
         id {serial}, mime TEXT NOT NULL, nombre TEXT, tam INTEGER NOT NULL, datos {blob} NOT NULL,
