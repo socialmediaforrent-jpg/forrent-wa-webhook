@@ -52,6 +52,7 @@ import bandeja
 import redes
 import marketplace
 import inmuebles
+import planificador as planif
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('wa')
@@ -187,6 +188,10 @@ def init_db():
         marketplace.init(q, IS_PG)  # Redes Sociales: crm_marketplace_links + bitácora (aditivas)
     except Exception:
         log.exception('marketplace.init')
+    try:
+        planif.init(q, IS_PG)  # Planificador propio: social_accounts/social_posts/social_media/social_meta (aditivas)
+    except Exception:
+        log.exception('planificador.init')
     seed_emails_perfil()
 
 
@@ -616,7 +621,9 @@ INVENTARIO_ENDPOINTS = {'inventario', 'inventario_ver'}
 ROLES_VER_ENCARGADO = ('admin', 'mercadeo', 'inventario')
 
 # Rutas con sesión que el usuario de Mercadeo puede abrir. Todo lo demás le responde 403 (en el servidor).
-MERCADEO_ENDPOINTS = {'mercadeo', 'mercadeo_link', 'mercadeo_verificar', 'mercadeo_planificador'}
+MERCADEO_ENDPOINTS = {'mercadeo', 'mercadeo_link', 'mercadeo_verificar', 'mercadeo_planificador',
+                      'planif_nuevo', 'planif_editar', 'planif_guardar', 'planif_duplicar', 'planif_borrar',
+                      'planif_media'}
 ROLES_MERCADEO = ('admin', 'mercadeo')
 
 
@@ -2236,24 +2243,173 @@ def mercadeo_marketplace():
 @app.get('/mercadeo/planificador')
 @require_roles(*ROLES_MERCADEO)
 def mercadeo_planificador():
-    """Planificador de anuncios (Mercadeo y Presidencia). Solo lectura por ahora: muestra las publicaciones
-    programadas que la caja sube con /admin/portal-sync («planificador.json»). No publica nada."""
-    d = _portal_live('planificador.json') or {}
-    posts = []
-    for p in d.get('posts') or []:
-        if not isinstance(p, dict):
+    """Planificador de redes sociales propio (Mercadeo y Presidencia), sin depender de GHL.
+    Lee social_posts/social_accounts. La primera vez copia el export GHL (planificador.json) a esas tablas;
+    el JSON queda intacto como respaldo. No publica nada en redes."""
+    try:
+        n = planif.importar_ghl_una_vez(q, _portal_live('planificador.json') or {}, por=g.user['user'])
+        if n:
+            log.info('planificador: importadas %s publicaciones del export GHL', n)
+    except Exception:
+        log.exception('planificador: importación GHL')
+    posts = planif.listar(q)
+    cuentas = planif.cuentas(q)
+    hoy = datetime.now(planif.TZ).strftime('%Y-%m-%d')
+    return _hdr(render_template('planificador.html', posts=posts, cuentas=cuentas, hoy=hoy,
+                                estados=list(planif.ESTADOS), tipos=list(planif.TIPOS), aprobaciones=list(planif.APROBACIONES),
+                                autores=sorted({x['creado_por'] for x in posts if x['creado_por']}),
+                                aprobadores=sorted({x['aprobador'] for x in posts if x['aprobador']}),
+                                puede_aprobar=g.user['role'] == 'admin', csrf=portal_lib.csrf_token(g.user),
+                                ok={'creado': 'Publicación guardada.', 'editado': 'Cambios guardados.',
+                                    'duplicado': 'Copia creada como borrador.', 'borrado': 'Publicación borrada.',
+                                    'aprobado': 'Aprobación registrada.'}.get(request.args.get('ok') or '', ''),
+                                sel_dia=(request.args.get('dia') or '')[:10]))
+
+
+def _planif_form_ctx(post=None, err='', vals=None):
+    cuentas = planif.cuentas(q)
+    sel = (vals or {}).get('cuentas') if vals else (post['cuentas'] if post else
+                                                    [c for c in request.args.getlist('cuenta') if c])
+    return dict(post=post, cuentas=cuentas, sel=set(sel or []), err=err, vals=vals or {},
+                csrf=portal_lib.csrf_token(g.user), hoy=datetime.now(planif.TZ).strftime('%Y-%m-%d'),
+                texto_max=planif.TEXTO_MAX)
+
+
+@app.get('/mercadeo/planificador/nuevo', endpoint='planif_nuevo')
+@require_roles(*ROLES_MERCADEO)
+def planif_nuevo():
+    return _hdr(render_template('planificador_form.html', **_planif_form_ctx()))
+
+
+@app.get('/mercadeo/planificador/<int:pid>', endpoint='planif_editar')
+@require_roles(*ROLES_MERCADEO)
+def planif_editar(pid):
+    post = planif.uno(q, pid)
+    if not post:
+        return _hdr(Response('No existe o fue borrada.\n'), 404)
+    return _hdr(render_template('planificador_form.html', ver=request.args.get('ver') == '1', **_planif_form_ctx(post)))
+
+
+def _planif_media_del_form(post):
+    """Media final: la existente que no se quitó + enlaces https + archivos subidos (JPG/PNG/WebP ≤8 MB, MP4 ≤25 MB)."""
+    f, out = request.form, []
+    quitar = set(f.getlist('quitar_media'))
+    for m in (post or {}).get('media_raw') or []:
+        if m not in quitar:
+            out.append(m)
+    for ln in (f.get('enlaces') or '').splitlines():
+        ln = ln.strip()
+        if not ln:
             continue
-        posts.append({
-            'cuando': p.get('fecha_hora_toronto') or '',
-            'fecha': (p.get('fecha_hora_toronto') or '')[:10],
-            'cuentas': [c.strip() for c in str(p.get('cuentas') or '').split('|') if c.strip()],
-            'texto': p.get('texto') or '',
-            'media': [m.strip() for m in str(p.get('media_urls') or '').split('|') if m.strip().startswith('https://')],
-            'id': p.get('post_id') or '',
-        })
-    posts.sort(key=lambda x: x['cuando'])
-    return _hdr(render_template('planificador.html', posts=posts, fuente=d.get('fuente') or '',
-                                actualizado=_fmt_actualizado(d.get('actualizado') or '') if d else ''))
+        if not ln.startswith('https://') or len(ln) > 800 or ' ' in ln:
+            return None, 'Los enlaces de archivos deben empezar con https://'
+        out.append(ln)
+    for fs in request.files.getlist('archivos'):
+        if not fs or not fs.filename:
+            continue
+        data = fs.read(planif.VID_MAX + 1)
+        mime = planif.media_mime(data)
+        if not mime:
+            return None, 'Los archivos deben ser JPG, PNG, WebP o MP4.'
+        lim = planif.VID_MAX if mime == 'video/mp4' else planif.IMG_MAX
+        if len(data) > lim:
+            return None, 'El video supera 25 MB.' if mime == 'video/mp4' else 'La imagen supera 8 MB.'
+        out.append(f'media:{planif.guardar_media(q, data, mime, fs.filename, g.user)}')
+    if len(out) > 10:
+        return None, 'Máximo 10 archivos por publicación.'
+    return out, None
+
+
+@app.post('/mercadeo/planificador/guardar', endpoint='planif_guardar')
+@require_roles(*ROLES_MERCADEO)
+def planif_guardar():
+    f = request.form
+    pid = int(f.get('id') or 0) if (f.get('id') or '').isdigit() else 0
+    post = planif.uno(q, pid) if pid else None
+    vals = {'texto': f.get('texto') or '', 'fecha': f.get('fecha') or '', 'hora': f.get('hora') or '',
+            'cuentas': f.getlist('cuentas'), 'accion': f.get('accion')}
+
+    def volver(err, st=400):
+        return _hdr(render_template('planificador_form.html', **_planif_form_ctx(post, err, vals)), st)
+
+    if pid and not post:
+        return _hdr(Response('No existe o fue borrada.\n'), 404)
+    if not _csrf_ok():
+        return volver('La sesión expiró. Vuelve a intentar.')
+    if (request.content_length or 0) > planif.VID_MAX * 3 + 256 * 1024:
+        return volver('Los archivos pesan demasiado (máximo 25 MB por video).')
+    if not _idem_claim(g.user['user'], f'planif:{pid or "nuevo"}'):
+        return redirect('/mercadeo/planificador?ok=' + ('editado' if pid else 'creado'))
+    media, err = _planif_media_del_form(post)
+    if not err:
+        vals['media'] = media
+        d, err = planif.validar(vals, {c['id'] for c in planif.cuentas(q)} | set((post or {}).get('cuentas') or []))
+    if err:
+        _idem_release()
+        return volver(err)
+    if post:
+        planif.editar(q, pid, d, g.user)
+    else:
+        pid = planif.crear(q, d, g.user)
+    return redirect('/mercadeo/planificador?ok=' + ('editado' if post else 'creado') + '&dia=' + (d['local'][:10] or ''))
+
+
+def _planif_accion(pid, nombre):
+    if not _csrf_ok():
+        return None, _hdr(Response('La sesión expiró. Vuelve a intentar.\n'), 400)
+    if not planif.uno(q, pid):
+        return None, _hdr(Response('No existe o fue borrada.\n'), 404)
+    if not _idem_claim(g.user['user'], f'planif_{nombre}:{pid}'):
+        return None, redirect('/mercadeo/planificador')
+    return True, None
+
+
+@app.post('/mercadeo/planificador/<int:pid>/duplicar', endpoint='planif_duplicar')
+@require_roles(*ROLES_MERCADEO)
+def planif_duplicar(pid):
+    ok, r = _planif_accion(pid, 'duplicar')
+    if not ok:
+        return r
+    nid = planif.duplicar(q, pid, g.user)
+    return redirect(f'/mercadeo/planificador/{nid}')
+
+
+@app.post('/mercadeo/planificador/<int:pid>/borrar', endpoint='planif_borrar')
+@require_roles(*ROLES_MERCADEO)
+def planif_borrar(pid):
+    ok, r = _planif_accion(pid, 'borrar')
+    if not ok:
+        return r
+    planif.borrar(q, pid, g.user)
+    return redirect('/mercadeo/planificador?ok=borrado')
+
+
+@app.post('/mercadeo/planificador/<int:pid>/aprobacion')
+@require_admin
+def planif_aprobacion(pid):
+    """Solo Presidencia aprueba o rechaza (queda quién y cuándo)."""
+    v = request.form.get('valor')
+    if v not in planif.APROBACIONES:
+        return _hdr(Response('Valor no válido.\n'), 400)
+    ok, r = _planif_accion(pid, 'aprob_' + v)
+    if not ok:
+        return r
+    planif.aprobar(q, pid, v, g.user)
+    return redirect('/mercadeo/planificador?ok=aprobado')
+
+
+@app.get('/mercadeo/planificador/media/<int:mid>', endpoint='planif_media')
+@require_roles(*ROLES_MERCADEO)
+def planif_media(mid):
+    m = planif.leer_media(q, mid)
+    if not m:
+        abort(404)
+    data = bytes(m['datos'])
+    r = Response(data, mimetype=m['mime'])
+    r.headers['Cache-Control'] = 'private, max-age=86400'
+    r = r.make_conditional(request, accept_ranges=True, complete_length=len(data))  # videos en el teléfono (Range)
+    r.headers['X-Content-Type-Options'] = 'nosniff'
+    return r
 
 
 # ---------------------------------------------------------------- portal de asesoras (fase 2)
