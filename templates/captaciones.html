@@ -20,7 +20,7 @@
   <h2>Agregar o retirar una captación</h2>
   <p class="muted">Se registra como solicitud y la aprueba tu líder (o José). Te llega un aviso por correo.</p>
   <details {{ 'open' if err else '' }}><summary class="btn-sum">+ Solicitar agregar</summary>
-  <form class="grid" method="post" action="/mis-captaciones" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="alta">
+  <form class="grid" method="post" action="/mis-captaciones" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="idem" value="{{ idem_token() }}"><input type="hidden" name="accion" value="alta">
     <div class="wide"><label>Título o dirección <input name="titulo" required maxlength="160"></label></div>
     <div><label>Operación <select name="operacion"><option>Venta</option><option>Alquiler</option></select></label></div>
     <div><label>Origen <select name="origen"><option value="propio">Propia</option><option value="alianza">Aliada</option></select></label></div>
@@ -30,7 +30,7 @@
     <div><button type="submit">Enviar solicitud</button></div>
   </form></details>
   {% if n_prop + n_ali %}
-  <form class="grid" method="post" action="/mis-captaciones" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="accion" value="baja">
+  <form class="grid" method="post" action="/mis-captaciones" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="idem" value="{{ idem_token() }}"><input type="hidden" name="accion" value="baja">
     <div class="wide"><label>Solicitar retiro de <select name="codigo" required>{% for it in filas %}<option value="{{ it.codigo }}">{{ it.codigo }} · {{ it.titulo[:60] }}</option>{% endfor %}</select></label></div>
     <div class="wide"><label>Motivo <textarea name="nota" maxlength="400"></textarea></label></div>
     <div><button type="submit" class="btn-sec">Solicitar retiro</button></div>

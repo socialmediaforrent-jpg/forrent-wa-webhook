@@ -1,5 +1,41 @@
-<link rel="stylesheet" href="/static/app.css?v=10">
+<link rel="stylesheet" href="{{ static_v('app.css') }}">
 <script>
 document.addEventListener('submit',function(e){var b=e.target.querySelector('button[type=submit]');if(b)b.setAttribute('aria-busy','true');},true);
-document.addEventListener('click',function(e){document.querySelectorAll('details.profile[open],details.more[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open');});});
+/* F1/F2 móvil: va en <head> para que los toques respondan desde que la fila se pinta. */
+(function(){
+  var TAP='a[href],button,summary,.cli-row,.inv-row,[role=button]', cur=null;
+  function clr(){ if(cur){ cur.classList.remove('is-pressed'); cur=null; } }
+  document.addEventListener('pointerdown',function(e){
+    if(e.button>0) return; clr();
+    var t=e.target.closest&&e.target.closest(TAP);
+    if(t && !t.disabled && t.getAttribute('aria-busy')!=='true'){ cur=t; t.classList.add('is-pressed'); }
+  },{capture:true,passive:true});
+  document.addEventListener('pointercancel',clr,true);
+  document.addEventListener('pointerup',function(){
+    var t=cur; if(!t) return;
+    var nav=t.matches('a[href]') && !t.target && (t.getAttribute('href')||'#').charAt(0)!=='#';
+    setTimeout(function(){ if(cur===t) clr(); }, nav?2500:160);
+  },true);
+  /* Fichas de Mis Clientes: delegación ligada antes de que existan las filas (antes estaba al final de la página). */
+  if(!window.__cliBound){ window.__cliBound=true;
+    document.addEventListener('click',function(e){
+      var b=e.target.closest('.cli-row');
+      if(b){ var d=document.getElementById(b.getAttribute('data-dlg')); if(d){ if(d.showModal) d.showModal(); else d.setAttribute('open',''); } return; }
+      var d=e.target.closest('dialog.cli-modal');
+      if(d && (e.target===d || e.target.hasAttribute('data-close'))){ if(d.close) d.close(); else d.removeAttribute('open'); }
+    });
+  }
+  /* Doble envío: el primer envío bloquea el formulario; los siguientes se descartan hasta volver a la página. */
+  function unlock(f){ delete f.dataset.enviando; f.querySelectorAll('[aria-busy="true"]').forEach(function(b){ b.removeAttribute('aria-busy'); b.removeAttribute('aria-disabled'); }); }
+  document.addEventListener('submit',function(e){
+    var f=e.target; if(e.defaultPrevented || (f.method||'').toLowerCase()!=='post' || f.hasAttribute('data-no-guard')) return;
+    if(f.dataset.enviando){ e.preventDefault(); return; }
+    f.dataset.enviando='1';
+    var b=e.submitter||f.querySelector('button[type=submit],button:not([type])');
+    if(b){ b.setAttribute('aria-busy','true'); b.setAttribute('aria-disabled','true'); }
+    setTimeout(function(){ unlock(f); }, 15000);
+  });
+  window.addEventListener('pageshow',function(){ clr(); document.querySelectorAll('form[data-enviando]').forEach(unlock); });
+  document.addEventListener('click',function(e){document.querySelectorAll('details.profile[open],details.more[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open');});});
+})();
 </script>

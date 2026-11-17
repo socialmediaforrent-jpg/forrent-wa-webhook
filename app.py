@@ -155,6 +155,9 @@ def init_db():
     _ensure_col('captacion_solicitudes', 'revisado_por')
     _ensure_col('captacion_solicitudes', 'revisado_at')
     _ensure_col('captacion_solicitudes', 'nota_revision')
+    # F2 (móvil): tokens de un solo uso contra el doble envío. Tabla nueva y aditiva; no toca datos existentes.
+    q("""CREATE TABLE IF NOT EXISTS form_idem (
+        token TEXT PRIMARY KEY, user_slug TEXT NOT NULL, form TEXT NOT NULL, ts BIGINT NOT NULL)""")
     q(f"""CREATE TABLE IF NOT EXISTS asesor_visitas (
         id {SERIAL}, asesor_slug TEXT NOT NULL, fecha TEXT, hora TEXT, cliente TEXT NOT NULL, inmueble TEXT,
         nota TEXT, created_at TEXT NOT NULL)""")
@@ -280,6 +283,91 @@ def require_read_key():
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
+
+
+# ---------------------------------------------------------------- F2 móvil: doble envío
+# Cada formulario sensible lleva un token de un solo uso (campo oculto «idem»). El primer POST lo reclama;
+# un segundo POST con el mismo token (doble toque, reintento del navegador) no repite la acción.
+# Sin token (página vieja en caché) se comporta exactamente como antes.
+IDEM_TTL_S = 24 * 3600
+_idem_purga = {'t': 0.0}
+
+
+def idem_token():
+    import secrets
+    return secrets.token_urlsafe(16)
+
+
+def _idem_claim(user_slug, form_name):
+    """True si este envío debe procesarse; False si es un duplicado del mismo formulario."""
+    tok = (request.form.get('idem') or '').strip()
+    if not tok or len(tok) > 64:
+        return True
+    ahora = time.time()
+    try:
+        if ahora - _idem_purga['t'] > 3600:
+            _idem_purga['t'] = ahora
+            q('DELETE FROM form_idem WHERE ts < %s', (int(ahora - IDEM_TTL_S),))
+    except Exception:
+        log.warning('form_idem: no se pudo purgar')
+    try:
+        q('INSERT INTO form_idem (token, user_slug, form, ts) VALUES (%s,%s,%s,%s)', (tok, user_slug, form_name, int(ahora)))
+        return True
+    except Exception as e:
+        m = str(e).lower()
+        if 'unique' in m or 'duplicate' in m or 'primary key' in m:
+            log.info('form_idem: envío duplicado ignorado (%s)', form_name)
+            return False
+        log.warning('form_idem: %s', type(e).__name__)
+        return True  # si la tabla falla, no bloquear un guardado legítimo
+
+
+def _idem_release():
+    tok = (request.form.get('idem') or '').strip()
+    if tok:
+        try:
+            q('DELETE FROM form_idem WHERE token=%s', (tok,))
+        except Exception:
+            pass
+
+
+app.jinja_env.globals['idem_token'] = idem_token
+
+# ---------------------------------------------------------------- F4 móvil: caché de estáticos versionados
+# Solo CSS y logos/favicons enlazados con ?v=<hash del archivo>. Al cambiar el archivo cambia el hash y la URL.
+# El HTML con datos de clientes sigue con su Cache-Control actual (private, no-store).
+STATIC_VERSIONADOS = {'app.css', 'logo.webp', 'logo-1200.webp', 'logo.png', 'favicon.ico', 'favicon-32.png'}
+_static_hash = {}
+
+
+def _hash_static(name):
+    h = _static_hash.get(name)
+    if h is None:
+        try:
+            with open(os.path.join(app.static_folder, name), 'rb') as fh:
+                h = hashlib.sha256(fh.read()).hexdigest()[:12]
+        except OSError:
+            h = ''
+        _static_hash[name] = h
+    return h
+
+
+def static_v(name):
+    h = _hash_static(name) if name in STATIC_VERSIONADOS else ''
+    return f'/static/{name}?v={h}' if h else f'/static/{name}'
+
+
+app.jinja_env.globals['static_v'] = static_v
+
+
+@app.after_request
+def _cache_estaticos(resp):
+    if request.path.startswith('/static/') and resp.status_code in (200, 304):
+        name = request.path[len('/static/'):]
+        v = request.args.get('v') or ''
+        if name in STATIC_VERSIONADOS and v and v == _hash_static(name):
+            resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    return resp
 
 
 def ts_iso(unix):
@@ -1897,7 +1985,13 @@ def asesor_estatus_cliente(cid):
         return _render_clientes(g.user, flash_err='No encontramos ese cliente.')
     if not portal_lib.can_edit_propio(g.user, rows[0]['asesor_slug']):
         return _panel_headers(Response('No puedes editar este cliente.\n', 403))
-    q('UPDATE asesor_clientes SET status=%s, updated_at=%s WHERE id=%s', (status, now_iso(), cid))
+    if not _idem_claim(g.user['user'], f'estatus:{cid}'):
+        return redirect('/mis-clientes?ok=estatus')
+    try:
+        q('UPDATE asesor_clientes SET status=%s, updated_at=%s WHERE id=%s', (status, now_iso(), cid))
+    except Exception:
+        _idem_release()
+        raise
     try:
         import crm_write
         crm_write.update_propio_status(q, cid, status)
@@ -2257,11 +2351,17 @@ def mis_captaciones2():
                     err = 'Solo puedes pedir el retiro de tus propias captaciones.'
                 elif accion == 'alta' and len(titulo) < 4:
                     err = 'Indica el título o la dirección del inmueble.'
+                if not err and not _idem_claim(u['user'], f'captacion_{accion}'):
+                    return redirect('/mis-captaciones?ok=1')
                 if not err:
-                    q('INSERT INTO captacion_solicitudes (asesor_slug, accion, codigo, titulo, operacion, tipo, zona, precio, origen, nota, estado, created_at) '
-                      'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
-                      (u['user'], accion, codigo, titulo, _txt(f, 'operacion', 20), _txt(f, 'tipo', 60), _txt(f, 'zona', 120),
-                       _txt(f, 'precio', 60), origen, (f.get('nota') or '').strip()[:400], 'pendiente', now_iso()))
+                    try:
+                        q('INSERT INTO captacion_solicitudes (asesor_slug, accion, codigo, titulo, operacion, tipo, zona, precio, origen, nota, estado, created_at) '
+                          'VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+                          (u['user'], accion, codigo, titulo, _txt(f, 'operacion', 20), _txt(f, 'tipo', 60), _txt(f, 'zona', 120),
+                           _txt(f, 'precio', 60), origen, (f.get('nota') or '').strip()[:400], 'pendiente', now_iso()))
+                    except Exception:
+                        _idem_release()
+                        raise
                     que = 'agregar' if accion == 'alta' else 'retirar'
                     det = f"{titulo or codigo}" + (f" (código {codigo})" if codigo else '')
                     _correo(u['user'], f"Solicitud para {que} una captación",
