@@ -152,7 +152,7 @@ body.inbox-page .pagehint{display:none}
       <div class="av" style="background:{{ conversations|selectattr('wa_id','equalto',current)|map(attribute='color')|first or '#111' }};width:36px;height:36px;font-size:12px">{{ conversations|selectattr('wa_id','equalto',current)|map(attribute='iniciales')|first or '' }}</div>
       <div>
         <div class="who">{{ thread_name }}</div>
-        <div class="num">{{ thread_phone }}</div>
+        <div class="num">{{ thread_phone }} · Hora de Caracas (UTC−4)</div>
       </div>
     </div>
     <div class="msgs" id="msgs">
@@ -322,7 +322,7 @@ body.inbox-page .pagehint{display:none}
       const headWho = document.querySelector('.thread-head .who');
       const headNum = document.querySelector('.thread-head .num');
       if (headWho) headWho.textContent = d.thread_name;
-      if (headNum) headNum.textContent = d.thread_phone;
+      if (headNum) headNum.textContent = d.thread_phone + ' · Hora de Caracas (UTC−4)';
       msgs.replaceChildren();
       if (!d.messages.length){
         const e = document.createElement('div'); e.className='inbox-empty'; e.textContent='No hay mensajes en esta conversación.'; msgs.appendChild(e);
