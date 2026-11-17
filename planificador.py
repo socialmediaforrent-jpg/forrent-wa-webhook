@@ -85,26 +85,48 @@ def importar_ghl_una_vez(q, payload, por='sistema'):
     posts = (payload or {}).get('posts') or []
     if not posts:
         return 0
-    n, ahora = 0, now_iso()
-    for p in posts:
-        if not isinstance(p, dict):
-            continue
-        ext = str(p.get('post_id') or '').strip()
-        if ext and q("SELECT 1 AS x FROM social_posts WHERE origen='ghl_import' AND ext_id=%s", (ext,), fetch=True):
-            continue
-        cs = [c.strip() for c in str(p.get('cuentas') or '').split('|') if c.strip()]
-        for c in cs:
+    ahora = now_iso()
+    try:  # «reclamo» atómico: si dos visitas llegan a la vez, solo una importa (social_meta.clave es PRIMARY KEY)
+        q('INSERT INTO social_meta (clave, valor, at) VALUES (%s,%s,%s)', ('ghl_import', '{"estado": "en curso"}', ahora))
+    except Exception:
+        return 0
+    try:
+        # Pocas consultas (la app abre una conexión por consulta): se leen las existentes una vez y se inserta por lotes.
+        ya = {r['ext_id'] for r in (q("SELECT ext_id FROM social_posts WHERE origen='ghl_import'", fetch=True) or [])}
+        cuentas_ya = {r['clave'] for r in (q('SELECT clave FROM social_accounts', fetch=True) or [])}
+        filas, nuevas_cuentas = [], []
+        for p in posts:
+            if not isinstance(p, dict):
+                continue
+            ext = str(p.get('post_id') or '').strip()
+            if ext and ext in ya:
+                continue  # duplicado (el export trae alguna fila repetida) o ya importado
+            if ext:
+                ya.add(ext)
+            cs = [c.strip() for c in str(p.get('cuentas') or '').split('|') if c.strip()]
+            for c in cs:
+                if c not in cuentas_ya:
+                    cuentas_ya.add(c)
+                    nuevas_cuentas.append(c)
+            media = [m.strip() for m in str(p.get('media_urls') or '').split('|') if m.strip().startswith('https://')]
+            filas.append(('ghl_import', ext, GHL_ESTADO.get(str(p.get('status') or 'scheduled').lower(), 'Programado'), TIPOS[0],
+                          str(p.get('texto') or ''), json.dumps(media), json.dumps(cs, ensure_ascii=False),
+                          str(p.get('fecha_hora_toronto') or '')[:16], str(p.get('fecha_hora_utc') or ''),
+                          'ghl', 'Importado de GHL', ahora, ahora))
+        for c in nuevas_cuentas:
             _cuenta_upsert(q, c, 'ghl_import')
-        media = [m.strip() for m in str(p.get('media_urls') or '').split('|') if m.strip().startswith('https://')]
-        q("""INSERT INTO social_posts (origen, ext_id, estado, tipo, texto, media, cuentas, programado_local, programado_utc,
-             creado_por, creado_por_nombre, created_at, updated_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-          ('ghl_import', ext, GHL_ESTADO.get(str(p.get('status') or 'scheduled').lower(), 'Programado'), TIPOS[0],
-           str(p.get('texto') or ''), json.dumps(media), json.dumps(cs, ensure_ascii=False),
-           str(p.get('fecha_hora_toronto') or '')[:16], str(p.get('fecha_hora_utc') or ''),
-           'ghl', 'Importado de GHL', ahora, ahora))
-        n += 1
-    q('INSERT INTO social_meta (clave, valor, at) VALUES (%s,%s,%s)',
-      ('ghl_import', json.dumps({'importadas': n, 'por': por, 'fuente': (payload or {}).get('fuente') or ''}), ahora))
+        for i in range(0, len(filas), 50):
+            lote = filas[i:i + 50]
+            q("""INSERT INTO social_posts (origen, ext_id, estado, tipo, texto, media, cuentas, programado_local, programado_utc,
+                 creado_por, creado_por_nombre, created_at, updated_at) VALUES """ +
+              ','.join(['(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'] * len(lote)), tuple(v for f in lote for v in f))
+        n = len(filas)
+    except Exception:
+        # Se suelta el reclamo para reintentar en la próxima visita; lo ya insertado no se repite (se salta por ext_id).
+        q("DELETE FROM social_meta WHERE clave='ghl_import'")
+        raise
+    q('UPDATE social_meta SET valor=%s, at=%s WHERE clave=%s',
+      (json.dumps({'importadas': n, 'por': por, 'fuente': (payload or {}).get('fuente') or ''}), ahora, 'ghl_import'))
     return n
 
 
