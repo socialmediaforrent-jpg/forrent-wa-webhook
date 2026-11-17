@@ -784,6 +784,72 @@ def _portal_nav():
             'viewer': u, 'role_label': ROLE_LABEL.get(role, role)}
 
 
+# Botón «← Atrás» en el encabezado (José, 17-nov). No aparece en Inicio ni en Mensajes
+# (raíces de la barra). Sí aparece en /modulos, porque al entrar ahí no había forma de
+# volver. Las tarjetas «En preparación» no son una ruta: viven en /modulos.
+# Si no hay historial del mismo origen, el enlace cae al padre (/modulos o /portal).
+# No se tocan permisos, rutas ni datos.
+_ATRAS_RAICES = {
+    'admin': frozenset({'/', '/portal', '/panel'}),
+    'lider': frozenset({'/', '/portal', '/panel'}),
+    'asesor': frozenset({'/', '/portal', '/panel'}),
+    'mercadeo': frozenset({'/mercadeo', '/mercadeo/planificador'}),
+    'inventario': frozenset({'/inventario', '/inventario/cola'}),
+}
+
+
+def _atras_ya_tiene(path):
+    """Pantallas que ya traen su propio atrás: no se duplica en el encabezado."""
+    if path == '/inventario/ver' or path.startswith('/inventario/ver/'):
+        return True
+    if path.startswith('/mercadeo/planificador'):
+        return True
+    if path.startswith('/mis-inmuebles/') and '/paso/' in path:
+        return True
+    if path.startswith('/inventario/cola/') and path != '/inventario/cola':
+        return True
+    return False
+
+
+def _atras_fallback(path, role):
+    if path == '/modulos':
+        return '/portal'
+    if path.startswith('/mi-equipo/'):
+        return '/mi-equipo'
+    if path.startswith('/mis-inmuebles/'):
+        return '/mis-inmuebles'
+    if path.startswith('/inventario/cola/'):
+        return '/inventario/cola'
+    if path.startswith('/inventario/ver'):
+        return '/inventario'
+    if path.startswith('/mercadeo/planificador/') or path == '/mercadeo/planificador/nuevo':
+        return '/mercadeo/planificador'
+    if path == '/mercadeo/planificador':
+        return '/mercadeo' if role == 'mercadeo' else '/modulos'
+    if path == '/panel' or path.startswith('/panel/'):
+        return '/panel'
+    if role in ('admin', 'lider', 'asesor'):
+        return '/modulos'
+    if role == 'mercadeo':
+        return '/mercadeo'
+    if role == 'inventario':
+        return '/inventario'
+    return '/portal'
+
+
+@app.context_processor
+def _portal_atras():
+    u = getattr(g, 'user', None)
+    if not u:
+        return {'show_back': False, 'back_fallback': '/portal'}
+    path = (request.path or '/').rstrip('/') or '/'
+    role = u.get('role')
+    if path in _ATRAS_RAICES.get(role, frozenset()) or _atras_ya_tiene(path):
+        return {'show_back': False, 'back_fallback': _atras_fallback(path, role)}
+    return {'show_back': True, 'back_fallback': _atras_fallback(path, role)}
+
+
+
 def _modulos_para(role):
     """Los 5 módulos del Prompt Maestro con sus secciones. Cada sección enlaza a la pantalla que ya existe;
     si todavía no existe, queda como «En preparación» sin enlace y sin números (no se inventan datos).

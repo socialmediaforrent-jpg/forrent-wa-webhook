@@ -60,3 +60,31 @@ def test_pestanas_propios_alianza_todos():
     assert re.search(r'Propios \(\d+\).*Alianza \(\d+\).*Todos \(\d+\)', h, re.S)
     h = cliente('jose').get('/mercadeo').get_data(as_text=True)
     assert re.search(r'Propios \(\d+\).*Alianza \(\d+\).*Todos \(\d+\)', h, re.S)
+
+
+def _atras(html):
+    return re.search(r'class="btn-atras"[^>]*href="([^"]+)"', html)
+
+
+def test_boton_atras():
+    """El encabezado muestra ← Atrás fuera de Inicio y Mensajes, con fallback al padre."""
+    # /modulos lo tiene (José lo pidió al entrar ahí); el fallback es Inicio.
+    h = cliente('ana').get('/modulos').get_data(as_text=True)
+    m = _atras(h)
+    assert m and m.group(1) == '/portal' and '← Atrás' in h
+    h = cliente('jose').get('/modulos').get_data(as_text=True)
+    assert _atras(h) and _atras(h).group(1) == '/portal'
+    h = cliente('herlinda').get('/modulos').get_data(as_text=True)
+    assert _atras(h) and _atras(h).group(1) == '/portal'
+    # Raíces de la barra: Inicio y Mensajes no lo tienen.
+    for slug, path in (('ana', '/portal'), ('ana', '/panel'), ('jose', '/portal'), ('jose', '/panel')):
+        assert 'btn-atras' not in cliente(slug).get(path).get_data(as_text=True), (slug, path)
+    # Pantallas de módulos / Más: sí, y caen a /modulos si no hay historial.
+    for path in ('/mis-clientes', '/visitas', '/inventario', '/mis-captaciones', '/ofertas', '/perfil', '/mercadeo'):
+        h = cliente('ana').get(path).get_data(as_text=True)
+        m = _atras(h)
+        assert m and m.group(1) == '/modulos', path
+    h = cliente('jose').get('/mercadeo').get_data(as_text=True)
+    assert _atras(h) and _atras(h).group(1) == '/modulos'
+    # Mercadeo: su inicio y su planificador (raíces de su barra) no lo duplican.
+    assert 'btn-atras' not in cliente('mercadeo').get('/mercadeo').get_data(as_text=True)

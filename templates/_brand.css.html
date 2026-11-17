@@ -37,5 +37,14 @@ document.addEventListener('submit',function(e){var b=e.target.querySelector('but
   });
   window.addEventListener('pageshow',function(){ clr(); document.querySelectorAll('form[data-enviando]').forEach(unlock); });
   document.addEventListener('click',function(e){document.querySelectorAll('details.profile[open],details.more[open]').forEach(function(d){if(!d.contains(e.target))d.removeAttribute('open');});});
+  /* Atrás: si hay historial del mismo origen se usa; si no, el href (padre). */
+  document.addEventListener('click',function(e){
+    var a=e.target.closest&&e.target.closest('a[data-atras]');
+    if(!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button) return;
+    var ref=document.referrer;
+    if(history.length>1 && ref){
+      try{ if(new URL(ref).origin===location.origin){ e.preventDefault(); history.back(); } }catch(err){}
+    }
+  });
 })();
 </script>
