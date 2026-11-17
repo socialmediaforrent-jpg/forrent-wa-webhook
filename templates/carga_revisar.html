@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es"><head>{% include '_carga_head.html' %}<title>Revisar #{{ c.id }} · For Rent Online</title></head>
+<body>
+{% set nav='carga_cola' %}{% include '_top.html' %}
+{% set d = c.datos %}{% set p = c.privado %}
+<main class="wrap-page"><div class="wz">
+  <div class="wz-bar"><a href="/inventario/cola" style="color:#fff;text-decoration:none;font-size:26px;line-height:1" aria-label="Volver">‹</a><h1>Revisar #{{ c.id }}</h1><span class="wz-pill {{ c.estado }}">{{ c.estado_label }}</span></div>
+  {% if copia_prueba %}<div class="wz-proto">{{ copia_prueba }}</div>{% endif %}
+  {% if err %}<div class="wz-errmsg" role="alert">{{ err }}</div>{% endif %}
+  {% if fotos %}<div class="wz-fotos">{% for f in fotos %}<figure><img src="/carga/foto/{{ f.id }}" alt="Foto {{ loop.index }}" loading="lazy"><span>{{ 'Portada' if loop.first else loop.index }}</span></figure>{% endfor %}</div>{% endif %}
+  <div class="wz-kit">
+    <h2 class="wz-title" style="margin:0 0 4px">{{ d.titulo }}</h2>
+    <div class="wz-loc">{{ d.tipo }} para {{ d.operacion }} · En {{ d.zona }}, {{ d.municipio }} · <b>US$ {{ d.precio }}</b>{% if d.condominio %} · condominio US$ {{ d.condominio }}{% endif %}</div>
+    <table style="margin-top:8px">
+      <tr><td>Captadora</td><td>{{ asesora }}</td></tr>
+      <tr><td>Origen</td><td>{{ 'Propia' if d.origen == 'propia' else 'Alianza' }}{% if d.aliado %} · {{ d.aliado }}{% endif %}</td></tr>
+      <tr><td>Hab. / baños / puestos</td><td>{{ d.habitaciones if d.habitaciones is not none else '—' }} / {{ d.banos if d.banos is not none else '—' }} / {{ d.estacionamientos if d.estacionamientos is not none else '—' }}</td></tr>
+      <tr><td>Áreas m² (const./útil/terreno)</td><td>{{ d.area_construida or '—' }} / {{ d.area_privada or '—' }} / {{ d.area_terreno or '—' }}</td></tr>
+      <tr><td>Estado físico · mascotas</td><td>{{ d.estado_fisico }} · {{ {'si':'Sí','no':'No'}.get(d.mascotas, '—') }}</td></tr>
+      <tr><td>Descripción</td><td style="white-space:pre-wrap">{{ d.descripcion }}</td></tr>
+    </table>
+  </div>
+  <div class="wz-priv"><b>🔒 Privado (solo Inventario · va a «Comentarios internos» de Wasi)</b>
+    <div class="wz-loc" style="margin-top:6px">Dirección: {{ p.direccion or '—' }} · Coordenadas: {{ (p.lat ~ ', ' ~ p.lng) if p.lat else '—' }}<br>
+    Propietario: {{ p.propietario_nombre or '—' }} {{ p.propietario_tel or '' }}{% if p.nota_interna %}<br>Nota: {{ p.nota_interna }}{% endif %}</div></div>
+
+  <h2 style="font-size:15px;margin:14px 0 8px">Posibles duplicados ({{ dups|length }})</h2>
+  {% if not dups %}<div class="wz-okmsg">No se encontró nada parecido en el inventario ni en otras cargas.</div>{% endif %}
+  {% for x in dups %}<div class="wz-dup"><b>{{ x.fuente }}</b> {% if x.codigo %}· {{ x.codigo }}{% endif %} — {{ x.titulo }}<br><span class="wz-loc">{{ x.zona }} · {{ x.precio }} · {{ x.motivo }}</span></div>{% endfor %}
+  {% if falta %}<div class="wz-falta"><b>Incompleta:</b> {{ falta|join(', ') }}</div>{% endif %}
+
+  {% if c.estado == 'enviada' %}
+  <form method="post" action="/inventario/cola/{{ c.id }}/decidir" class="wz-form">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="idem" value="{{ idem_token() }}">
+    <div class="fld"><span>Portales vía Wasi</span><div class="wz-opc">
+      {% for pid, nom in portales.items() %}<label><input type="checkbox" name="portales" value="{{ pid }}" {{ 'checked' if pid in defecto }}>{{ nom }}{% if pid == 43 %} (1 cupo Plata){% endif %}</label>{% endfor %}</div>
+      <small>Mercado Libre y Catálogo de Facebook van solo si los marcas.</small></div>
+    <label class="fld"><span>Nota para la asesora (obligatoria si devuelves o rechazas)</span><input type="text" name="nota" maxlength="600"></label>
+    <div class="wz-nav" style="position:static;background:none">
+      <button type="submit" name="accion" value="devolver" class="sec">Devolver</button>
+      <button type="submit" name="accion" value="rechazar" class="sec">Rechazar</button>
+      <button type="submit" name="accion" value="aprobar" class="pri" {{ 'disabled style=opacity:.5' if falta }}>Aprobar</button>
+    </div>
+    <p class="wz-loc">Al aprobar: Wasi en <b>{{ 'MODO PRUEBA (dry-run)' if modo != 'live' else 'modo real (bloqueado)' }}</b> — se arma y registra el envío exacto sin escribir; se crea un borrador en el Planificador.</p>
+  </form>
+  {% else %}
+    {% if c.nota_revision %}<div class="wz-falta">Nota: {{ c.nota_revision }}</div>{% endif %}
+    {% if c.estado == 'aprobada' %}<div class="wz-okmsg">Aprobada por {{ c.revisado_por }}. Wasi: <b>{{ c.wasi_modo }}</b>{% if c.wasi_resultado %} — {{ c.wasi_resultado.nota or c.wasi_resultado.error }}{% endif %}{% if c.social_post_id %} · Borrador #{{ c.social_post_id }} en el Planificador{% endif %}.
+      <br><a href="/inventario/cola/{{ c.id }}/kit">Kits para portales manuales ›</a></div>{% endif %}
+  {% endif %}
+
+  <h2 style="font-size:15px;margin:14px 0 8px">Envío a Wasi {{ '(registrado)' if c.wasi_payload else '(vista previa)' }}</h2>
+  {% for a in plan.avisos %}<div class="wz-dup">{{ a }}</div>{% endfor %}
+  <pre class="wz-pre">{{ plan_json }}</pre>
+  <p class="wz-loc">Luego: {{ plan.pasos|length - 2 }} × upload-image + send-property. Sin credenciales en pantalla.</p>
+  <h2 style="font-size:15px;margin:14px 0 8px">Historial</h2>
+  {% for e in log %}<div class="wz-loc">{{ e.at }} · {{ e.evento }} · {{ e.por }}</div>{% endfor %}
+</div></main></body></html>

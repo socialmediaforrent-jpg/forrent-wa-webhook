@@ -1,0 +1,221 @@
+{
+ "fuente": "API Wasi (solo lectura) 16-nov-2026: zonas usadas en inmuebles propios + tipos",
+ "zonas": {
+  "Aguasal": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859042,
+   "id_location": 0,
+   "id_zone": 945250,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Costa Mirandina",
+   "localidad": ""
+  },
+  "Av. Urdaneta": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 350,
+   "id_zone": 944868,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Libertador"
+  },
+  "Boleita Sur": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 0,
+   "id_zone": 1008189,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": ""
+  },
+  "C.C. San Ignacio": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 0,
+   "id_zone": 1008190,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": ""
+  },
+  "Colinas de Bello Monte": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 384,
+   "id_zone": 944989,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Baruta"
+  },
+  "El Junquito": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 350,
+   "id_zone": 944922,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Libertador"
+  },
+  "El Marqués": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 383,
+   "id_zone": 945051,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Sucre"
+  },
+  "Guarenas": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859041,
+   "id_location": 0,
+   "id_zone": 945194,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Guarenas",
+   "localidad": ""
+  },
+  "Hoyo de la Puerta": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 384,
+   "id_zone": 945086,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Baruta"
+  },
+  "La Candelaria": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 350,
+   "id_zone": 944876,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Libertador"
+  },
+  "Los Chorros": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 383,
+   "id_zone": 945060,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Sucre"
+  },
+  "Los Cortijos de Lourdes": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 383,
+   "id_zone": 945061,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Sucre"
+  },
+  "Los Magallanes de Catia": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 350,
+   "id_zone": 944930,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Libertador"
+  },
+  "Montalban III": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 0,
+   "id_zone": 1008187,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": ""
+  },
+  "Río Chico": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859042,
+   "id_location": 0,
+   "id_zone": 945598,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Costa Mirandina",
+   "localidad": ""
+  },
+  "Sabana Grande": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 350,
+   "id_zone": 944898,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Libertador"
+  },
+  "San Bernardino": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 350,
+   "id_zone": 944888,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Libertador"
+  },
+  "Santa Mónica": {
+   "id_country": 95,
+   "id_region": 3556,
+   "id_city": 859026,
+   "id_location": 350,
+   "id_zone": 944953,
+   "region": "Miranda - Dtto. Capital",
+   "ciudad": "Caracas",
+   "localidad": "Libertador"
+  }
+ },
+ "tipos": {
+  "Casa": 1,
+  "Apartamento": 2,
+  "Local": 3,
+  "Oficina": 4,
+  "Lote / Terreno": 5,
+  "Lote Comercial": 6,
+  "Finca": 7,
+  "Bodega": 8,
+  "Chalet": 10,
+  "Casa Campestre": 11,
+  "Hoteles": 12,
+  "Finca - Hoteles": 13,
+  "Apartaestudio": 14,
+  "Consultorio": 15,
+  "Edificio": 16,
+  "Lote de Playa": 17,
+  "Hostal": 18,
+  "Condominio": 19,
+  "Dúplex": 20,
+  "Penthouse": 21,
+  "Bungalow": 22,
+  "Galpon Industrial": 23,
+  "Casa de Playa": 24,
+  "Piso": 25,
+  "Garaje": 26,
+  "Cortijo": 27,
+  "Cabaña": 28,
+  "Isla": 29,
+  "Nave Industrial": 30,
+  "Campos, Chacras y Quintas": 31,
+  "Terreno": 32,
+  "Ph": 33,
+  "models/property_type.id.34": 34
+ },
+ "id_currency_usd": 3
+}

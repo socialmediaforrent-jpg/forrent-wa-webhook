@@ -52,6 +52,7 @@ import bandeja
 import redes
 import marketplace
 import inmuebles
+import carga
 import planificador as planif
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -189,6 +190,7 @@ def init_db():
     except Exception:
         log.exception('marketplace.init')
     try:
+        carga.init(q, IS_PG)  # Carga única (PRUEBA): carga_inmuebles/carga_fotos/carga_log (aditivas)
         planif.init(q, IS_PG)  # Planificador propio: social_accounts/social_posts/social_media/social_meta (aditivas)
     except Exception:
         log.exception('planificador.init')
@@ -616,7 +618,8 @@ def require_login(fn):
 
 
 # Inventario solo abre Inmuebles (lista y ficha), ambas GET de solo lectura.
-INVENTARIO_ENDPOINTS = {'inventario', 'inventario_ver'}
+INVENTARIO_ENDPOINTS = {'inventario', 'inventario_ver', 'carga_cola', 'carga_revisar', 'carga_decidir', 'carga_foto',
+                        'carga_kit', 'carga_agentiz'}
 # Quién ve el encargado (captador) y los portales en Inmuebles.
 ROLES_VER_ENCARGADO = ('admin', 'mercadeo', 'inventario')
 
@@ -663,7 +666,8 @@ def _portal_nav():
                  'key': 'planificador', 'icon': 'calendar'}]
         return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['mercadeo']}
     if role == 'inventario':
-        main = [{'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'}]
+        main = [{'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'},
+                {'href': '/inventario/cola', 'label': 'Por revisar', 'key': 'carga_cola', 'icon': 'clipboard'}]
         return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['inventario']}
     links = _portal_links()
     main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'},
@@ -674,7 +678,9 @@ def _portal_nav():
     else:
         main.append({'href': '/panel', 'label': 'Mensajes', 'key': 'mensajes', 'icon': 'chat'})
         main.append({'href': '/visitas', 'label': 'Visitas', 'key': 'visitas', 'icon': 'calendar'})
-    more = []
+    more = [{'href': '/mis-inmuebles', 'label': 'Cargar inmueble', 'key': 'carga', 'icon': 'key'}]
+    if role == 'admin':
+        more.append({'href': '/inventario/cola', 'label': 'Por revisar (carga)', 'key': 'carga_cola', 'icon': 'clipboard'})
     if role != 'admin':
         more.append({'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'key': 'captaciones', 'icon': 'key'})
         more.append({'href': '/perfil', 'label': 'Mi Perfil', 'key': 'perfil', 'icon': 'user'})
@@ -2931,6 +2937,255 @@ def maybe_auto_reply(wa_id, pnid):
         log.info('Auto-respuesta fuera de horario enviada')
     except Exception as e:
         log.error('Auto-respuesta falló: %s', type(e).__name__)
+
+
+# ---------------------------------------------------------------- Carga única de inmuebles (PRUEBA)
+CARGA_ROLES = ('asesor', 'lider', 'admin')
+REVISION_ROLES = ('admin', 'inventario')
+CARGA_REQ_MAX = 50 * 1024 * 1024
+
+
+def _carga_mia(cid):
+    c = carga.una(q, cid)
+    if not c or c['asesor_slug'] != g.user['user']:
+        abort(404)
+    return c
+
+
+@app.get('/mis-inmuebles', endpoint='carga_mias')
+@require_roles(*CARGA_ROLES)
+def carga_mias():
+    filas = carga.de_asesor(q, g.user['user'])
+    for c in filas:
+        c['n_fotos'] = len(carga.fotos(q, c['id']))
+    msg = {'enviada': 'Enviado a Inventario para revisión.', 'guardado': 'Guardado.'}.get(request.args.get('ok') or '', '')
+    return _hdr(render_template('carga_lista.html', filas=filas, ok=msg, csrf=portal_lib.csrf_token(g.user)))
+
+
+@app.post('/mis-inmuebles/nuevo', endpoint='carga_nueva')
+@require_roles(*CARGA_ROLES)
+def carga_nueva():
+    if not _csrf_ok():
+        return redirect('/mis-inmuebles')
+    if not _idem_claim(g.user['user'], 'carga_nueva'):
+        return redirect('/mis-inmuebles')
+    return redirect(f'/mis-inmuebles/{carga.crear(q, g.user)}/paso/1')
+
+
+def _carga_paso_render(c, paso, err='', status=200):
+    fts = carga.fotos(q, c['id'])
+    zonas = sorted(set(carga.catalogo().get('zonas', {})) | {it.get('zona') for g_ in ('propio', 'alianza')
+                   for it in (_inventario().get('grupos') or {}).get(g_) or [] if it.get('zona')}, key=str.lower)
+    return _hdr(render_template('carga_paso.html', c=c, paso=paso, err=err, fotos=fts, zonas=zonas,
+                                tipos=list(carga.TIPOS), operaciones=carga.OPERACIONES, municipios=carga.MUNICIPIOS,
+                                estados_fisicos=list(carga.ESTADO_FISICO), fotos_min=carga.FOTOS_MIN, fotos_max=carga.FOTOS_MAX,
+                                foto_mb=carga.FOTO_MAX_BYTES // (1024 * 1024), falta=carga.faltantes(c, len(fts)),
+                                editable=carga.editable(c, g.user), csrf=portal_lib.csrf_token(g.user)), status)
+
+
+@app.get('/mis-inmuebles/<int:cid>/paso/<int:paso>', endpoint='carga_paso')
+@require_roles(*CARGA_ROLES)
+def carga_paso(cid, paso):
+    c = _carga_mia(cid)
+    return _carga_paso_render(c, min(max(paso, 1), 4))
+
+
+@app.post('/mis-inmuebles/<int:cid>/paso/<int:paso>', endpoint='carga_paso_guardar')
+@require_roles(*CARGA_ROLES)
+def carga_paso_guardar(cid, paso):
+    c = _carga_mia(cid)
+    paso = min(max(paso, 1), 4)
+    if not _csrf_ok():
+        return _carga_paso_render(c, paso, 'La sesión expiró. Vuelve a intentar.', 400)
+    if not carga.editable(c, g.user):
+        return _carga_paso_render(c, paso, 'Esta ficha ya fue enviada y no se puede editar.', 409)
+    carga.guardar_paso(q, c, paso, request.form, g.user)
+    sig = paso + 1 if request.form.get('ir') == 'siguiente' and paso < 4 else (paso - 1 if request.form.get('ir') == 'atras' and paso > 1 else paso)
+    return redirect(f'/mis-inmuebles/{cid}/paso/{sig}')
+
+
+@app.post('/mis-inmuebles/<int:cid>/fotos', endpoint='carga_fotos_subir')
+@require_roles(*CARGA_ROLES)
+def carga_fotos_subir(cid):
+    c = _carga_mia(cid)
+    if (request.content_length or 0) > CARGA_REQ_MAX:
+        return _carga_paso_render(c, 4, 'Demasiado peso en un solo envío. Sube menos fotos a la vez.', 413)
+    if not _csrf_ok():
+        return _carga_paso_render(c, 4, 'La sesión expiró. Vuelve a intentar.', 400)
+    if not carga.editable(c, g.user):
+        return _carga_paso_render(c, 4, 'Esta ficha ya fue enviada y no se puede editar.', 409)
+    errores, n = [], 0
+    for fs in request.files.getlist('fotos')[:carga.FOTOS_MAX]:
+        data = fs.read(carga.FOTO_MAX_BYTES + 1)
+        if not data:
+            continue
+        fid, e = carga.agregar_foto(q, c, data, fs.filename, g.user)
+        if e:
+            errores.append(f'{(fs.filename or "foto")[:40]}: {e}')
+        else:
+            n += 1
+    if n:
+        carga.log_evento(q, cid, 'fotos_subidas', g.user['user'], {'n': n})
+    if errores:
+        return _carga_paso_render(carga.una(q, cid), 4, ' · '.join(errores[:4]), 400)
+    return redirect(f'/mis-inmuebles/{cid}/paso/4')
+
+
+@app.post('/mis-inmuebles/<int:cid>/fotos/<int:fid>/quitar', endpoint='carga_foto_quitar')
+@require_roles(*CARGA_ROLES)
+def carga_foto_quitar(cid, fid):
+    c = _carga_mia(cid)
+    if _csrf_ok() and carga.editable(c, g.user):
+        carga.quitar_foto(q, c, fid, g.user)
+    return redirect(f'/mis-inmuebles/{cid}/paso/4')
+
+
+@app.post('/mis-inmuebles/<int:cid>/enviar', endpoint='carga_enviar')
+@require_roles(*CARGA_ROLES)
+def carga_enviar(cid):
+    c = _carga_mia(cid)
+    if not _csrf_ok():
+        return _carga_paso_render(c, 4, 'La sesión expiró. Vuelve a intentar.', 400)
+    if not carga.editable(c, g.user):
+        return redirect('/mis-inmuebles')
+    falta = carga.faltantes(c, len(carga.fotos(q, cid)))
+    if falta:
+        return _carga_paso_render(c, 4, 'Falta: ' + ', '.join(falta), 400)
+    if not _idem_claim(g.user['user'], f'carga_enviar_{cid}'):
+        return redirect('/mis-inmuebles?ok=enviada')
+    q('UPDATE carga_inmuebles SET estado=%s, enviada_at=%s, updated_at=%s WHERE id=%s', ('enviada', now_iso(), now_iso(), cid))
+    carga.log_evento(q, cid, 'enviada', g.user['user'])
+    return redirect('/mis-inmuebles?ok=enviada')
+
+
+@app.get('/carga/foto/<int:fid>', endpoint='carga_foto')
+@require_login
+def carga_foto(fid):
+    f = carga.foto(q, fid)
+    if not f:
+        abort(404)
+    c = carga.una(q, f['carga_id'])
+    if g.user['role'] not in REVISION_ROLES and (not c or c['asesor_slug'] != g.user['user']):
+        abort(404)
+    r = make_response(bytes(f['datos']))
+    r.headers['Content-Type'] = f['mime']
+    r.headers['Cache-Control'] = 'private, max-age=86400'
+    r.headers['X-Content-Type-Options'] = 'nosniff'
+    return r
+
+
+@app.get('/inventario/cola', endpoint='carga_cola')
+@require_roles(*REVISION_ROLES)
+def carga_cola():
+    pend = carga.cola(q, ('enviada',))
+    otras = [c for c in carga.todas(q) if c['estado'] in ('aprobada', 'devuelta', 'rechazada')][:30]
+    for c in pend + otras:
+        fts = carga.fotos(q, c['id'])
+        c['n_fotos'], c['foto1'] = len(fts), (fts[0]['id'] if fts else None)
+        c['asesora'] = _nombre_asesor(c['asesor_slug'])
+    ok = {'aprobada': 'Aprobada. Wasi en modo prueba (no se escribió): payload registrado.',
+          'devuelta': 'Devuelta a la asesora con tu nota.', 'rechazada': 'Rechazada (queda en el historial).'}.get(request.args.get('ok') or '', '')
+    return _hdr(render_template('carga_cola.html', pend=pend, otras=otras, ok=ok, modo=carga.modo_wasi()))
+
+
+def _carga_inventario_items():
+    gr = _inventario().get('grupos') or {}
+    return list(gr.get('propio') or []) + list(gr.get('alianza') or []) + list(gr.get('red') or [])
+
+
+@app.get('/inventario/cola/<int:cid>', endpoint='carga_revisar')
+@require_roles(*REVISION_ROLES)
+def carga_revisar(cid, err='', status=200):
+    c = carga.una(q, cid)
+    if not c:
+        abort(404)
+    fts = carga.fotos(q, cid)
+    dups = carga.duplicados(c, _carga_inventario_items(), carga.todas(q))
+    plan = c.get('wasi_payload') or carga.payload_wasi(c, len(fts))
+    hist = []
+    for e in q('SELECT * FROM carga_log WHERE carga_id=%s ORDER BY id', (cid,), fetch=True) or []:
+        try:
+            cuando = datetime.fromisoformat(e['at']).astimezone(CARACAS).strftime('%d/%m %H:%M')
+        except (TypeError, ValueError):
+            cuando = str(e['at'])[:16]
+        hist.append({'at': cuando, 'evento': e['evento'], 'por': e['por']})
+    return _hdr(render_template('carga_revisar.html', c=c, fotos=fts, dups=dups, plan=plan, asesora=_nombre_asesor(c['asesor_slug']),
+                                falta=carga.faltantes(c, len(fts)), portales=carga.PORTALES_WASI,
+                                defecto=carga.PORTALES_WASI_DEFECTO, modo=carga.modo_wasi(), err=err,
+                                log=hist, plan_json=json.dumps(plan['pasos'][0], ensure_ascii=False, indent=2),
+                                csrf=portal_lib.csrf_token(g.user)), status)
+
+
+@app.post('/inventario/cola/<int:cid>/decidir', endpoint='carga_decidir')
+@require_roles(*REVISION_ROLES)
+def carga_decidir(cid):
+    c = carga.una(q, cid)
+    if not c:
+        abort(404)
+    if not _csrf_ok():
+        return carga_revisar(cid, 'La sesión expiró. Vuelve a intentar.', 400)
+    if c['estado'] != 'enviada':
+        return carga_revisar(cid, 'Esta ficha ya fue decidida.', 409)
+    accion, nota = request.form.get('accion'), carga._txt(request.form.get('nota'), 600)
+    if accion not in ('aprobar', 'devolver', 'rechazar'):
+        return carga_revisar(cid, 'Acción no válida.', 400)
+    if accion in ('devolver', 'rechazar') and not nota:
+        return carga_revisar(cid, 'Escribe una nota para la asesora.', 400)
+    if not _idem_claim(g.user['user'], f'carga_decidir_{cid}'):
+        return redirect('/inventario/cola')
+    nuevo = {'aprobar': 'aprobada', 'devolver': 'devuelta', 'rechazar': 'rechazada'}[accion]
+    q('UPDATE carga_inmuebles SET estado=%s, revisado_por=%s, revisado_at=%s, nota_revision=%s, updated_at=%s WHERE id=%s',
+      (nuevo, g.user['user'], now_iso(), nota, now_iso(), cid))
+    carga.log_evento(q, cid, nuevo, g.user['user'], {'nota': nota} if nota else None)
+    if accion == 'aprobar':
+        c = carga.una(q, cid)
+        fts = carga.fotos(q, cid, con_datos=True)
+        portales_sel = [int(x) for x in request.form.getlist('portales') if x.isdigit() and int(x) in carga.PORTALES_WASI]
+        carga.publicar_wasi(q, c, fts, portales_sel, g.user, log=log)
+        try:   # borrador en el planificador propio para Mercadeo (sin cuentas ni fecha; no publica)
+            media = [f'media:{planif.guardar_media(q, bytes(f["datos"]), f["mime"], f["nombre"] or "foto", g.user)}'
+                     for f in fts[:10] if f['mime'] in ('image/jpeg', 'image/png')]
+            pid = planif.crear(q, {'estado': 'Borrador', 'texto': carga.texto_social(c), 'media': media, 'cuentas': [],
+                                   'local': '', 'utc': ''}, g.user)
+            q('UPDATE carga_inmuebles SET social_post_id=%s WHERE id=%s', (pid, cid))
+            carga.log_evento(q, cid, 'borrador_planificador', g.user['user'], {'post': pid, 'fotos': len(media)})
+        except Exception:
+            log.exception('carga: borrador planificador')
+    return redirect('/inventario/cola?ok=' + nuevo)
+
+
+@app.get('/inventario/cola/<int:cid>/kit', endpoint='carga_kit')
+@require_roles(*REVISION_ROLES)
+def carga_kit(cid):
+    c = carga.una(q, cid)
+    if not c or c['estado'] != 'aprobada':
+        abort(404)
+    kits = [carga.kit(c, p) for p in carga.PORTALES_MANUALES if not (p == 'rex' and c['datos'].get('origen') != 'propia')]
+    return _hdr(render_template('carga_kit.html', c=c, kits=kits, fotos=carga.fotos(q, cid),
+                                nombres={p['key']: p['nombre'] for p in portales.PORTALES} | {'encuadras': 'Encuadras'}))
+
+
+def _agentiz_feed():
+    cs = [c for c in carga.todas(q) if c['estado'] == 'aprobada']
+    for c in cs:
+        c['_fotos'] = carga.fotos(q, c['id'])
+    contacto = {'empresa': 'For Rent Inmobiliaria', 'codigo': '58', 'telefono': os.environ.get('AGENTIZ_TELEFONO', '4242294196')}
+    return carga.agentiz_xml(cs, contacto, foto_url=lambda f: f.get('wasi_url') or None)
+
+
+@app.get('/inventario/agentiz.xml', endpoint='carga_agentiz')
+@require_roles(*REVISION_ROLES)
+def carga_agentiz():
+    return Response(_agentiz_feed(), mimetype='application/xml')
+
+
+@app.get('/feeds/agentiz.xml')
+def feed_agentiz_publico():
+    """Feed para Agentiz. Apagado si no hay AGENTIZ_FEED_TOKEN; exige ?t=<token>."""
+    tok = os.environ.get('AGENTIZ_FEED_TOKEN', '').strip()
+    if not tok or not hmac.compare_digest(request.args.get('t') or '', tok):
+        abort(404)
+    return Response(_agentiz_feed(), mimetype='application/xml')
 
 
 init_db()

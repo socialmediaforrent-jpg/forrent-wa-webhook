@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es"><head>{% include '_carga_head.html' %}<title>Por revisar · For Rent Online</title></head>
+<body>
+{% set nav='carga_cola' %}{% include '_top.html' %}
+<main class="wrap-page"><div class="wz">
+  <div class="wz-bar"><h1>Por revisar</h1><span class="wz-pill">{{ pend|length }}</span></div>
+  {% if copia_prueba %}<div class="wz-proto">{{ copia_prueba }}</div>{% endif %}
+  {% if ok %}<div class="wz-okmsg">{{ ok }}</div>{% endif %}
+  <p class="wz-loc" style="margin:0 0 10px">Wasi: <b>{{ 'MODO PRUEBA (dry-run): no se escribe nada' if modo != 'live' else 'modo real solicitado (bloqueado en esta versión)' }}</b> · <a href="/inventario/agentiz.xml">Ver XML Agentiz</a></p>
+  {% if not pend %}<div class="wz-empty">No hay inmuebles esperando revisión.</div>{% endif %}
+  {% for c in pend %}
+  <a class="wz-q" href="/inventario/cola/{{ c.id }}">
+    {% if c.foto1 %}<img src="/carga/foto/{{ c.foto1 }}" alt="" loading="lazy">{% else %}<span class="ph"></span>{% endif %}
+    <span style="flex:1;min-width:0"><span class="t">{{ c.datos.titulo or 'Sin título' }}</span><br>
+      <span class="m">#{{ c.id }} · {{ c.datos.tipo }} · {{ c.datos.operacion }} · {{ c.datos.zona }} · US$ {{ c.datos.precio }}</span><br>
+      <span class="m">{{ c.asesora }} · {{ c.n_fotos }} fotos · {{ 'Propia' if c.datos.origen == 'propia' else 'Alianza' }}</span></span>
+    <span aria-hidden="true">›</span></a>
+  {% endfor %}
+  {% if otras %}<h2 style="font-size:15px;margin:18px 0 8px">Revisadas</h2>
+  {% for c in otras %}
+  <a class="wz-q" href="/inventario/cola/{{ c.id }}">
+    {% if c.foto1 %}<img src="/carga/foto/{{ c.foto1 }}" alt="" loading="lazy">{% else %}<span class="ph"></span>{% endif %}
+    <span style="flex:1;min-width:0"><span class="t">{{ c.datos.titulo or 'Sin título' }}</span><br>
+      <span class="wz-pill {{ c.estado }}">{{ c.estado_label }}</span> <span class="m">{{ c.asesora }}{% if c.wasi_modo %} · Wasi: {{ c.wasi_modo }}{% endif %}{% if c.social_post_id %} · borrador en Planificador{% endif %}</span></span>
+    <span aria-hidden="true">›</span></a>
+  {% endfor %}{% endif %}
+</div></main></body></html>

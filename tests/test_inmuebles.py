@@ -181,7 +181,7 @@ def test_inventario_no_entra_a_nada_mas(inv_pw):
     anon, c = appmod.app.test_client(), cliente('inventario')
     revisadas = 0
     for rule in appmod.app.url_map.iter_rules():
-        if rule.arguments or rule.endpoint in ('static', 'inventario', 'inventario_ver', 'portal', 'login', 'logout'):
+        if rule.arguments or rule.endpoint in ('static', 'inventario', 'inventario_ver', 'carga_cola', 'carga_agentiz', 'portal', 'login', 'logout'):
             continue
         for m in ('GET', 'POST'):
             if m not in rule.methods:

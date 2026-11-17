@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es"><head>{% include '_carga_head.html' %}<title>Kits #{{ c.id }} · For Rent Online</title></head>
+<body>
+{% set nav='carga_cola' %}{% include '_top.html' %}
+<main class="wrap-page"><div class="wz">
+  <div class="wz-bar"><a href="/inventario/cola/{{ c.id }}" style="color:#fff;text-decoration:none;font-size:26px;line-height:1" aria-label="Volver">‹</a><h1>Kits para copiar</h1><span></span></div>
+  {% if copia_prueba %}<div class="wz-proto">{{ copia_prueba }}</div>{% endif %}
+  <p class="wz-loc">Para portales sin integración. Copia y pega; descarga las fotos desde aquí. Sin dirección exacta ni datos del propietario.</p>
+  {% if fotos %}<div class="wz-fotos">{% for f in fotos %}<figure><a href="/carga/foto/{{ f.id }}" download="foto-{{ loop.index }}"><img src="/carga/foto/{{ f.id }}" alt="Foto {{ loop.index }}" loading="lazy"></a><span>{{ loop.index }}</span></figure>{% endfor %}</div>{% endif %}
+  {% for k in kits %}
+  <details class="wz-kit" {{ 'open' if loop.first }}>
+    <summary style="font-weight:800;color:var(--w-azul);cursor:pointer">{{ nombres.get(k.portal, k.portal) }}</summary>
+    <p style="margin:10px 0 4px"><b>Título</b> <button type="button" class="wz-copy" data-c="{{ k.titulo }}">Copiar</button><br>{{ k.titulo }}</p>
+    <p style="margin:10px 0 4px"><b>Descripción</b> <button type="button" class="wz-copy" data-c="{{ k.descripcion }}">Copiar</button></p>
+    <div style="white-space:pre-wrap;font-size:13.5px">{{ k.descripcion }}</div>
+    <table style="margin-top:8px">{% for a, b in k.campos %}<tr><td>{{ a }}</td><td>{{ b }}</td></tr>{% endfor %}</table>
+    <p class="wz-loc">{{ k.nota }}</p>
+  </details>
+  {% endfor %}
+</div></main>
+<script>document.querySelectorAll('[data-c]').forEach(function(b){b.onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(b.dataset.c);b.textContent='Copiado';};});</script>
+</body></html>

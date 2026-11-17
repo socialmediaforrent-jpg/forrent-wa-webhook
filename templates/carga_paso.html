@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es"><head>{% include '_carga_head.html' %}<title>Cargar inmueble · paso {{ paso }} · For Rent Online</title></head>
+<body>
+{% set nav='carga' %}{% include '_top.html' %}
+{% set d = c.datos %}{% set p = c.privado %}
+{% macro sel(name, opciones, actual, vacio='Elige…') %}<select name="{{ name }}" {{ 'disabled' if not editable }}><option value="">{{ vacio }}</option>{% for o in opciones %}<option {{ 'selected' if o == actual }}>{{ o }}</option>{% endfor %}</select>{% endmacro %}
+<main class="wrap-page"><div class="wz">
+  <div class="wz-bar"><a href="/mis-inmuebles" style="color:#fff;text-decoration:none;font-size:26px;line-height:1" aria-label="Volver">‹</a><h1>Nuevo inmueble</h1><span class="wz-pill {{ c.estado }}">{{ c.estado_label }}</span></div>
+  {% if copia_prueba %}<div class="wz-proto">{{ copia_prueba }}</div>{% endif %}
+  <nav class="wz-steps" aria-label="Pasos">
+    {% for n, t in [(1,'1 · Datos'),(2,'2 · Ubicación'),(3,'3 · Detalles'),(4,'4 · Fotos')] %}
+    <a href="/mis-inmuebles/{{ c.id }}/paso/{{ n }}" class="{{ 'on' if n == paso else ('ok' if n < (c.paso or 1) or n < paso else '') }}" {{ 'aria-current=step' if n == paso }}>{{ t }}</a>{% endfor %}
+  </nav>
+  {% if err %}<div class="wz-errmsg" role="alert">{{ err }}</div>{% endif %}
+  {% if c.estado == 'devuelta' and c.nota_revision %}<div class="wz-falta"><b>Inventario te la devolvió:</b> {{ c.nota_revision }}</div>{% endif %}
+  {% if not editable %}<div class="wz-okmsg">Enviada a Inventario. Ya no se puede editar mientras la revisan.</div>{% endif %}
+
+  {% if paso < 4 or editable %}
+  <form class="wz-form" method="post" action="/mis-inmuebles/{{ c.id }}/paso/{{ paso }}" {{ 'hidden' if paso == 4 and not editable }}>
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% if paso == 1 %}
+      <div class="fld"><span>Tipo de negocio *</span><div class="wz-opc">{% for o in operaciones %}<label><input type="radio" name="operacion" value="{{ o }}" {{ 'checked' if d.operacion == o }} {{ 'disabled' if not editable }}>{{ o }}</label>{% endfor %}</div></div>
+      <label class="fld"><span>Tipo de inmueble *</span>{{ sel('tipo', tipos, d.tipo) }}</label>
+      <label class="fld"><span>Título *</span><input type="text" name="titulo" maxlength="70" value="{{ d.titulo or '' }}" placeholder="Ej.: Apartamento 3 hab. con vista en Los Palos Grandes" {{ 'disabled' if not editable }}><small>Hasta 70 caracteres (Mercado Libre corta más largo). Sin teléfonos ni enlaces.</small></label>
+      <div class="wz-g2">
+        <label class="fld"><span>Precio US$ *</span><input type="number" inputmode="numeric" name="precio" min="1" value="{{ d.precio or '' }}" {{ 'disabled' if not editable }}></label>
+        <label class="fld"><span>Condominio US$</span><input type="number" inputmode="numeric" name="condominio" min="0" value="{{ d.condominio or '' }}" {{ 'disabled' if not editable }}></label>
+      </div>
+      <label class="fld"><span>Estado físico *</span>{{ sel('estado_fisico', estados_fisicos, d.estado_fisico) }}</label>
+      <div class="fld"><span>¿Es propia o en alianza? *</span><div class="wz-opc">
+        <label><input type="radio" name="origen" value="propia" {{ 'checked' if d.origen == 'propia' }} {{ 'disabled' if not editable }}>Propia (captación nuestra)</label>
+        <label><input type="radio" name="origen" value="alianza" {{ 'checked' if d.origen == 'alianza' }} {{ 'disabled' if not editable }}>Alianza</label></div>
+        <small>No se cargan inmuebles de la red de otras inmobiliarias.</small></div>
+      <label class="fld"><span>Aliado (si es alianza)</span><input type="text" name="aliado" maxlength="80" value="{{ d.aliado or '' }}" {{ 'disabled' if not editable }}></label>
+    {% elif paso == 2 %}
+      <label class="fld"><span>Municipio *</span>{{ sel('municipio', municipios, d.municipio) }}<small>Solo Libertador, Chacao, Baruta, Sucre y El Hatillo.</small></label>
+      <label class="fld"><span>Zona / urbanización *</span><input type="text" name="zona" list="zonas" maxlength="80" value="{{ d.zona or '' }}" {{ 'disabled' if not editable }}>
+        <datalist id="zonas">{% for z in zonas %}<option value="{{ z }}">{% endfor %}</datalist><small>Elige una de la lista para que Wasi la ubique sin errores.</small></label>
+      <div class="wz-priv"><b>🔒 Privado · solo Inventario y Wasi interno</b>
+        <label class="fld" style="margin-top:8px"><span>Dirección exacta</span><input type="text" name="direccion" maxlength="200" value="{{ p.direccion or '' }}" {{ 'disabled' if not editable }}><small>Nunca sale en portales, kits ni a clientes.</small></label>
+        <div class="wz-g2">
+          <label class="fld"><span>Latitud</span><input type="text" inputmode="decimal" name="lat" value="{{ p.lat or '' }}" {{ 'disabled' if not editable }}></label>
+          <label class="fld"><span>Longitud</span><input type="text" inputmode="decimal" name="lng" value="{{ p.lng or '' }}" {{ 'disabled' if not editable }}></label>
+        </div>
+        {% if editable %}<button type="button" class="wz-copy" id="geo">📍 Usar mi ubicación actual</button>{% endif %}
+        <small style="display:block;margin-top:6px;color:#7a5200">En los portales el mapa muestra solo la zona, nunca el punto exacto.</small></div>
+    {% elif paso == 3 %}
+      <div class="wz-g3">
+        <label class="fld"><span>Habitaciones</span><input type="number" inputmode="numeric" name="habitaciones" min="0" max="29" value="{{ d.habitaciones if d.habitaciones is not none else '' }}" {{ 'disabled' if not editable }}></label>
+        <label class="fld"><span>Baños</span><input type="number" inputmode="numeric" name="banos" min="0" max="9" value="{{ d.banos if d.banos is not none else '' }}" {{ 'disabled' if not editable }}></label>
+        <label class="fld"><span>Puestos</span><input type="number" inputmode="numeric" name="estacionamientos" min="0" max="29" value="{{ d.estacionamientos if d.estacionamientos is not none else '' }}" {{ 'disabled' if not editable }}></label>
+      </div>
+      <div class="wz-g3">
+        <label class="fld"><span>Área const. m² *</span><input type="number" inputmode="decimal" step="0.01" name="area_construida" value="{{ d.area_construida or '' }}" {{ 'disabled' if not editable }}></label>
+        <label class="fld"><span>Área útil m²</span><input type="number" inputmode="decimal" step="0.01" name="area_privada" value="{{ d.area_privada or '' }}" {{ 'disabled' if not editable }}></label>
+        <label class="fld"><span>Terreno m²</span><input type="number" inputmode="decimal" step="0.01" name="area_terreno" value="{{ d.area_terreno or '' }}" {{ 'disabled' if not editable }}></label>
+      </div>
+      <div class="wz-g3">
+        <label class="fld"><span>Piso</span><input type="number" inputmode="numeric" name="piso" min="0" max="60" value="{{ d.piso if d.piso is not none else '' }}" {{ 'disabled' if not editable }}></label>
+        <label class="fld"><span>Año</span><input type="number" inputmode="numeric" name="anio" value="{{ d.anio or '' }}" {{ 'disabled' if not editable }}></label>
+        <label class="fld"><span>Depósitos</span><input type="number" inputmode="numeric" name="depositos" min="0" max="20" value="{{ d.depositos if d.depositos is not none else '' }}" {{ 'disabled' if not editable }}></label>
+      </div>
+      <div class="fld"><span>¿Acepta mascotas? *</span><div class="wz-opc">
+        <label><input type="radio" name="mascotas" value="si" {{ 'checked' if d.mascotas == 'si' }} {{ 'disabled' if not editable }}>Sí</label>
+        <label><input type="radio" name="mascotas" value="no" {{ 'checked' if d.mascotas == 'no' }} {{ 'disabled' if not editable }}>No</label></div></div>
+      <label class="fld"><span>Descripción *</span><textarea name="descripcion" maxlength="5000" placeholder="Cómo es, qué incluye, cercanías. Sin teléfonos, sin dirección exacta y sin enlaces." {{ 'disabled' if not editable }}>{{ d.descripcion or '' }}</textarea><small>Mínimo 30 caracteres. Texto simple (Agentiz no acepta HTML).</small></label>
+    {% elif paso == 4 %}
+      <label class="fld"><span>Video (YouTube o Vimeo)</span><input type="url" name="video" value="{{ d.video or '' }}" placeholder="https://youtu.be/…"></label>
+      <div class="wz-priv"><b>🔒 Privado · solo Inventario</b>
+        <div class="wz-g2" style="margin-top:8px">
+          <label class="fld"><span>Propietario</span><input type="text" name="propietario_nombre" maxlength="120" value="{{ p.propietario_nombre or '' }}"></label>
+          <label class="fld"><span>Teléfono</span><input type="tel" name="propietario_tel" value="{{ p.propietario_tel or '' }}"></label>
+        </div>
+        <label class="fld"><span>Nota para Inventario</span><input type="text" name="nota_interna" maxlength="1000" value="{{ p.nota_interna or '' }}"></label></div>
+    {% endif %}
+    {% if editable %}
+    <div class="wz-nav">
+      {% if paso > 1 %}<button type="submit" name="ir" value="atras" class="sec">‹ Atrás</button>{% endif %}
+      {% if paso < 4 %}<button type="submit" name="ir" value="siguiente" class="pri">Guardar y seguir ›</button>{% else %}<button type="submit" name="ir" value="quedar" class="sec">Guardar</button>{% endif %}
+    </div>{% endif %}
+  </form>
+  {% endif %}
+
+  {% if paso == 4 %}
+  <h2 class="wz-sec" style="margin:14px 0 8px;font-size:15px">Fotos <span style="color:#7a8396;font-weight:600">{{ fotos|length }} de {{ fotos_max }} · mínimo {{ fotos_min }}</span></h2>
+  {% if fotos %}<div class="wz-fotos">{% for f in fotos %}
+    <figure><img src="/carga/foto/{{ f.id }}" alt="Foto {{ loop.index }}" loading="lazy"><span>{{ 'Portada' if loop.first else loop.index }}</span>
+      {% if editable %}<form method="post" action="/mis-inmuebles/{{ c.id }}/fotos/{{ f.id }}/quitar"><input type="hidden" name="csrf" value="{{ csrf }}"><button type="submit" aria-label="Quitar foto {{ loop.index }}">×</button></form>{% endif %}
+    </figure>{% endfor %}</div>{% endif %}
+  {% if editable and fotos|length < fotos_max %}
+  <form method="post" action="/mis-inmuebles/{{ c.id }}/fotos" enctype="multipart/form-data" id="f-fotos">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="wz-drop"><span style="font-size:28px">📷</span>Agregar fotos<small style="font-weight:600;color:#5b6475">JPG o PNG, hasta {{ foto_mb }} MB cada una. Horizontales y con buena luz. La primera es la portada.</small>
+      <input type="file" name="fotos" accept="image/jpeg,image/png" multiple id="in-fotos"></label>
+    <noscript><button type="submit">Subir</button></noscript>
+    <p id="subiendo" class="wz-loc" hidden>Subiendo fotos…</p>
+  </form>{% endif %}
+  {% if editable %}
+    {% if falta %}<div class="wz-falta"><b>Para enviar falta:</b> {{ falta|join(', ') }}</div>{% endif %}
+    <form method="post" action="/mis-inmuebles/{{ c.id }}/enviar">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="idem" value="{{ idem_token() }}">
+      <div class="wz-nav"><button type="submit" class="azul" {{ 'disabled style=opacity:.5' if falta }}>Enviar a Inventario</button></div>
+    </form>
+  {% endif %}
+  {% endif %}
+</div></main>
+<script>
+(function(){
+  var g=document.getElementById('geo');
+  if(g&&navigator.geolocation){g.onclick=function(){navigator.geolocation.getCurrentPosition(function(p){
+    document.querySelector('[name=lat]').value=p.coords.latitude.toFixed(6);document.querySelector('[name=lng]').value=p.coords.longitude.toFixed(6);});};}
+  var inp=document.getElementById('in-fotos'),fm=document.getElementById('f-fotos');
+  if(!inp)return;
+  function reducir(file){return new Promise(function(ok){
+    if(!/^image\/(jpeg|png)$/.test(file.type)||!window.createImageBitmap){ok(file);return;}
+    createImageBitmap(file).then(function(b){var m=1920,s=Math.min(1,m/Math.max(b.width,b.height));
+      if(s>=1&&file.size<2.5e6){ok(file);return;}
+      var cv=document.createElement('canvas');cv.width=Math.round(b.width*s);cv.height=Math.round(b.height*s);
+      cv.getContext('2d').drawImage(b,0,0,cv.width,cv.height);
+      cv.toBlob(function(bl){ok(bl?new File([bl],file.name.replace(/\.\w+$/,'')+'.jpg',{type:'image/jpeg'}):file);},'image/jpeg',0.85);
+    }).catch(function(){ok(file);});});}
+  inp.addEventListener('change',function(){
+    document.getElementById('subiendo').hidden=false;
+    Promise.all(Array.prototype.map.call(inp.files,reducir)).then(function(fs){
+      try{var dt=new DataTransfer();fs.forEach(function(f){dt.items.add(f);});inp.files=dt.files;}catch(e){}
+      fm.submit();});
+  });
+})();
+</script>
+</body></html>
