@@ -97,6 +97,12 @@ dialog.pzd::backdrop{background:rgba(17,17,17,.4)}
 .pz-menu{position:absolute;right:16px;z-index:20;background:#fff;border:1px solid var(--linea);border-radius:12px;box-shadow:0 8px 30px rgba(17,17,17,.14);padding:6px;min-width:190px}
 .pz-menu a,.pz-menu button{display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:14px;font-weight:600;padding:10px;border-radius:8px;color:var(--negro);text-decoration:none;cursor:pointer}
 .pc{position:relative}
+.pc-meta{font-size:12px;color:var(--muted);margin-top:8px}
+.pz-confirm{max-width:420px;border:0;border-radius:16px;padding:18px}
+.pz-confirm::backdrop{background:rgba(17,17,17,.45)}
+.pz-confirm h2{margin:0 0 6px;font-size:18px}
+.pz-confirm .acts{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
+.pz-btn.gris{background:#f1f2f5;color:var(--negro)}.pz-btn.rojo{background:#d92d20}
 .pz-src{font-size:12px;color:var(--muted);padding:2px 16px 8px}
 </style>
 
@@ -140,9 +146,6 @@ dialog.pzd::backdrop{background:rgba(17,17,17,.4)}
     </div>
   </section>
 
-  {% if not posts %}
-  <div class="pz-empty">Todavía no hay publicaciones cargadas en el planificador.</div>
-  {% else %}
   <div class="pz-vbar"><span id="pz-vlabel">Vista mensual</span><button class="pz-ib" type="button" id="pz-vbtn" aria-label="Cambiar vista">{{ svg('grid') }}</button></div>
   <div id="pz-cal">
     <div class="pz-mnav"><button class="pz-ib" type="button" id="pz-prev" aria-label="Anterior">{{ svg('prev') }}</button><span id="pz-mes"></span><button class="pz-ib" type="button" id="pz-next" aria-label="Siguiente">{{ svg('next') }}</button></div>
@@ -151,15 +154,14 @@ dialog.pzd::backdrop{background:rgba(17,17,17,.4)}
   <div class="pz-dayh" id="pz-dayh"></div>
   <ul class="pz-list" id="pz-list"></ul>
   <div class="pz-mini" id="pz-mini" role="button" tabindex="0"><span id="pz-mini-v">Vista mensual</span><span class="d" id="pz-mini-d"></span></div>
-  {% endif %}
-  <p class="pz-src">Solo lectura · publicaciones programadas en el Social Planner de GHL (hora de Toronto).{% if actualizado %} Datos del {{ actualizado }}.{% endif %}</p>
+  <p class="pz-src">Planificador propio de For Rent Online · hora de Toronto. Lo programado queda guardado aquí; todavía no se publica solo en las redes.</p>
 
   {# Respaldo sin JavaScript: la lista de siempre. #}
   <noscript>
   <ul class="pz-list">
   {% for p in posts %}<li class="pc"><div class="pc-h"><span class="chip">{{ p.estado }}</span></div><p class="pc-t">{{ p.texto }}</p>
   <div class="pc-f"><div>Programado para<strong>{{ p.cuando }}</strong></div><div>{{ p.cuentas|join(', ') }}</div></div>
-  {% for m in p.media %}<a href="{{ m }}" target="_blank" rel="noopener noreferrer">Ver archivo</a>{% endfor %}</li>{% endfor %}
+  {% for m in p.media %}<a href="{{ m.url }}" target="_blank" rel="noopener noreferrer">Ver archivo</a>{% endfor %} <a href="/mercadeo/planificador/{{ p.id }}">Editar</a></li>{% endfor %}
   </ul>
   </noscript>
 </div>
@@ -184,7 +186,7 @@ dialog.pzd::backdrop{background:rgba(17,17,17,.4)}
       {% endfor %}
       </div>
       <p class="pz-nota" id="pz-nogr" hidden>No hay grupos de cuentas en los datos del planificador.</p>
-      <p class="pz-nota" id="pz-crear-nota">«Crear» abre el Social Planner de GHL, donde se crean las publicaciones, y copia los nombres de las cuentas elegidas.</p>
+      <p class="pz-nota" id="pz-crear-nota">«Crear» abre el editor de la publicación con estas cuentas.</p>
     </div>
   </div>
 </dialog>
@@ -200,13 +202,25 @@ dialog.pzd::backdrop{background:rgba(17,17,17,.4)}
         {% for t in estados %}<label class="pz-opt"><input type="checkbox" value="{{ t }}" checked><span class="nm">{{ t }}</span></label>{% endfor %}</div>
       <div class="pz-fs" data-grp="aprobacion"><h3>{{ svg('check') }}Estado de aprobación<button class="pz-link" type="button" data-all>Seleccionar todo</button></h3>
         {% for t in aprobaciones %}<label class="pz-opt"><input type="checkbox" value="{{ t }}"><span class="nm">{{ t }}</span></label>{% endfor %}
-        <p class="pz-nota">Los datos actuales del planificador no traen aprobación; sin marcar, no filtra.</p></div>
+        <p class="pz-nota">Sin marcar, no filtra.</p></div>
       <div class="pz-fs" data-grp="autor"><h3>{{ svg('user') }}Creado por</h3>
         {% for a in autores %}<label class="pz-opt"><input type="checkbox" value="{{ a }}"><span class="nm">{{ a }}</span></label>{% else %}
-        <div class="pz-addu"><span>+</span>Añadir</div><p class="pz-nota">Los datos actuales no traen quién creó cada publicación.</p>{% endfor %}</div>
-      <div class="pz-fs"><h3>{{ svg('user') }}Aprobador</h3><div class="pz-addu"><span>+</span>Añadir</div><p class="pz-nota">Los datos actuales no traen aprobador.</p></div>
+        <p class="pz-nota">Todavía no hay autores.</p>{% endfor %}</div>
+      <div class="pz-fs" data-grp="aprobador"><h3>{{ svg('user') }}Aprobador</h3>
+        {% for a in aprobadores %}<label class="pz-opt"><input type="checkbox" value="{{ a }}"><span class="nm">{{ a }}</span></label>{% else %}
+        <p class="pz-nota">Todavía no hay publicaciones aprobadas o rechazadas.</p>{% endfor %}</div>
     </div>
   </div>
+</dialog>
+
+{# Confirmación de borrado (borrado lógico: queda en la base con fecha y autor) #}
+<dialog class="pz-confirm" id="pz-dborrar" aria-label="Borrar publicación">
+  <h2>¿Borrar esta publicación?</h2>
+  <p class="pz-nota" id="pz-borrar-cuando"></p>
+  <p class="pc-t" id="pz-borrar-txt" style="font-size:13.5px"></p>
+  <p class="pz-nota">Deja de verse en el planificador. Queda guardada en el historial por si hay que recuperarla.</p>
+  <form method="post" id="pz-borrar-form" class="acts"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="idem" id="pz-borrar-idem">
+    <button class="pz-btn gris" type="button" data-close>Cancelar</button><button class="pz-btn rojo" type="submit">Borrar</button></form>
 </dialog>
 
 {# Hoja de vistas #}
@@ -217,7 +231,7 @@ dialog.pzd::backdrop{background:rgba(17,17,17,.4)}
   <button class="v" type="button" data-view="lista">{{ svg('list') }}Vista de lista</button>
 </dialog>
 
-<script type="application/json" id="pz-data">{{ {'posts': posts, 'cuentas': cuentas, 'hoy': hoy, 'ghl': ghl_url}|tojson }}</script>
+<script type="application/json" id="pz-data">{{ {'posts': posts, 'cuentas': cuentas, 'hoy': hoy, 'sel': sel_dia, 'csrf': csrf, 'aprobar': puede_aprobar}|tojson }}</script>
 <script>
 (function(){
 var D=JSON.parse(document.getElementById('pz-data').textContent), P=D.posts, ACC={}, LOGO={{ static_v('logo.webp')|tojson }};
@@ -236,25 +250,26 @@ function closeD(d){if(d.close)d.close();else d.removeAttribute('open');}
 document.querySelectorAll('dialog').forEach(function(d){d.addEventListener('click',function(e){if(e.target===d||e.target.closest('[data-close]'))closeD(d);});});
 
 /* ---------- filtros (cuentas de la fila + hoja Filtros) ---------- */
-var F={acc:{}, tipo:null, estado:null, aprobacion:null, autor:null};
+var F={acc:{}, tipo:null, estado:null, aprobacion:null, autor:null, aprobador:null};
 function pasa(p){
   var ks=Object.keys(F.acc); if(ks.length && !p.cuentas.some(function(c){return F.acc[c];})) return false;
   if(F.tipo && F.tipo.indexOf(p.tipo)<0) return false;
   if(F.estado && F.estado.indexOf(p.estado)<0) return false;
   if(F.aprobacion && F.aprobacion.length && F.aprobacion.indexOf(p.aprobacion)<0) return false;
   if(F.autor && F.autor.length && F.autor.indexOf(p.creado_por)<0) return false;
+  if(F.aprobador && F.aprobador.length && F.aprobador.indexOf(p.aprobador)<0) return false;
   return true;
 }
 var porDia={};
 function indexar(){porDia={};P.forEach(function(p){if(pasa(p))(porDia[p.fecha]=porDia[p.fecha]||[]).push(p);});}
 
 /* ---------- estado de vista ---------- */
-if(!P.length) { wireCrear(); return; }
 var LBL={mes:'Vista mensual',semana:'Vista semanal',lista:'Vista de lista'};
 var vista='mes'; try{vista=localStorage.getItem('pz_vista')||'mes';}catch(e){}
 if(!LBL[vista]) vista='mes';
 var sel=D.hoy, cur=parse(D.hoy);
-if(!porDiaAll(D.hoy)){ var f=P.filter(function(p){return p.fecha>=D.hoy;})[0]; if(f){sel=f.fecha;cur=parse(sel);} }
+if(/^\d{4}-\d\d-\d\d$/.test(D.sel||'')){sel=D.sel;cur=parse(sel);}
+else if(!porDiaAll(D.hoy)){ var f=P.filter(function(p){return p.fecha>=D.hoy;})[0]; if(f){sel=f.fecha;cur=parse(sel);} }
 function porDiaAll(d){return P.some(function(p){return p.fecha===d;});}
 
 /* ---------- tarjetas ---------- */
@@ -281,24 +296,39 @@ function card(p){
   requestAnimationFrame(function(){ if(t.scrollHeight>t.clientHeight+2) mas.hidden=false; });
   var m=el('div','pc-m');
   if(p.thumb){var im=el('img');im.loading='lazy';im.dataset.src=p.thumb;lazy(im);im.alt='';m.appendChild(im);}
-  else if(p.media.length && /\.(mp4|mov|webm)(\?|$)/i.test(p.media[0])){var v=el('video');v.preload='metadata';v.muted=true;v.playsInline=true;v.controls=true;v.dataset.src=p.media[0]+'#t=0.5';lazy(v);m.appendChild(v);}
-  else if(p.media.length){var im2=el('img');im2.loading='lazy';im2.dataset.src=p.media[0];lazy(im2);im2.alt='';im2.onerror=function(){m.innerHTML={{ svg('noimg')|tojson }};};m.appendChild(im2);}
+  else if(p.media.length && p.media[0].video){var v=el('video');v.preload='metadata';v.muted=true;v.playsInline=true;v.controls=true;v.dataset.src=p.media[0].url+'#t=0.5';lazy(v);m.appendChild(v);}
+  else if(p.media.length){var im2=el('img');im2.loading='lazy';im2.dataset.src=p.media[0].url;lazy(im2);im2.alt='';im2.onerror=function(){m.innerHTML={{ svg('noimg')|tojson }};};m.appendChild(im2);}
   else m.innerHTML={{ svg('noimg')|tojson }};
   li.appendChild(m);
   var f=el('div','pc-f'), a=el('div');a.appendChild(document.createTextNode('Tipo de contenido'));a.appendChild(el('strong','',p.tipo||'—'));
   var b=el('div');b.appendChild(document.createTextNode('Programado para'));b.appendChild(el('strong','',fechaLarga(p.cuando)));
   var ac=el('span','pc-accs'); p.cuentas.slice(0,3).forEach(function(c){ac.appendChild(avatar(c));}); if(p.cuentas.length>3) ac.appendChild(el('span','n','+'+(p.cuentas.length-3)));
   f.appendChild(a);f.appendChild(b);f.appendChild(ac);li.appendChild(f);
+  var meta=el('div','pc-meta',(p.origen==='ghl_import'?'Importado de GHL':(p.creado_por?'Creado por '+p.creado_por:''))+(p.aprobacion?' · '+p.aprobacion+(p.aprobador?' por '+p.aprobador:''):''));
+  if(meta.textContent) li.appendChild(meta);
   return li;
 }
 var abierto=null;
+function token(){var a=new Uint8Array(12);(window.crypto||{getRandomValues:function(x){for(var i=0;i<x.length;i++)x[i]=Math.random()*256|0;return x;}}).getRandomValues(a);return [].map.call(a,function(b){return ('0'+b.toString(16)).slice(-2);}).join('');}
+function postForm(url,extra){var f=el('form');f.method='post';f.action=url;var o={csrf:D.csrf,idem:token()};for(var k in extra)o[k]=extra[k];
+  for(var k2 in o){var i=el('input');i.type='hidden';i.name=k2;i.value=o[k2];f.appendChild(i);} document.body.appendChild(f); f.submit();}
 function menu(li,p){
   if(abierto){abierto.remove();abierto=null;}
   var m=el('div','pz-menu'); m.style.top='48px';
-  p.media.forEach(function(u,i){var a=el('a','',p.media.length>1?'Ver archivo '+(i+1):'Ver archivo');a.href=u;a.target='_blank';a.rel='noopener noreferrer';m.appendChild(a);});
-  var c=el('button','','Copiar texto');c.type='button';c.addEventListener('click',function(){copiar(p.texto,'Texto copiado.');});m.appendChild(c);
-  var g=el('a','','Abrir en GHL');g.href=D.ghl;g.target='_blank';g.rel='noopener noreferrer';m.appendChild(g);
+  function item(txt,fn,cls){var b=el('button',cls||'',txt);b.type='button';b.addEventListener('click',function(e){e.stopPropagation();if(abierto){abierto.remove();abierto=null;}fn();});m.appendChild(b);}
+  item('Ver',function(){location.href='/mercadeo/planificador/'+p.id+'?ver=1';});
+  item('Editar',function(){location.href='/mercadeo/planificador/'+p.id;});
+  item('Duplicar (como borrador)',function(){postForm('/mercadeo/planificador/'+p.id+'/duplicar',{});});
+  if(D.aprobar){ item('Aprobar',function(){postForm('/mercadeo/planificador/'+p.id+'/aprobacion',{valor:'Aprobado'});});
+                 item('Rechazar',function(){postForm('/mercadeo/planificador/'+p.id+'/aprobacion',{valor:'Rechazado'});}); }
+  item('Copiar texto',function(){copiar(p.texto,'Texto copiado.');});
+  item('Borrar',function(){confirmarBorrar(p);},'danger');
   li.appendChild(m); abierto=m;
+}
+function confirmarBorrar(p){
+  var d=$('pz-dborrar'); $('pz-borrar-txt').textContent=(p.texto||'(sin texto)').slice(0,140)+((p.texto||'').length>140?'…':'');
+  $('pz-borrar-cuando').textContent=p.cuando?fechaLarga(p.cuando):'Sin fecha';
+  $('pz-borrar-form').action='/mercadeo/planificador/'+p.id+'/borrar'; $('pz-borrar-idem').value=token(); openD(d);
 }
 document.addEventListener('click',function(e){if(abierto&&!e.target.closest('.pz-menu')){abierto.remove();abierto=null;}});
 function copiar(t,msg){ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function(){toast(msg);},function(){toast(msg);}); else toast(msg); }
@@ -390,9 +420,9 @@ function rotulos(){fb.querySelectorAll('[data-grp]').forEach(function(g){var b=g
 $('pz-fbtn').addEventListener('click',function(){snap=estadoF();$('pz-aplicar').disabled=true;rotulos();openD($('pz-dfil'));});
 fb.addEventListener('change',function(){rotulos();$('pz-aplicar').disabled=(estadoF()===snap);});
 fb.addEventListener('click',function(e){var b=e.target.closest('[data-all]');if(!b)return;e.preventDefault();var g=b.closest('[data-grp]'),ins=g.querySelectorAll('input');var all=[].every.call(ins,function(i){return i.checked;});ins.forEach(function(i){i.checked=!all;});rotulos();$('pz-aplicar').disabled=(estadoF()===snap);});
-$('pz-reset').addEventListener('click',function(){fb.querySelectorAll('[data-grp="tipo"] input,[data-grp="estado"] input').forEach(function(i){i.checked=true;});fb.querySelectorAll('[data-grp="aprobacion"] input,[data-grp="autor"] input').forEach(function(i){i.checked=false;});rotulos();$('pz-aplicar').disabled=(estadoF()===snap);});
-$('pz-aplicar').addEventListener('click',function(){var o=leerF();F.tipo=o.tipo;F.estado=o.estado;F.aprobacion=o.aprobacion;F.autor=o.autor||null;
-  var def=fb.querySelectorAll('[data-grp="tipo"] input:not(:checked),[data-grp="estado"] input:not(:checked),[data-grp="aprobacion"] input:checked,[data-grp="autor"] input:checked').length>0;
+$('pz-reset').addEventListener('click',function(){fb.querySelectorAll('[data-grp="tipo"] input,[data-grp="estado"] input').forEach(function(i){i.checked=true;});fb.querySelectorAll('[data-grp="aprobacion"] input,[data-grp="autor"] input,[data-grp="aprobador"] input').forEach(function(i){i.checked=false;});rotulos();$('pz-aplicar').disabled=(estadoF()===snap);});
+$('pz-aplicar').addEventListener('click',function(){var o=leerF();F.tipo=o.tipo;F.estado=o.estado;F.aprobacion=o.aprobacion;F.autor=o.autor||null;F.aprobador=o.aprobador||null;
+  var def=fb.querySelectorAll('[data-grp="tipo"] input:not(:checked),[data-grp="estado"] input:not(:checked),[data-grp="aprobacion"] input:checked,[data-grp="autor"] input:checked,[data-grp="aprobador"] input:checked').length>0;
   $('pz-fbtn').classList.toggle('on',def); closeD($('pz-dfil')); pintar();});
 
 wireCrear();
@@ -410,10 +440,8 @@ function wireCrear(){
   $('pz-chips').addEventListener('click',function(e){var b=e.target.closest('[data-chip]');if(!b)return;d.querySelectorAll('#pz-chips button').forEach(function(x){x.classList.toggle('on',x===b);});
     var gr=b.dataset.chip==='grupos';$('pz-accl').hidden=gr;$('pz-nogr').hidden=!gr;});
   cr.addEventListener('click',function(){
-    var ns=[].map.call(d.querySelectorAll('#pz-accl input:checked'),function(i){var c=ACC[i.value];return c.nombre+' ('+c.red+')';});
-    window.open(D.ghl,'_blank','noopener');
-    copiar(ns.join(', '),'Abriendo el Social Planner de GHL. Cuentas copiadas: '+ns.join(', '));
-    closeD(d);
+    var qs=[].map.call(d.querySelectorAll('#pz-accl input:checked'),function(i){return 'cuenta='+encodeURIComponent(i.value);}).join('&');
+    location.href='/mercadeo/planificador/nuevo?'+qs;
   });
 }
 })();

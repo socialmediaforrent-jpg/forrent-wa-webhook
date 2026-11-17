@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% set nav = 'planificador' %}
+{% set redes_ok = ['facebook','instagram','tiktok','pinterest'] %}
+{% set editar = post and not ver %}
+{% block title %}{% if ver %}Ver publicación{% elif post %}Editar publicación{% else %}Crear publicación{% endif %}{% endblock %}
+{% block body %}
+<style>
+body{--pz:var(--naranja);--pz-s:var(--naranja-suave)}
+.pzf{margin:-14px -16px 0;background:#fff;min-height:calc(100vh - var(--appbar));padding-bottom:110px}
+@media (min-width:960px){.pzf{margin:0 auto;max-width:560px;border-radius:var(--r);box-shadow:var(--sombra)}}
+.pzf-h{display:flex;align-items:center;gap:6px;padding:10px 8px;border-bottom:1px solid var(--linea);position:sticky;top:var(--appbar);background:#fff;z-index:5}
+.pzf-h h1{flex:1;margin:0;font-size:17px;font-weight:800}
+.pz-ib{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;border-radius:999px;color:var(--negro);text-decoration:none}
+.pz-ib svg{width:22px;height:22px}
+.pzf-s{padding:14px 16px;border-bottom:1px solid #f0f1f4}
+.pzf-s>label,.pzf-s>.lbl{display:block;font-size:13px;font-weight:800;color:var(--muted);margin-bottom:8px}
+.pzf-accs{display:flex;flex-wrap:wrap;gap:8px}
+.pzf-acc{display:flex;align-items:center;gap:8px;border:1.5px solid var(--linea);border-radius:999px;padding:4px 12px 4px 4px;font-size:13.5px;font-weight:700;cursor:pointer;user-select:none}
+.pzf-acc input{position:absolute;opacity:0;pointer-events:none}
+.pzf-acc:has(input:checked){border-color:var(--pz);background:var(--pz-s);color:var(--naranja-2)}
+.av{position:relative;flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid var(--linea);display:inline-block}
+.av img.lg{width:100%;height:100%;border-radius:50%;object-fit:contain;padding:3px;box-sizing:border-box}
+.av img.bd{position:absolute;right:-3px;bottom:-3px;width:13px;height:13px;border-radius:4px;border:2px solid #fff}
+textarea.pzf-t{width:100%;box-sizing:border-box;min-height:180px;border:1px solid var(--linea);border-radius:12px;padding:12px;font:inherit;font-size:15px;line-height:1.45;resize:vertical}
+.pzf-cnt{text-align:right;font-size:12px;color:var(--muted);margin-top:4px}
+.pzf-media{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.pzf-media figure{margin:0;position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#eef0f4}
+.pzf-media img,.pzf-media video{width:100%;height:100%;object-fit:cover}
+.pzf-media label{position:absolute;left:4px;bottom:4px;background:rgba(255,255,255,.95);border-radius:8px;font-size:11.5px;font-weight:800;padding:3px 6px;display:flex;gap:4px;align-items:center}
+.pzf-file{display:block;width:100%;font:inherit;font-size:14px;margin-bottom:10px}
+textarea.pzf-l{width:100%;box-sizing:border-box;min-height:56px;border:1px solid var(--linea);border-radius:12px;padding:10px;font:inherit;font-size:13.5px}
+.pzf-dt{display:flex;gap:10px}.pzf-dt input{flex:1;min-width:0;border:1px solid var(--linea);border-radius:12px;padding:11px;font:inherit;font-size:15px;background:#fff}
+.pzf-nota{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.pzf-bar{position:fixed;left:0;right:0;bottom:calc(var(--bottom) + env(safe-area-inset-bottom));z-index:35;background:#fff;border-top:1px solid var(--linea);padding:10px 16px;display:flex;gap:10px}
+@media (min-width:960px){.pzf-bar{left:var(--side);bottom:0}}
+.pzf-bar button,.pzf-bar a{flex:1;border:0;border-radius:12px;font:inherit;font-weight:800;font-size:15px;padding:13px;cursor:pointer;text-align:center;text-decoration:none}
+.b1{background:#f1f2f5;color:var(--negro)}.b2{background:var(--pz);color:#fff}
+.chip{display:inline-flex;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:#e9f6ee;color:#16794c}
+.pzf-ver p{white-space:pre-wrap;font-size:15px;line-height:1.5;margin:0}
+.pzf-kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}.pzf-kv dt{color:var(--muted)}.pzf-kv dd{margin:0;font-weight:700}
+</style>
+{% macro av(c) -%}<span class="av"><img class="lg" src="{{ static_v('logo.webp') }}" alt="">{% if c.red in redes_ok %}<img class="bd" src="/static/redes/{{ c.red }}.svg" alt="">{% endif %}</span>{%- endmacro %}
+{% set back %}<a class="pz-ib" href="/mercadeo/planificador{% if post and post.fecha %}?dia={{ post.fecha }}{% endif %}" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>{% endset %}
+
+<div class="pzf">
+{% if ver %}
+  <div class="pzf-h">{{ back }}<h1>Publicación</h1></div>
+  <div class="pzf-s"><span class="chip">{{ post.estado }}</span></div>
+  <div class="pzf-s pzf-ver"><p>{{ post.texto or '(sin texto)' }}</p></div>
+  {% if post.media %}<div class="pzf-s"><div class="pzf-media">{% for m in post.media %}<figure>{% if m.video %}<video src="{{ m.url }}#t=0.5" preload="metadata" controls playsinline muted></video>{% else %}<img src="{{ m.url }}" alt="" loading="lazy">{% endif %}</figure>{% endfor %}</div></div>{% endif %}
+  <div class="pzf-s"><dl class="pzf-kv">
+    <dt>Programado para</dt><dd>{{ post.cuando or 'Sin fecha' }} (hora de Toronto)</dd>
+    <dt>Cuentas</dt><dd>{% for c in cuentas if c.id in post.cuentas %}{{ c.nombre }} ({{ c.red }}){% if not loop.last %}, {% endif %}{% else %}—{% endfor %}</dd>
+    <dt>Tipo</dt><dd>{{ post.tipo }}</dd>
+    <dt>Creado por</dt><dd>{{ post.creado_por or '—' }}</dd>
+    <dt>Aprobación</dt><dd>{{ post.aprobacion or 'Sin revisar' }}{% if post.aprobador %} · {{ post.aprobador }}{% endif %}</dd>
+  </dl></div>
+  <div class="pzf-bar"><a class="b1" href="/mercadeo/planificador{% if post.fecha %}?dia={{ post.fecha }}{% endif %}">Volver</a><a class="b2" href="/mercadeo/planificador/{{ post.id }}">Editar</a></div>
+{% else %}
+  <form method="post" action="/mercadeo/planificador/guardar" enctype="multipart/form-data" id="pzf">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="idem" value="{{ idem_token() }}">
+  {% if post %}<input type="hidden" name="id" value="{{ post.id }}">{% endif %}
+  <div class="pzf-h">{{ back }}<h1>{% if post %}Editar publicación{% else %}Crear publicación{% endif %}</h1></div>
+  {% if err %}<div class="alert err" role="alert" style="margin:12px 16px 0">{{ err }}</div>{% endif %}
+  <div class="pzf-s"><span class="lbl">Cuenta(s)</span>
+    <div class="pzf-accs">{% for c in cuentas %}<label class="pzf-acc"><input type="checkbox" name="cuentas" value="{{ c.id }}" {% if c.id in sel %}checked{% endif %}>{{ av(c) }}{{ c.nombre }}</label>{% else %}<p class="pzf-nota">No hay cuentas registradas.</p>{% endfor %}</div>
+  </div>
+  <div class="pzf-s"><label for="pzf-t">Texto</label>
+    <textarea class="pzf-t" id="pzf-t" name="texto" maxlength="{{ texto_max }}" placeholder="Escribe la publicación…">{{ vals.texto if vals else (post.texto if post else '') }}</textarea>
+    <div class="pzf-cnt"><span id="pzf-n">0</span> / {{ texto_max }} · Instagram admite hasta 2.200</div>
+  </div>
+  <div class="pzf-s"><span class="lbl">Fotos o video</span>
+    {% if post and post.media %}<div class="pzf-media">{% for m in post.media %}<figure>{% if m.video %}<video src="{{ m.url }}#t=0.5" preload="metadata" muted playsinline></video>{% else %}<img src="{{ m.url }}" alt="" loading="lazy">{% endif %}<label><input type="checkbox" name="quitar_media" value="{{ m.ref }}">Quitar</label></figure>{% endfor %}</div>{% endif %}
+    <input class="pzf-file" type="file" name="archivos" accept="image/jpeg,image/png,image/webp,video/mp4" multiple>
+    <textarea class="pzf-l" name="enlaces" placeholder="O pega enlaces https:// de fotos o videos (uno por línea)"></textarea>
+    <p class="pzf-nota">JPG, PNG o WebP hasta 8 MB; MP4 hasta 25 MB. Máximo 10 archivos.</p>
+  </div>
+  <div class="pzf-s"><span class="lbl">Fecha y hora (Toronto)</span>
+    <div class="pzf-dt"><input type="date" name="fecha" min="{{ hoy }}" value="{{ vals.fecha if vals else (post.cuando[:10] if post else '') }}" aria-label="Fecha"><input type="time" name="hora" value="{{ vals.hora if vals else (post.cuando[11:16] if post else '09:00') }}" aria-label="Hora"></div>
+    <p class="pzf-nota">«Programar» la deja lista en el planificador. Todavía no se publica sola en las redes.</p>
+  </div>
+  <div class="pzf-bar"><button class="b1" type="submit" name="accion" value="borrador">Guardar borrador</button><button class="b2" type="submit" name="accion" value="programar">Programar</button></div>
+  </form>
+  <script>
+  (function(){var t=document.getElementById('pzf-t'),n=document.getElementById('pzf-n');function u(){n.textContent=t.value.length;}t.addEventListener('input',u);u();
+   /* El botón pulsado viaja en el envío aunque el guard de doble toque lo deshabilite. */
+   var f=document.getElementById('pzf');f.addEventListener('click',function(e){var b=e.target.closest('button[name=accion]');if(!b)return;var h=f.querySelector('input[type=hidden][name=accion]')||document.createElement('input');h.type='hidden';h.name='accion';h.value=b.value;f.appendChild(h);});})();
+  </script>
+{% endif %}
+</div>
+{% endblock %}
