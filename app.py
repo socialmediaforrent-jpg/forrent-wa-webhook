@@ -195,6 +195,9 @@ def init_db():
         log.exception('marketplace.init')
     try:
         carga.init(q, IS_PG)  # Carga única (PRUEBA): carga_inmuebles/carga_fotos/carga_log (aditivas)
+    except Exception:
+        log.exception('carga.init')
+    try:
         planif.init(q, IS_PG)  # Planificador propio: social_accounts/social_posts/social_media/social_meta (aditivas)
     except Exception:
         log.exception('planificador.init')
