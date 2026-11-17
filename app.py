@@ -789,8 +789,28 @@ def _marcar_visto(user, wa_id):
         q("INSERT OR REPLACE INTO mensajes_last_seen (user_slug, wa_id, seen_at) VALUES (%s,%s,%s)", (slug, wa, now))
 
 
-def _conteo_no_leidos(user, wa_ids):
-    """Inbound después del último outbound o del last_seen del usuario."""
+def _utc_key(iso):
+    """Clave comparable (segundos UTC) para horas guardadas con 'Z', '+00:00' u otro desfase."""
+    dt = _parse_caracas(iso or '')
+    return dt.timestamp() if dt else 0.0
+
+
+def _ultimo_huerfano_por_wa(huerfanos):
+    """Último saliente de GHL (solo estado) por conversación: {wa_id: iso}."""
+    out = {}
+    for h in huerfanos or []:
+        wa, t = h.get('wa_id') or '', h.get('ts') or ''
+        dt = _parse_caracas(t)
+        if not wa or not dt:
+            continue
+        prev = _parse_caracas(out.get(wa) or '')
+        if prev is None or dt > prev:
+            out[wa] = t
+    return out
+
+
+def _conteo_no_leidos(user, wa_ids, huerfanos=None):
+    """Inbound después del último outbound (incluye lo enviado desde GHL) o del last_seen del usuario."""
     if not wa_ids:
         return {}
     seen = _last_seen_map(user)
@@ -803,6 +823,10 @@ def _conteo_no_leidos(user, wa_ids):
         fetch=True,
     ) or []
     last_out = {r['wa_id']: r['t'] or '' for r in outs}
+    for wa, t in _ultimo_huerfano_por_wa(huerfanos).items():
+        a, b = _parse_caracas(last_out.get(wa) or ''), _parse_caracas(t)
+        if b and (a is None or b > a):
+            last_out[wa] = t
     ins = q(
         """SELECT wa_id, COALESCE(ts, received_at) AS t
            FROM wa_events
@@ -815,8 +839,8 @@ def _conteo_no_leidos(user, wa_ids):
         wa = r['wa_id']
         if wa not in counts:
             continue
-        corte = max(last_out.get(wa) or '', seen.get(wa) or '')
-        if (r['t'] or '') > corte:
+        corte = max(_utc_key(last_out.get(wa)), _utc_key(seen.get(wa)))
+        if _utc_key(r['t']) > corte:
             counts[wa] += 1
     return counts
 
@@ -836,6 +860,8 @@ def panel_conversations(user):
         fetch=True,
     ) or []
     names = _names_by_wa()
+    _, huerfanos = _salientes_por_estado()
+    ult_ghl = _ultimo_huerfano_por_wa(huerfanos)
     visibles = mensajes.telefonos_visibles_de(user, db_propios=_db_propios)
     ocultos = mensajes.telefonos_ocultos()
     out = []
@@ -845,72 +871,166 @@ def panel_conversations(user):
             continue
         nombre = _display_name(wa, names.get(wa) or r.get('name'))
         canal = mensajes.canal_de(r)
+        iso, preview = _event_ts(r), _preview(r)
+        t_ghl = ult_ghl.get(wa)
+        if t_ghl and _utc_key(t_ghl) > _utc_key(iso):
+            iso, preview = t_ghl, 'Tú: Mensaje enviado desde GHL'
         out.append({
             'wa_id': wa,
             'href': '/panel?c=' + quote(wa, safe=''),
             'name': nombre,
             'phone': _fmt_phone(wa),
-            'preview': _preview(r),
-            'time': mensajes.hora_lista(_event_ts(r), _parse_caracas),
-            'time_full': _fmt_time(_event_ts(r)),
-            'sort': _event_ts(r),
+            'preview': preview,
+            'time': mensajes.hora_lista(iso, _parse_caracas),
+            'time_full': _fmt_time(iso),
+            'sort': iso,
             'canal': canal,
             'canal_label': mensajes.canal_etiqueta(canal),
             'iniciales': mensajes.iniciales(nombre, wa),
             'color': mensajes.color_avatar(nombre or wa),
             'unread': 0,
         })
-    counts = _conteo_no_leidos(user, [c['wa_id'] for c in out])
+    counts = _conteo_no_leidos(user, [c['wa_id'] for c in out], huerfanos)
     for c in out:
         c['unread'] = counts.get(c['wa_id'] or '', 0)
-    out.sort(key=lambda x: x['sort'] or '', reverse=True)
+    out.sort(key=lambda x: _utc_key(x['sort']), reverse=True)
     for c in out:
         c['_sort'] = c.pop('sort', None)
     return out
+
+
+_ST_RANGO = {'sent': 1, 'delivered': 2, 'read': 3, 'failed': 4, 'deleted': 4}
+GHL_PENDIENTE_TXT = 'Mensaje enviado desde GHL (el texto se carga con la sincronización)'
+
+
+def _data_dict(v):
+    if isinstance(v, dict):
+        return v
+    if isinstance(v, str) and v:
+        try:
+            d = json.loads(v)
+            return d if isinstance(d, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _mejor_estado(actual, nuevo):
+    return nuevo if _ST_RANGO.get(nuevo or '', 0) >= _ST_RANGO.get(actual or '', 0) else actual
+
+
+def _salientes_por_estado(wa_id=None):
+    """Une los estados de Meta (sent/delivered/read) con los salientes guardados.
+
+    Lo que Mónica o una asesora envían desde GHL sale por el mismo número de WhatsApp, pero Meta solo le
+    avisa a este servidor con eventos de estado (sin texto). Aquí se emparejan esos estados con su saliente:
+    1) por wamid (envíos del portal), 2) por data.meta_wamid (filas sincronizadas desde GHL, altId),
+    3) por hora (saliente del histórico GHL sin wamid de Meta, 120 s antes / 10 s después del primer estado).
+    Devuelve (estado_por_fila_id, huerfanos). Los huérfanos son salientes de los que solo hay estado: la
+    pantalla los pinta como burbuja enviada hasta que la sincronización traiga el texto. Solo lectura.
+    """
+    filtro, args = ('AND wa_id=%s', (wa_id,)) if wa_id else ('', ())
+    st_rows = q(f"""SELECT id, wamid, wa_id, ts, received_at, status FROM wa_events
+                    WHERE kind='status' AND wamid IS NOT NULL AND wamid <> '' {filtro}
+                    ORDER BY id ASC""", args, fetch=True) or []
+    if not st_rows:
+        return {}, []
+    grupos = {}
+    for r in st_rows:
+        g = grupos.setdefault(r['wamid'], {'wamid': r['wamid'], 'wa_id': r.get('wa_id') or '', 'ts': '', 'status': ''})
+        t = _event_ts(r)
+        if t and (not g['ts'] or (_parse_caracas(t) or datetime.max.replace(tzinfo=timezone.utc))
+                  < (_parse_caracas(g['ts']) or datetime.max.replace(tzinfo=timezone.utc))):
+            g['ts'] = t
+        g['status'] = _mejor_estado(g['status'], r.get('status') or '')
+        if not g['wa_id'] and r.get('wa_id'):
+            g['wa_id'] = r['wa_id']
+    out_rows = q(f"""SELECT id, wamid, wa_id, ts, received_at, data FROM wa_events
+                     WHERE kind IN ('message','outbound') AND direction='outbound' {filtro}""", args, fetch=True) or []
+    por_wamid = {}
+    sueltas = {}
+    for r in out_rows:
+        meta = _data_dict(r.get('data')).get('meta_wamid') or ''
+        for w in (r.get('wamid') or '', meta):
+            if w:
+                por_wamid[w] = r['id']
+        if not meta and not (r.get('wamid') or '').startswith('wamid.'):
+            dt = _parse_caracas(_event_ts(r))
+            if dt:
+                sueltas.setdefault(r.get('wa_id') or '', []).append((dt, r['id']))
+    estado_fila, huerfanos, usadas = {}, [], set()
+    for g in sorted(grupos.values(), key=lambda x: x['ts'] or ''):
+        rid = por_wamid.get(g['wamid'])
+        if rid is None:
+            t = _parse_caracas(g['ts'])
+            mejor = None
+            for dt, cand in sueltas.get(g['wa_id'], []):
+                if cand in usadas or t is None:
+                    continue
+                delta = (t - dt).total_seconds()  # el saliente se guarda antes que el primer estado
+                if -10 <= delta <= 120 and (mejor is None or abs(delta) < mejor[0]):
+                    mejor = (abs(delta), cand)
+            if mejor:
+                rid = mejor[1]
+                usadas.add(rid)
+        if rid is not None:
+            estado_fila[rid] = _mejor_estado(estado_fila.get(rid, ''), g['status'])
+        else:
+            huerfanos.append(g)
+    return estado_fila, huerfanos
+
+
+def _estado_clase(st_raw):
+    if st_raw == 'read':
+        return 'leido'
+    if st_raw in ('failed', 'deleted'):
+        return 'fallo'
+    return ''
 
 
 def panel_thread(wa_id):
     rows = q(
         """SELECT id, kind, wamid, wa_id, name, direction, msg_type, text, ts, status, auto, source, received_at
            FROM wa_events
-           WHERE wa_id=%s AND kind IN ('message', 'outbound', 'status')
+           WHERE wa_id=%s AND kind IN ('message', 'outbound')
            ORDER BY COALESCE(ts, received_at) ASC, id ASC""",
         (wa_id,),
         fetch=True,
     ) or []
-    statuses = {}
+    estado_fila, huerfanos = _salientes_por_estado(wa_id)
+    items = []
     for r in rows:
-        if r.get('kind') == 'status' and r.get('wamid') and r.get('status'):
-            statuses[r['wamid']] = r['status']
-    names = _names_by_wa()
-    msgs = []
-    last_day = None
-    for r in rows:
-        if r.get('kind') not in ('message', 'outbound'):
-            continue
         iso = _event_ts(r)
-        day = _fmt_day(iso)
         typ = r.get('msg_type') or ''
         typ_label = TIPO_ETIQUETA.get(typ, typ if typ and typ != 'text' else '')
         body = (r.get('text') or '').strip() or (typ_label and f'[{typ_label}]') or 'Mensaje'
-        st_raw = (r.get('status') or '') or statuses.get(r.get('wamid') or '', '')
-        st_label = STATUS_ETIQUETA.get(st_raw, st_raw)
-        if st_raw == 'read':
-            st_class = 'leido'
-        elif st_raw in ('failed', 'deleted'):
-            st_class = 'fallo'
-        else:
-            st_class = ''
-        msgs.append({
+        st_raw = (r.get('status') or '') or estado_fila.get(r['id'], '')
+        items.append((iso, r['id'], {
             'direction': 'out' if r.get('direction') == 'outbound' else 'in',
             'text': body,
             'type_label': typ_label if typ != 'text' else '',
-            'status': st_label,
-            'status_class': st_class,
-            'time': _fmt_time(iso),
-            'day': day if day != last_day else '',
-        })
+            'status': STATUS_ETIQUETA.get(st_raw, st_raw),
+            'status_class': _estado_clase(st_raw),
+        }))
+    for g in huerfanos:
+        items.append((g['ts'], 0, {
+            'direction': 'out', 'text': GHL_PENDIENTE_TXT, 'type_label': 'Enviado desde GHL',
+            'status': STATUS_ETIQUETA.get(g['status'], g['status']), 'status_class': _estado_clase(g['status']),
+            'pendiente': True,
+        }))
+
+    def orden(it):
+        dt = _parse_caracas(it[0])
+        return (dt.timestamp() if dt else 0, it[1])
+
+    msgs, last_day = [], None
+    for iso, _rid, m in sorted(items, key=orden):
+        day = _fmt_day(iso)
+        m['time'] = _fmt_time(iso)
+        m['day'] = day if day != last_day else ''
         last_day = day
+        msgs.append(m)
+    names = _names_by_wa()
     thread_name = _display_name(wa_id, names.get(wa_id) or next((r.get('name') for r in rows if r.get('name')), None))
     return msgs, thread_name, _fmt_phone(wa_id)
 
