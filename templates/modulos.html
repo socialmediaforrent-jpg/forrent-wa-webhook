@@ -1,0 +1,19 @@
+{% extends 'base.html' %}{% set nav='modulos' %}{% block title %}Módulos{% endblock %}
+{% block body %}
+<h1 class="page">Módulos</h1>
+<p class="lead">Los 5 módulos de For Rent Online. Lo que dice «En preparación» todavía no tiene pantalla; no muestra números.</p>
+{% for m in modulos %}
+<details class="sec mod" id="mod-{{ m.key }}" {{ 'open' if loop.first else '' }}>
+  <summary class="mod-sum">{{ icon(m.icon) }}<span><b>{{ m.n }}. {{ m.titulo }}</b></span>{{ icon('chev', 'i chev') }}</summary>
+  <div class="cards mod-cards">
+  {% for sct in m.secciones %}
+    {% if sct.href %}
+    <a class="card" href="{{ sct.href }}"><h2>{{ sct.label }}</h2>{% if sct.nota %}<p>{{ sct.nota }}</p>{% endif %}</a>
+    {% else %}
+    <div class="card mod-prox" aria-disabled="true"><h2>{{ sct.label }} <span class="pill">En preparación</span></h2>{% if sct.nota %}<p>{{ sct.nota }}</p>{% endif %}</div>
+    {% endif %}
+  {% endfor %}
+  </div>
+</details>
+{% endfor %}
+{% endblock %}

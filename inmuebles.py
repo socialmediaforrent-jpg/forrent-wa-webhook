@@ -17,7 +17,8 @@ import portales
 
 ESTADO_PUB = {'Active': 'Activo para difusión', 'Outstanding': 'Destacado', 'Inactive': 'Inactivo'}
 ESTADO_FISICO = {'Used': 'Usado', 'New': 'Nuevo', 'Under construction': 'En construcción', 'Plan': 'Sobre planos'}
-LISTAS = {'empresa': 'Mi empresa', 'propias': 'Propias de For Rent', 'aliados': 'Aliados', 'mias': 'Mis captaciones'}
+# Etapa 1: pestañas «Propios, Alianza, Todos» (mismas claves de URL; solo cambia el texto y el orden).
+LISTAS = {'propias': 'Propios', 'aliados': 'Alianza', 'empresa': 'Todos', 'mias': 'Mis captaciones'}
 ORDENES = {'reciente': 'Más reciente', 'antiguo': 'Más antiguo', 'mayor': 'Mayor precio', 'menor': 'Menor precio'}
 _F_COMPAT = {'propias': 'propias', 'aliados': 'aliados', 'todos': 'empresa'}
 

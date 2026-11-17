@@ -110,9 +110,9 @@ dialog.mk-dlg::backdrop{background:rgba(17,17,17,.45)}
 {% endif %}
 
 <nav class="tabs" aria-label="Filtro">
-  <a href="/mercadeo?f=todos" class="{{ 'on' if f=='todos' else '' }}">Todos ({{ n_todos }})</a>
-  <a href="/mercadeo?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propias ({{ n_prop }})</a>
+  <a href="/mercadeo?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propios ({{ n_prop }})</a>
   <a href="/mercadeo?f=aliados" class="{{ 'on' if f=='aliados' else '' }}">Alianza ({{ n_ali }})</a>
+  <a href="/mercadeo?f=todos" class="{{ 'on' if f=='todos' else '' }}">Todos ({{ n_todos }})</a>
 </nav>
 <input class="search" id="q" type="search" placeholder="Buscar por zona, tipo, código{% if ver_asesor %}, asesora{% endif %} o título…" autocomplete="off" aria-label="Buscar inmuebles">
 

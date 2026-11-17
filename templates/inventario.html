@@ -29,6 +29,9 @@
     {% for k, v in args.items(multi=True) if k != 'q' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
     <input type="search" name="q" value="{{ args.get('q', '') }}" placeholder="Buscar" aria-label="Buscar por título, código, zona o tipo" autocomplete="off">
   </form>
+  <nav class="tabs" aria-label="Filtro" style="margin:8px 0 4px">
+    {% for k in ('propias', 'aliados', 'empresa') %}<a href="/inventario?lista={{ k }}" class="{{ 'on' if lista==k else '' }}">{{ listas[k] }}</a>{% endfor %}
+  </nav>
   <div class="wz-res">
     <span><b>{{ filas|length }}</b> resultados <span style="color:#8a93a3">· {{ listas[lista] }}</span></span>
     <button type="button" class="wz-filtrar" id="wz-abrir">Filtrar <span class="ico" aria-hidden="true">

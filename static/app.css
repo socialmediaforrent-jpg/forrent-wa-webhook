@@ -322,3 +322,15 @@ a.embudo-fase.simple:hover,a.embudo-tile:hover{transform:translateY(-1px);transi
 .embudo-lista h2{font-size:17px;margin:0 0 4px}
 .embudo-lista .lead a{color:var(--naranja);font-weight:700;text-decoration:none}
 .embudo-lista .lead a:hover{text-decoration:underline}
+
+/* Etapa 1: índice de Módulos */
+details.mod{background:var(--card);border-radius:var(--r);box-shadow:var(--sombra);padding:4px 12px;margin:0 0 12px}
+.mod-sum{list-style:none;display:flex;align-items:center;gap:10px;padding:12px 4px;cursor:pointer;font-size:16px}
+.mod-sum::-webkit-details-marker{display:none}
+.mod-sum .i{color:var(--naranja)}
+.mod-sum .chev{margin-left:auto;color:#8a93a3;transition:transform .15s}
+details.mod[open] .mod-sum .chev{transform:rotate(180deg)}
+.mod-cards{padding:0 0 12px}
+.mod-cards .card{box-shadow:none;border:1px solid #eceef2}
+.mod-prox{opacity:.75;background:#f7f8fa}
+.mod-prox h2{color:#5b6275}

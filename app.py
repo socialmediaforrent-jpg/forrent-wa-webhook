@@ -737,15 +737,17 @@ def _portal_nav():
                 {'href': '/inventario/cola', 'label': 'Por revisar', 'key': 'carga_cola', 'icon': 'clipboard'}]
         return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['inventario']}
     links = _portal_links()
+    # Etapa 1 (Prompt Maestro, José 17-nov): la barra de abajo queda con 4 botones: Inicio, Módulos, Mensajes y Más.
+    # Los 5 módulos viven en /modulos. Todo lo que antes estaba en la barra sigue en «Más» (no se pierde nada).
     main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'},
-            {'href': '/mis-clientes', 'label': 'Mis Clientes', 'short': 'Clientes', 'key': 'clientes', 'icon': 'users'}]
+            {'href': '/modulos', 'label': 'Módulos', 'key': 'modulos', 'icon': 'chart'},
+            {'href': '/panel', 'label': 'Mensajes', 'key': 'mensajes', 'icon': 'chat'}]
+    more = [{'href': '/mis-clientes', 'label': 'Mis Clientes', 'key': 'clientes', 'icon': 'users'}]
     if role == 'admin':
-        main.append({'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'})
-        main.append({'href': '/panel', 'label': 'Mensajes', 'key': 'mensajes', 'icon': 'chat'})
+        more.append({'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'})
     else:
-        main.append({'href': '/panel', 'label': 'Mensajes', 'key': 'mensajes', 'icon': 'chat'})
-        main.append({'href': '/visitas', 'label': 'Visitas', 'key': 'visitas', 'icon': 'calendar'})
-    more = [{'href': '/mis-inmuebles', 'label': 'Cargar inmueble', 'key': 'carga', 'icon': 'key'}]
+        more.append({'href': '/visitas', 'label': 'Visitas', 'key': 'visitas', 'icon': 'calendar'})
+    more.append({'href': '/mis-inmuebles', 'label': 'Cargar inmueble', 'key': 'carga', 'icon': 'key'})
     if role == 'admin':
         more.append({'href': '/inventario/cola', 'label': 'Por revisar (carga)', 'key': 'carga_cola', 'icon': 'clipboard'})
     if role != 'admin':
@@ -777,6 +779,69 @@ def _portal_nav():
                      'key': 'propios_more', 'icon': 'users'})
     return {'nav_main': main, 'nav_more': more, 'nav_more_keys': [m['key'] for m in more],
             'viewer': u, 'role_label': ROLE_LABEL.get(role, role)}
+
+
+def _modulos_para(role):
+    """Los 5 módulos del Prompt Maestro con sus secciones. Cada sección enlaza a la pantalla que ya existe;
+    si todavía no existe, queda como «En preparación» sin enlace y sin números (no se inventan datos).
+    Solo navegación: los permisos siguen en cada ruta (servidor)."""
+    admin = role == 'admin'
+    lider = role == 'lider'
+
+    def s(label, href=None, nota=''):
+        return {'label': label, 'href': href, 'nota': nota}
+
+    inv = [s('Mis Captaciones › Inmuebles', '/mis-captaciones', 'Propios, Alianza y Todos.'),
+           s('Mis Captaciones › Mercadeo (portales y redes)', '/mercadeo', 'Tus enlaces en los 10 portales y las 6 redes.'),
+           s('Captaciones For Rent › Inmuebles', '/inventario', 'Todo el inventario de For Rent.'),
+           s('Captaciones For Rent › Mercadeo', '/mercadeo' if admin else None,
+             '' if admin else 'Llega en la etapa 2.')]
+    if admin:
+        inv.append(s('Planificador', '/mercadeo/planificador', 'Solo Administrador.'))
+    inv.append(s('Estadísticas de Mercadeo', None, 'Llega en la etapa 8, solo con datos reales.'))
+    inv.append(s('Cargar inmueble', '/mis-inmuebles'))
+    if admin:
+        inv.append(s('Por revisar (carga)', '/inventario/cola'))
+
+    cli = [s('Mis Clientes (por fases)', '/mis-clientes'),
+           s('Mis Asignaciones', '/mis-asignaciones', 'Embudo comercial de tus asignaciones.')]
+    if admin or lider:
+        cli.append(s('Clientes propios' if admin else 'Clientes del equipo', '/clientes-propios'))
+    cli += [s('Seguimiento', None, 'Llega en la etapa 6.'),
+            s('Estadísticas de Clientes', None, 'Llega en la etapa 3.')]
+
+    ops = [s('Visitas', '/visitas'),
+           s('Ofertas', '/ofertas'),
+           s('Reservas', None, 'Llega en la etapa 4.'),
+           s('Mis Cierres', None, 'Llega en la etapa 4.'),
+           s('Mis Entregas', None, 'Llega en la etapa 4.'),
+           s('Agenda', None, 'Llega en la etapa 4.'),
+           s('Actividades For Rent', '/admin/actividades' if admin else '/actividades')]
+
+    com = [s('Mis Comisiones', '/cierres', 'Por ahora es la pantalla de Cierres; se ordena en la etapa 5.'),
+           s('Estadísticas de Comisiones', None, 'Llega en la etapa 5.')]
+
+    ren = [s('Estatus Activo / Inactivo', None, 'Llega en la etapa 7.'),
+           s('Puntaje por Captaciones', None, 'Llega en la etapa 7.'),
+           s('Puntaje por Cliente', None, 'Llega en la etapa 7.'),
+           s('Puntaje General', None, 'Llega en la etapa 7.')]
+    if admin or lider:
+        ren.insert(0, s('Mi Equipo' if lider else 'Equipos', '/mi-equipo'))
+
+    return [
+        {'n': 1, 'key': 'inventario', 'titulo': 'Inventario', 'icon': 'building', 'secciones': inv},
+        {'n': 2, 'key': 'clientes', 'titulo': 'Clientes', 'icon': 'users', 'secciones': cli},
+        {'n': 3, 'key': 'operaciones', 'titulo': 'Operaciones', 'icon': 'calendar', 'secciones': ops},
+        {'n': 4, 'key': 'comisiones', 'titulo': 'Comisiones', 'icon': 'cash', 'secciones': com},
+        {'n': 5, 'key': 'rendimiento', 'titulo': 'Rendimiento', 'icon': 'chart', 'secciones': ren},
+    ]
+
+
+@app.get('/modulos')
+@require_login
+def modulos():
+    """Índice de los 5 módulos (solo navegación). Mercadeo e Inventario siguen en 403 por require_login."""
+    return _panel_headers(render_template('modulos.html', modulos=_modulos_para(g.user.get('role'))))
 
 
 def _parse_caracas(iso):

@@ -5,9 +5,9 @@
 <h1 class="page">Mis Captaciones</h1>
 <p class="lead">Solo donde figuras como captadora. Inventario del {{ inv_fecha }}. <a href="/inventario">Ver Inmuebles →</a></p>
 <nav class="tabs" aria-label="Filtro">
-  <a href="/mis-captaciones?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propias ({{ n_prop }})</a>
-  <a href="/mis-captaciones?f=aliadas" class="{{ 'on' if f=='aliadas' else '' }}">Aliadas ({{ n_ali }})</a>
-  <a href="/mis-captaciones?f=todas" class="{{ 'on' if f=='todas' else '' }}">Todas ({{ n_prop + n_ali }})</a>
+  <a href="/mis-captaciones?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propios ({{ n_prop }})</a>
+  <a href="/mis-captaciones?f=aliadas" class="{{ 'on' if f=='aliadas' else '' }}">Alianza ({{ n_ali }})</a>
+  <a href="/mis-captaciones?f=todas" class="{{ 'on' if f=='todas' else '' }}">Todos ({{ n_prop + n_ali }})</a>
 </nav>
 {{ cap_table(filas, 'No hay captaciones a tu nombre en este filtro.', sid='cap') }}
 {% set aprob = solicitudes|selectattr('estado','equalto','aprobada')|selectattr('accion','equalto','alta')|list %}
