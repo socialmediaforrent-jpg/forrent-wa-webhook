@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Inmueble · For Rent Online</title>
+{% include '_head_icons.html' %}
+{% include '_brand.css.html' %}
+<link rel="stylesheet" href="{{ static_v('inmuebles.css') }}">
+</head>
+<body>
+{% set nav='inventario' %}
+{% include '_top.html' %}
+{% macro tile(lbl, val, suf='') %}<div>{{ lbl }}{% if val %}<b>{{ val }}{{ suf }}</b>{% else %}<b class="nd">Sin datos</b>{% endif %}</div>{% endmacro %}
+<main class="wrap-page">
+<div class="wz">
+  <div class="wz-bar">
+    <a class="back" href="{{ volver or '/inventario' }}" aria-label="Volver">‹</a>
+    <h1 class="c">Inmueble</h1>
+    <span style="width:38px"></span>
+  </div>
+  {% if copia_prueba %}<div class="wz-proto">{{ copia_prueba }}</div>{% endif %}
+  {% if not f %}
+  <div class="wz-empty">Ese inmueble ya no está en el inventario. <a href="/inventario">Volver a Inmuebles</a></div>
+  {% else %}
+  {% set fotos = f.fotos or [] %}
+  <div class="wz-sticky">
+    {% if fotos %}<img src="{{ fotos[0].thumb or fotos[0].full }}" alt="" referrerpolicy="no-referrer">{% else %}<span class="ph"></span>{% endif %}
+    <div><div class="tt">{{ f.titulo }}</div><div class="cd">{% if f.codigo %}Código {{ f.codigo }} · {% endif %}{{ 'Propia' if f.origen == 'propio' else 'Aliado' }}</div></div>
+  </div>
+  <div class="wz-acts">
+    <button type="button" onclick="window.print()">Generar PDF</button>
+    <a href="mailto:?subject={{ ('Inmueble: ' ~ f.titulo)|urlencode }}&body={{ compartir|urlencode }}">Enviar correo</a>
+    <button type="button" id="wz-comp">Compartir</button>
+  </div>
+  <div class="wz-tabs" role="tablist"><span class="on" role="tab" aria-selected="true">Detalles</span><span role="tab" aria-disabled="true" title="Todavía no enlazamos clientes con inmuebles por código">Clientes enlazados (—)</span><span role="tab" aria-disabled="true">Clientes potenciales (—)</span></div>
+
+  <div class="wz-sec" style="padding:0;overflow:hidden">
+    <div class="wz-gal" id="wz-gal">
+      {% if fotos %}
+      <div class="wz-track" data-n="{{ fotos|length }}">{% for x in fotos %}<img src="{{ x.full or x.thumb }}" alt="{{ f.titulo }} · foto {{ loop.index }}" loading="{{ 'eager' if loop.first else 'lazy' }}" referrerpolicy="no-referrer">{% endfor %}</div>
+      <span class="wz-count">1/{{ fotos|length }}</span>
+      {% if fotos|length > 1 %}<span class="wz-dots" aria-hidden="true">{% for x in fotos[:10] %}<i class="{{ 'on' if loop.first else '' }}"></i>{% endfor %}</span>{% endif %}
+      <button type="button" class="wz-full" id="wz-fs">⤢ Pantalla completa</button>
+      {% else %}<div class="wz-noimg">Sin fotos</div>{% endif %}
+      <span class="wz-chip">{{ 'Propia' if f.origen == 'propio' else 'Aliado' }}</span>
+      {% if f.solo_cliente_directo %}<span class="wz-chip sd">Solo cliente directo</span>{% endif %}
+    </div>
+    <div class="wz-band {{ 'dest' if f.destacado else ('disp' if f.estado == 'Disponible' else '') }}">{{ f.estado }}</div>
+    <div style="padding:14px">
+      <div class="wz-tn" style="font-size:16px">{{ f.tipo_negocio }}</div>
+      <div class="wz-loc">En {{ f.lugar or f.zona }}</div>
+      <div class="wz-kv">
+        <div>Localidad<b>{{ f.ciudad or 'Sin datos' }}</b></div>
+        <div>Zona<b>{{ f.zona or 'Sin datos' }}</b></div>
+        <div style="grid-column:1/-1">Dirección<b style="color:#9aa1ad;font-weight:600">No se muestra en el portal</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wz-sec">
+    <div class="wz-tiles">
+      {{ tile('Estado físico', f.estado_fisico) }}{{ tile('Año construcción', f.anio) }}
+      {{ tile('Área privada', ('%.1f'|format(f.area_privada)) if f.area_privada else '', ' m²') }}{{ tile('Área construida', ('%.1f'|format(f.m2)) if f.m2 else '', ' m²') }}
+      {{ tile('Área terreno', ('%.1f'|format(f.area_total)) if f.area_total else '', ' m²') }}{{ tile('Alcobas', f.habitaciones) }}
+      {{ tile('Baños', f.banos) }}{{ tile('Pisos', f.piso) }}
+      {{ tile('Estacionamiento', f.garajes) }}{{ tile('Código', f.codigo) }}
+    </div>
+  </div>
+
+  <div class="wz-pband"><span>Precio {{ f.operacion }}</span><b>{{ f.precio or 'Sin dato' }}{% if f.precio and f.operacion == 'Alquiler' %} <small style="font-size:12px">Mensual</small>{% endif %}</b></div>
+
+  {% if ver_encargado %}
+  <div class="wz-sec">
+    <h3>Encargado del inmueble</h3>
+    <div class="wz-encard"><span class="av">{{ (f.encargado or '?')[:1] }}</span><div><b>{{ f.encargado or 'Sin dato' }}</b><div class="wz-loc">Asesora captadora (solo lo ven Presidencia e Inventario)</div></div></div>
+  </div>
+  {% endif %}
+
+  <div class="wz-btn2">
+    <button type="button" disabled title="Ningún inmueble tiene video cargado en Wasi">Video{% if not f.tiene_video %} · sin datos{% endif %}</button>
+    <button type="button" disabled title="Wasi no trae coordenadas de este inmueble">Mapa{% if not f.lat %} · sin datos{% endif %}</button>
+  </div>
+
+  <div class="wz-sec">
+    <details><summary>Características internas <span>›</span></summary>{% if f.caracteristicas_int %}<p>{{ f.caracteristicas_int|join(' · ') }}</p>{% else %}<p style="color:#9aa1ad">Sin datos en Wasi.</p>{% endif %}</details>
+    <hr style="border:0;border-top:1px solid #e6e8ee">
+    <details><summary>Características externas <span>›</span></summary>{% if f.caracteristicas_ext %}<p>{{ f.caracteristicas_ext|join(' · ') }}</p>{% else %}<p style="color:#9aa1ad">Sin datos en Wasi.</p>{% endif %}</details>
+    <hr style="border:0;border-top:1px solid #e6e8ee">
+    <details {{ 'open' if f.descripcion else '' }}><summary>Descripción <span>›</span></summary>{% if f.descripcion %}<p>{{ f.descripcion }}</p>{% else %}<p style="color:#9aa1ad">Sin descripción.</p>{% endif %}</details>
+    <hr style="border:0;border-top:1px solid #e6e8ee">
+    <details><summary>Observaciones <span>›</span></summary><p style="color:#9aa1ad">Las observaciones internas de Wasi no se traen al portal.</p></details>
+  </div>
+
+  <div class="wz-sec">
+    <h3>Disponibilidad</h3>
+    <div class="wz-disp"><span class="on">Disponible</span><span>Vendido</span><span>Alquilado</span></div>
+    {% if f.actualizado_en %}<p class="wz-loc" style="margin:8px 0 0">Actualizado: {{ f.actualizado_en[:10] }}</p>{% endif %}
+  </div>
+
+  {% if portales_pub %}
+  <div class="wz-sec">
+    <h3>Publicado en</h3>
+    <div class="wz-ports">{% for c in portales_pub %}<img src="/static/{{ c.logo }}" alt="{{ c.nombre }}" title="{{ c.nombre }}">{% endfor %}</div>
+    {% if viewer and viewer.role == 'admin' %}<p class="wz-loc" style="margin:8px 0 0">Los enlaces se gestionan en <a href="/mercadeo">Mercadeo</a>.</p>{% else %}<p class="wz-loc" style="margin:8px 0 0">Portales donde está publicado y verificado.</p>{% endif %}
+  </div>
+  {% endif %}
+  <script type="application/json" id="wz-txt">{{ compartir|tojson }}</script>
+  <script>
+  (function(){
+    var t = document.querySelector('#wz-gal .wz-track');
+    if (t){
+      var g = t.parentNode, cnt = g.querySelector('.wz-count'), dots = g.querySelectorAll('.wz-dots i'), n = +t.dataset.n;
+      t.addEventListener('scroll', function(){ var i = Math.round(t.scrollLeft / t.clientWidth); cnt.textContent = (i + 1) + '/' + n; dots.forEach(function(d, j){ d.classList.toggle('on', j === Math.min(i, dots.length - 1)); }); }, {passive: true});
+      var fs = document.getElementById('wz-fs');
+      fs.addEventListener('click', function(){ var i = Math.round(t.scrollLeft / t.clientWidth), img = t.children[i]; (img.requestFullscreen || img.webkitRequestFullscreen || function(){ window.open(img.src, '_blank', 'noopener'); }).call(img); });
+    }
+    var txt = JSON.parse(document.getElementById('wz-txt').textContent || '""');
+    document.getElementById('wz-comp').addEventListener('click', function(){
+      if (navigator.share) navigator.share({text: txt}).catch(function(){});
+      else if (navigator.clipboard) navigator.clipboard.writeText(txt);
+    });
+  })();
+  </script>
+  {% endif %}
+</div>
+</main>
+</body>
+</html>

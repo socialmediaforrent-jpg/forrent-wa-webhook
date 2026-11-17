@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es"><head>{% include '_carga_head.html' %}<title>Cargar inmueble · For Rent Online</title></head>
+<body>
+{% set nav='carga' %}{% include '_top.html' %}
+<main class="wrap-page"><div class="wz">
+  <div class="wz-bar"><h1>Mis inmuebles cargados</h1>
+    <form method="post" action="/mis-inmuebles/nuevo" style="margin:0"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="idem" value="{{ idem_token() }}">
+      <button type="submit" class="wz-plus" style="border:0;cursor:pointer" aria-label="Nuevo inmueble">+</button></form></div>
+  {% if copia_prueba %}<div class="wz-proto">{{ copia_prueba }}</div>{% endif %}
+  {% if ok %}<div class="wz-okmsg">{{ ok }}</div>{% endif %}
+  <p class="wz-loc" style="margin:0 0 10px">Carga una sola vez: Inventario lo revisa y lo publica en Wasi, Mercado Libre y los demás portales. Solo inmuebles propios o en alianza.</p>
+  {% if not filas %}<div class="wz-empty">Todavía no has cargado inmuebles. Toca <b>+</b> para empezar.</div>{% endif %}
+  {% for c in filas %}
+  <a class="wz-q" href="/mis-inmuebles/{{ c.id }}/paso/{{ 4 if c.estado in ('borrador','devuelta') and c.paso >= 4 else (c.paso or 1) }}">
+    <span class="ph"></span>
+    <span style="flex:1;min-width:0"><span class="t">{{ c.datos.titulo or 'Sin título' }}</span><br>
+      <span class="m">{{ c.datos.tipo or '' }} {{ ('· ' ~ c.datos.operacion) if c.datos.operacion }} {{ ('· ' ~ c.datos.zona) if c.datos.zona }} · {{ c.n_fotos }} fotos</span><br>
+      <span class="wz-pill {{ c.estado }}">{{ c.estado_label }}</span>
+      {% if c.estado == 'devuelta' and c.nota_revision %}<span class="m"> Nota de Inventario: {{ c.nota_revision }}</span>{% endif %}</span>
+    <span aria-hidden="true">›</span></a>
+  {% endfor %}
+</div></main></body></html>
