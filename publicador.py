@@ -46,7 +46,28 @@ def correr(q):
     return {'modo': MODO, 'vencidas': vencidas, 'elegibles': len(elegibles), 'apagadas': apagadas}
 
 
+def _q_pg(url):
+    """Conexión mínima de solo lectura (no importa la app: no corre su arranque cada 5 minutos)."""
+    import psycopg
+    from psycopg.rows import dict_row
+
+    def q(sql, args=(), fetch=False):
+        with psycopg.connect(url, autocommit=True, row_factory=dict_row) as c:
+            c.execute('SET default_transaction_read_only = on')
+            cur = c.execute(sql, args)
+            return cur.fetchall() if fetch else None
+    return q
+
+
 if __name__ == '__main__':
+    import os
     logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='%(asctime)s %(levelname)s %(message)s')
-    import app  # usa la misma conexión y crea las tablas si faltan (aditivas)
-    print(json.dumps(correr(app.q)))
+    url = os.environ.get('DATABASE_URL', '')
+    if not url.startswith('postgres'):
+        log.error('Falta DATABASE_URL de Postgres; no se hace nada.')
+        sys.exit(0)
+    q = _q_pg(url)
+    if not q("SELECT to_regclass('social_posts') AS t", fetch=True)[0]['t']:
+        log.info('[SIMULACIÓN] las tablas del planificador aún no existen; nada que revisar.')
+        sys.exit(0)
+    print(json.dumps(correr(q)))
