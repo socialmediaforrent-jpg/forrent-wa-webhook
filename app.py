@@ -34,7 +34,7 @@ Variables de entorno
   META_SOCIAL_INBOX=1         muestra Instagram/Facebook en la bandeja (solo admin, solo lectura) usando
                               META_PAGE_TOKEN o META_PAGE_TOKEN_FILE (token de página). Apagado por defecto.
 """
-import csv, hashlib, hmac, json, logging, os, sqlite3, threading, time, urllib.request
+import csv, hashlib, hmac, ipaddress, json, logging, os, sqlite3, threading, time, urllib.request
 from pathlib import Path as _Path
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -181,6 +181,10 @@ def init_db():
     q("CREATE TABLE IF NOT EXISTS bak_pre_ghl_import_raw_events AS SELECT * FROM raw_events")
     q(f"""CREATE TABLE IF NOT EXISTS portal_datos (
         nombre TEXT PRIMARY KEY, datos {JSONT}, actualizado TEXT)""")
+    # Contadores de intentos fallidos del login. Tabla nueva y aditiva: no altera tablas existentes.
+    q(f"""CREATE TABLE IF NOT EXISTS login_fails (
+        id {SERIAL}, fail_key TEXT NOT NULL, failed_at TEXT NOT NULL)""")
+    q("CREATE INDEX IF NOT EXISTS login_fails_key_at ON login_fails (fail_key, failed_at)")
     try:
         portales.init(q, IS_PG)  # Mercadeo: crm_portal_links (aditiva)
     except Exception:
@@ -530,47 +534,110 @@ STATUS_ETIQUETA = {
 
 
 LOGIN_FAIL_WINDOW = 15 * 60
-LOGIN_FAIL_MAX = 5
-_login_fails = {}
+LOGIN_FAIL_MAX_USER_IP = 5   # fallos por usuario+IP en la ventana
+LOGIN_FAIL_MAX_IP = 20       # fallos de la misma IP (cualquier usuario) en la ventana
+
+
+def _valid_ip(value):
+    """Devuelve una IP canónica o '' si el valor no es una IPv4/IPv6 válida."""
+    value = (value or '').strip()
+    if not value:
+        return ''
+    if value.startswith('[') and ']' in value:
+        value = value[1:value.index(']')]
+    # Algunos proxies envían IPv4:puerto
+    if value.count(':') == 1 and '.' in value:
+        value = value.rsplit(':', 1)[0]
+    try:
+        return str(ipaddress.ip_address(value))
+    except ValueError:
+        return ''
 
 
 def _client_ip():
+    """IP real del visitante detrás de Cloudflare + Render, sin fiarse de un XFF crudo."""
+    cf = _valid_ip(request.headers.get('CF-Connecting-IP', ''))
+    if cf:
+        return cf
     xf = request.headers.get('X-Forwarded-For', '')
     if xf:
-        return xf.split(',')[0].strip()
-    return request.remote_addr or '0.0.0.0'
+        first = _valid_ip(xf.split(',')[0])
+        if first:
+            return first
+    return _valid_ip(request.remote_addr) or '0.0.0.0'
 
 
 def _login_fail_keys(username=''):
-    keys = ['ip:' + _client_ip()]
+    """Claves y topes: por IP (amplio) y por usuario+IP (estricto). Sin clave global de usuario."""
+    ip = _client_ip()
+    keys = [('ip:' + ip, LOGIN_FAIL_MAX_IP)]
     user = (username or '').strip().lower()
     if user:
-        keys.append('u:' + user)
+        keys.append(('uip:' + user + '|' + ip, LOGIN_FAIL_MAX_USER_IP))
     return keys
 
 
+def _login_fail_cutoff():
+    return (datetime.now(timezone.utc) - timedelta(seconds=LOGIN_FAIL_WINDOW)).isoformat()
+
+
+def _purge_old_login_fails():
+    q('DELETE FROM login_fails WHERE failed_at < %s', (_login_fail_cutoff(),))
+
+
+def _parse_failed_at(val):
+    try:
+        ts = datetime.fromisoformat(val)
+    except (TypeError, ValueError):
+        return datetime.now(timezone.utc)
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return ts
+
+
+def _login_block_seconds(username=''):
+    """Segundos que faltan para levantar el bloqueo más largo, o 0 si no está bloqueado."""
+    cutoff = _login_fail_cutoff()
+    now = datetime.now(timezone.utc)
+    wait = 0
+    for key, limit in _login_fail_keys(username):
+        rows = q(
+            'SELECT failed_at FROM login_fails WHERE fail_key=%s AND failed_at >= %s ORDER BY failed_at ASC',
+            (key, cutoff), fetch=True,
+        ) or []
+        if len(rows) < limit:
+            continue
+        oldest = _parse_failed_at(rows[0]['failed_at'])
+        remaining = int((oldest + timedelta(seconds=LOGIN_FAIL_WINDOW) - now).total_seconds())
+        if remaining > wait:
+            wait = remaining
+    return wait
+
+
+def _login_block_minutes(username=''):
+    secs = _login_block_seconds(username)
+    if secs <= 0:
+        return 0
+    return max(1, (secs + 59) // 60)
+
+
 def _too_many_login_fails(username=''):
-    now = time.time()
-    with _lock:
-        for key in _login_fail_keys(username):
-            hits = [t for t in _login_fails.get(key, []) if now - t < LOGIN_FAIL_WINDOW]
-            _login_fails[key] = hits
-            if len(hits) >= LOGIN_FAIL_MAX:
-                return True
-    return False
+    return _login_block_seconds(username) > 0
 
 
 def _record_login_fail(username=''):
-    now = time.time()
-    with _lock:
-        for key in _login_fail_keys(username):
-            _login_fails.setdefault(key, []).append(now)
+    _purge_old_login_fails()
+    now = datetime.now(timezone.utc).isoformat()
+    for key, _limit in _login_fail_keys(username):
+        q('INSERT INTO login_fails (fail_key, failed_at) VALUES (%s, %s)', (key, now))
 
 
 def _clear_login_fails(username=''):
-    with _lock:
-        for key in _login_fail_keys(username):
-            _login_fails.pop(key, None)
+    """Un login correcto borra el contador de ese usuario+IP, no el de la IP entera."""
+    user = (username or '').strip().lower()
+    if not user:
+        return
+    q('DELETE FROM login_fails WHERE fail_key=%s', ('uip:' + user + '|' + _client_ip(),))
 
 
 def _safe_next(val):
@@ -1954,10 +2021,14 @@ def login():
         return redirect(next_url)
     error = ''
     usuario = (request.form.get('usuario') or '').strip()
+    status = 200
     if request.method == 'POST':
-        if _too_many_login_fails(usuario):
-            error = 'Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.'
-            log.info('login rate-limited ip=%s user=%s', _client_ip(), usuario.lower())
+        mins = _login_block_minutes(usuario)
+        if mins:
+            unidad = 'minuto' if mins == 1 else 'minutos'
+            error = f'Demasiados intentos. Intenta de nuevo en {mins} {unidad}.'
+            status = 429
+            log.info('login rate-limited ip=%s user=%s mins=%s', _client_ip(), usuario.lower(), mins)
         else:
             found = portal_lib.identify_user(usuario, request.form.get('password') or '')
             if not found:
@@ -1971,8 +2042,8 @@ def login():
                 session['uid'] = found['user']
                 log.info('login ok user=%s', found['user'])
                 return redirect(next_url)
-    return _panel_headers(render_template(
-        'login.html', error=error, usuario=usuario, next_url=next_url if next_url != '/portal' else ''))
+    return _panel_headers(make_response(render_template(
+        'login.html', error=error, usuario=usuario, next_url=next_url if next_url != '/portal' else ''), status))
 
 
 @app.route('/logout', methods=['GET', 'POST'])
