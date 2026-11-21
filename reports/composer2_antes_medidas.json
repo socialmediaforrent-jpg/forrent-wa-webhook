@@ -1,0 +1,194 @@
+[
+  {
+    "innerHeight": 839,
+    "visualHeight": 839,
+    "visualBottom": 839,
+    "navVisible": true,
+    "nav": {
+      "top": 778,
+      "bottom": 839,
+      "height": 61
+    },
+    "reply": {
+      "top": 677,
+      "bottom": 778
+    },
+    "btn": {
+      "top": 688,
+      "bottom": 732,
+      "height": 44
+    },
+    "nota": {
+      "top": 738,
+      "bottom": 768
+    },
+    "okBtn": true,
+    "okNota": true,
+    "okReply": true,
+    "back": {
+      "w": 36,
+      "h": 36,
+      "top": 66,
+      "left": 14,
+      "display": "flex",
+      "lineHeight": "normal",
+      "text": "←",
+      "hasSvg": false
+    },
+    "backCentered": null,
+    "av": {
+      "w": 36,
+      "h": 36,
+      "cy": 84
+    },
+    "who": {
+      "cy": 76.5
+    },
+    "device": "pixel7",
+    "tag": "antes"
+  },
+  {
+    "innerHeight": 658,
+    "visualHeight": 658,
+    "visualBottom": 658,
+    "navVisible": true,
+    "nav": {
+      "top": 597,
+      "bottom": 658,
+      "height": 61
+    },
+    "reply": {
+      "top": 496,
+      "bottom": 597
+    },
+    "btn": {
+      "top": 507,
+      "bottom": 551,
+      "height": 44
+    },
+    "nota": {
+      "top": 557,
+      "bottom": 587
+    },
+    "okBtn": true,
+    "okNota": true,
+    "okReply": true,
+    "back": {
+      "w": 36,
+      "h": 36,
+      "top": 72.59,
+      "left": 14,
+      "display": "flex",
+      "lineHeight": "normal",
+      "text": "←",
+      "hasSvg": false
+    },
+    "backCentered": null,
+    "av": {
+      "w": 30.38,
+      "h": 36,
+      "cy": 90.59
+    },
+    "who": {
+      "cy": 75.59
+    },
+    "device": "s9plus",
+    "tag": "antes"
+  },
+  {
+    "innerHeight": 1024,
+    "visualHeight": 1024,
+    "visualBottom": 1024,
+    "navVisible": true,
+    "nav": {
+      "top": 963,
+      "bottom": 1024,
+      "height": 61
+    },
+    "reply": {
+      "top": 862,
+      "bottom": 963
+    },
+    "btn": {
+      "top": 873,
+      "bottom": 917,
+      "height": 44
+    },
+    "nota": {
+      "top": 923,
+      "bottom": 953
+    },
+    "okBtn": true,
+    "okNota": true,
+    "okReply": true,
+    "back": {
+      "w": 36,
+      "h": 36,
+      "top": 66,
+      "left": 14,
+      "display": "flex",
+      "lineHeight": "normal",
+      "text": "←",
+      "hasSvg": false
+    },
+    "backCentered": null,
+    "av": {
+      "w": 36,
+      "h": 36,
+      "cy": 84
+    },
+    "who": {
+      "cy": 76.5
+    },
+    "device": "473x1024",
+    "tag": "antes"
+  },
+  {
+    "innerHeight": 1024,
+    "visualHeight": 1024,
+    "visualBottom": 1024,
+    "navVisible": true,
+    "nav": {
+      "top": 963,
+      "bottom": 1024,
+      "height": 61
+    },
+    "reply": {
+      "top": 918,
+      "bottom": 1019
+    },
+    "btn": {
+      "top": 929,
+      "bottom": 973,
+      "height": 44
+    },
+    "nota": {
+      "top": 979,
+      "bottom": 1009
+    },
+    "okBtn": false,
+    "okNota": false,
+    "okReply": true,
+    "back": {
+      "w": 36,
+      "h": 36,
+      "top": 122,
+      "left": 14,
+      "display": "flex",
+      "lineHeight": "normal",
+      "text": "←",
+      "hasSvg": false
+    },
+    "backCentered": null,
+    "av": {
+      "w": 36,
+      "h": 36,
+      "cy": 140
+    },
+    "who": {
+      "cy": 132.5
+    },
+    "device": "473x1024_chromeui",
+    "tag": "antes"
+  }
+]
