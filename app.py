@@ -36,6 +36,8 @@ Variables de entorno
                               sincronización periódica de Conversaciones (fuente de la bandeja).
   WA_SEND_PROVIDER            ghl o meta. Si falta, se usa GHL cuando no hay credenciales de Meta.
   GHL_SYNC_INTERVAL_SEC       intervalo del hilo de sincronización (por defecto 45, mínimo 15).
+  GHL_SYNC_MAX_SEC            tope de una pasada del hilo (por defecto 8).
+  GHL_SYNC_HTTP_TIMEOUT_SEC   timeout de cada llamada a GHL (por defecto 8).
   GHL_SYNC_DISABLED=1         apaga el hilo de fondo (las pruebas lo hacen solas).
   META_SOCIAL_INBOX=1         muestra Instagram/Facebook en la bandeja (solo admin, solo lectura) usando
                               META_PAGE_TOKEN o META_PAGE_TOKEN_FILE (token de página). Apagado por defecto.
@@ -126,6 +128,28 @@ def q(sql, args=(), fetch=False):
         finally:
             if not _REUSE_DB:
                 c.close()
+
+
+def q_fondo(sql, args=(), fetch=False):
+    """Consulta del hilo de sync: conexión propia, sin el lock de los requests.
+
+    En SQLite (pruebas) reutiliza q() para no abrir otra conexión al mismo archivo.
+    """
+    if not IS_PG:
+        return q(sql, args, fetch=fetch)
+    global _query_count
+    _query_count += 1
+    args = tuple(Jsonb(a) if isinstance(a, (dict, list)) else a for a in args)
+    c = getattr(_tls, 'sync_conn', None)
+    if c is None:
+        c = psycopg.connect(DB_URL, autocommit=True)
+        _tls.sync_conn = c
+    cur = c.execute(sql, args)
+    rows = cur.fetchall() if fetch else None
+    if rows is None:
+        return None
+    cols = [d[0] for d in cur.description]
+    return [dict(zip(cols, r)) for r in rows]
 
 
 SERIAL = 'BIGSERIAL PRIMARY KEY' if IS_PG else 'INTEGER PRIMARY KEY AUTOINCREMENT'
@@ -1845,15 +1869,11 @@ def panel_responder():
 @app.post('/panel/sincronizar')
 @require_login
 def panel_sincronizar():
-    """Una pasada de sincronización con GHL y la lista actualizada. No bloquea el HTML inicial."""
+    """Pide una pasada al hilo de fondo y devuelve la lista actual. No corre el sync aquí."""
     if not portal_lib.csrf_ok(g.user, request.headers.get('X-CSRF-Token') or (request.get_json(silent=True) or {}).get('csrf') or request.form.get('csrf')):
         return _panel_headers(make_response(jsonify({'ok': False, 'mensaje': 'La sesión expiró. Recarga la página.'}), 400))
     wa = (request.args.get('c') or request.form.get('c') or '').strip()
-    if ghl_sync.configurado() or os.environ.get('GHL_SYNC_FORCE') == '1':
-        try:
-            ghl_sync.sincronizar(q, insert_event, is_pg=IS_PG, on_change=_invalidar_lista)
-        except Exception:
-            log.exception('sincronización GHL bajo demanda')
+    ghl_sync.avisar()
     _invalidar_lista()
     data = _panel_payload(g.user, wa, marcar=False, social_cache=False)
     if data is None:
@@ -4033,10 +4053,43 @@ def feed_agentiz_publico():
 init_db()
 
 
+_sync_lock_fd = None
+
+
+def _soy_worker_de_sync():
+    """Un solo worker del proceso gunicorn corre el hilo (lock de archivo no bloqueante)."""
+    global _sync_lock_fd
+    if _sync_lock_fd is not None:
+        return True
+    path = os.environ.get('GHL_SYNC_LOCK_PATH') or '/tmp/forrent-ghl-sync.lock'
+    fd = None
+    try:
+        import fcntl
+        fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o644)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        if fd is not None:
+            os.close(fd)
+        return False
+    except (OSError, ImportError):
+        if fd is not None:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        return True
+    _sync_lock_fd = fd
+    return True
+
+
 def _arrancar_sync_fondo():
+    if not _soy_worker_de_sync():
+        return False
+
     def factory():
-        return (q,)
-    ghl_sync.iniciar_fondo(factory, insert_event=insert_event, is_pg=IS_PG, on_change=_invalidar_lista)
+        return (q_fondo,)
+
+    return ghl_sync.iniciar_fondo(factory, insert_event=insert_event, is_pg=IS_PG, on_change=_invalidar_lista)
 
 
 _arrancar_sync_fondo()
