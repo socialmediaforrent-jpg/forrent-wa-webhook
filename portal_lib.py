@@ -311,6 +311,26 @@ def sha256_hex(s):
     return hashlib.sha256(s.encode()).hexdigest()
 
 
+# Slug interno del administrador (sesiones, permisos, notificaciones, datos).
+# El usuario de entrada es PANEL_USERNAME (por defecto pintojosedaniel).
+ADMIN_SLUG = 'jose'
+DEFAULT_PANEL_USERNAME = 'pintojosedaniel'
+
+
+def panel_username():
+    """Usuario con el que entra el administrador. Vacío o ausente: el predeterminado."""
+    raw = (os.environ.get('PANEL_USERNAME') or DEFAULT_PANEL_USERNAME).strip().lower()
+    return raw or DEFAULT_PANEL_USERNAME
+
+
+def panel_perfil():
+    return {'user': ADMIN_SLUG, 'name': 'José Daniel Pinto Chacón', 'role': 'admin', 'equipo': [], 'lider': ''}
+
+
+def es_login_admin(username):
+    return (username or '').strip().lower() == panel_username()
+
+
 MERCADEO_USER = 'mercadeo'
 MERCADEO_PERFIL = {'user': MERCADEO_USER, 'name': 'Mercadeo For Rent', 'role': 'mercadeo', 'equipo': [], 'lider': ''}
 
@@ -352,15 +372,15 @@ def identify_user(username, password):
         return dict(MERCADEO_PERFIL) if _mercadeo_password_ok(password) else None
     if user == INVENTARIO_USER:
         return dict(INVENTARIO_PERFIL) if _inventario_password_ok(password) else None
-    if user == 'jose':
+    if es_login_admin(user):
         plain, sha = os.environ.get('PANEL_PASSWORD'), os.environ.get('PANEL_PASSWORD_SHA256')
         ok = False
         if plain:
             ok = hmac.compare_digest(password, plain)
         elif sha:
-            ok = hmac.compare_digest(sha256_hex(password), sha.lower())
+            ok = hmac.compare_digest(sha256_hex(password), sha.strip().lower())
         if ok:
-            return {'user': 'jose', 'name': 'José Daniel Pinto Chacón', 'role': 'admin', 'equipo': [], 'lider': ''}
+            return panel_perfil()
         return None
     expected = _hashes().get(user)
     if not expected:
@@ -384,8 +404,8 @@ def user_by_username(username):
     user = (username or '').strip().lower()
     if not user:
         return None
-    if user == 'jose':
-        return {'user': 'jose', 'name': 'José Daniel Pinto Chacón', 'role': 'admin', 'equipo': [], 'lider': ''}
+    if user == ADMIN_SLUG:
+        return panel_perfil()
     if user == MERCADEO_USER:
         # Si se quita la contraseña de Mercadeo del entorno, la sesión abierta también deja de valer.
         if os.environ.get('MERCADEO_PASSWORD') or os.environ.get('MERCADEO_PASSWORD_SHA256'):

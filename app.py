@@ -26,7 +26,8 @@ Variables de entorno
   META_APP_SECRET             secreto de la app de Meta. Sin él NO se valida la firma (se registra un aviso).
   AUTO_REPLY_ENABLED=1        respuesta automática fuera de horario (apagada por defecto)
   AUTO_REPLY_TEXT, META_WA_TOKEN, WA_PHONE_NUMBER_ID, GRAPH_VERSION  (solo si AUTO_REPLY_ENABLED=1)
-  PANEL_PASSWORD_SHA256       sha256 hex de la contraseña del portal (usuario fijo: jose). También acepta PANEL_PASSWORD.
+  PANEL_USERNAME              usuario de entrada del administrador (predeterminado: pintojosedaniel). El slug interno sigue siendo jose.
+  PANEL_PASSWORD_SHA256       sha256 hex de la contraseña del portal (usuario: PANEL_USERNAME). También acepta PANEL_PASSWORD.
   PORTAL_ESTATUS_URL          enlace del panel admin del Sistema de Clientes
   PORTAL_CIERRES_URL          enlace del panel admin de Cierres (Sistema Contable)
   SECRET_KEY                  firma de la cookie de sesión del portal (no es una contraseña de usuario)
@@ -519,7 +520,7 @@ def api_last_inbound():
 
 
 # ---------------------------------------------------------------- panel de entrada (solo lectura)
-PANEL_USER = 'jose'
+PANEL_USER = portal_lib.ADMIN_SLUG  # slug interno; el login usa portal_lib.panel_username()
 MESES = ('enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
          'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre')
 MESES_CORTOS = ('ene', 'feb', 'mar', 'abr', 'may', 'jun',

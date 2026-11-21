@@ -32,6 +32,8 @@ services:
         sync: false
       - key: PANEL_PASSWORD_SHA256
         sync: false
+      - key: PANEL_USERNAME
+        value: pintojosedaniel
       - key: PORTAL_ESTATUS_URL
         sync: false
       - key: PORTAL_CIERRES_URL
