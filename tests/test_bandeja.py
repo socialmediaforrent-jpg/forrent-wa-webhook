@@ -165,7 +165,7 @@ def test_estado_respuesta_habilita_con_ghl(monkeypatch):
     est2 = bandeja.estado_respuesta('whatsapp', '', now)
     assert est2['puede_enviar'] is False and 'nunca nos escribió' in est2['motivo']
     est3 = bandeja.estado_respuesta('instagram', (now - timedelta(hours=1)).isoformat(), now)
-    assert est3['puede_enviar'] is False
+    assert est3['puede_enviar'] is True and est3['canal'] == 'instagram'
 
 
 def test_responder_via_ghl_envia_y_registra(monkeypatch):
