@@ -136,9 +136,12 @@ def test_imagen_muestra_miniatura_y_no_la_url():
     assert 'Ver imagen' in pagina
     assert 'target="_blank"' in pagina
     assert 'rel="noopener noreferrer"' in pagina
-    hilo = pagina.split('<section class="inbox-thread">', 1)[-1]
+    parte = pagina.split('<section class="inbox-thread">', 1)[-1]
+    hilo = parte.split('</section>', 1)[0]
     txt = re.search(r'<div class="txt">(.*?)</div>', hilo, re.S)
     assert not txt or url not in txt.group(1)
+    # El [imagen] no debe verse en la burbuja. Puede seguir en el JSON de
+    # precarga de la lista (inbox-boot), que está fuera de esta sección.
     assert '[imagen]' not in hilo.lower()
     tipo = re.search(r'<div class="tipo">(.*?)</div>', hilo, re.S)
     assert not tipo or tipo.group(1) != 'Imagen'
