@@ -91,10 +91,22 @@ def ventana(ultimo_entrante_iso, now=None):
 
 def estado_respuesta(canal, ultimo_entrante_iso, now=None):
     """Lo que la pantalla necesita para pintar la caja de respuesta (sin secretos)."""
-    if canal in ('instagram', 'facebook'):
-        return {'canal': canal, 'puede_enviar': False, 'vence': '',
-                'motivo': 'Responder por Instagram/Facebook desde el portal se activa cuando Meta apruebe la '
-                          'revisión de la app. Por ahora se responde desde GHL.'}
+    canal = (canal or 'whatsapp').lower()
+    if canal in ('instagram', 'facebook', 'email', 'sms'):
+        if not ghl_envio_configurado():
+            return {'canal': canal, 'puede_enviar': False, 'vence': '',
+                    'motivo': 'Responder por Instagram/Facebook desde el portal se activa cuando Meta apruebe la '
+                              'revisión de la app. Por ahora se responde desde GHL.'}
+        if canal in ('email', 'sms'):
+            if not ultimo_entrante_iso:
+                return {'canal': canal, 'puede_enviar': False, 'vence': '',
+                        'motivo': 'Este contacto nunca nos escribió por este canal. No iniciamos conversaciones.'}
+            return {'canal': canal, 'puede_enviar': True, 'vence': '', 'motivo': ''}
+        abierta, vence, motivo = ventana(ultimo_entrante_iso, now)
+        if motivo and 'WhatsApp' in motivo:
+            motivo = motivo.replace('por WhatsApp', 'por este canal')
+        return {'canal': canal, 'puede_enviar': abierta, 'vence': vence.isoformat() if vence else '',
+                'motivo': motivo}
     abierta, vence, motivo = ventana(ultimo_entrante_iso, now)
     if abierta and not wa_envio_configurado():
         return {'canal': 'whatsapp', 'puede_enviar': False, 'vence': vence.isoformat() if vence else '',
@@ -216,15 +228,20 @@ def buscar_contacto_ghl(telefono, *, opener=None):
     return None
 
 
-def enviar_wa_ghl(to, texto, *, opener=None):
-    """Envía un texto por la API de GHL (WhatsApp). Devuelve wamid 'ghl:{messageId}'. No crea contactos."""
+def enviar_ghl(to, texto, *, tipo='WhatsApp', contact_id=None, opener=None):
+    """Envía un texto por la API de GHL en el canal indicado (WhatsApp, IG, FB, Email, SMS).
+    Devuelve wamid 'ghl:{messageId}'. No crea contactos."""
     if not ghl_envio_configurado():
-        raise EnvioError('El envío por WhatsApp no está configurado en el servidor.')
-    cid = buscar_contacto_ghl(to, opener=opener)
+        raise EnvioError('El envío por GHL no está configurado en el servidor.')
+    tipo_ok = {'whatsapp': 'WhatsApp', 'ig': 'IG', 'instagram': 'IG', 'fb': 'FB',
+               'facebook': 'FB', 'email': 'Email', 'sms': 'SMS',
+               'WhatsApp': 'WhatsApp', 'IG': 'IG', 'FB': 'FB', 'Email': 'Email', 'SMS': 'SMS'}
+    tipo = tipo_ok.get(str(tipo or 'WhatsApp'), 'WhatsApp')
+    cid = (contact_id or '').strip() or (buscar_contacto_ghl(to, opener=opener) if tipo in ('WhatsApp', 'SMS') else '')
     if not cid:
-        raise EnvioError('GHL no tiene un contacto con ese número. No se crea el contacto ni se inicia la conversación.')
+        raise EnvioError('GHL no tiene un contacto para este hilo. No se crea el contacto ni se inicia la conversación.')
     st, d = _ghl_call('POST', '/conversations/messages',
-                      body={'type': 'WhatsApp', 'contactId': cid, 'message': texto}, opener=opener)
+                      body={'type': tipo, 'contactId': cid, 'message': texto}, opener=opener)
     if st in (401, 403):
         raise EnvioError('El envío por GHL no está autorizado en el servidor.', st)
     if st not in (200, 201) or not isinstance(d, dict):
@@ -233,6 +250,11 @@ def enviar_wa_ghl(to, texto, *, opener=None):
     if not mid:
         raise EnvioError('GHL no devolvió el id del mensaje.')
     return 'ghl:' + str(mid)
+
+
+def enviar_wa_ghl(to, texto, *, opener=None, contact_id=None):
+    """Envía un texto por WhatsApp a través de GHL. Igual que enviar_ghl(tipo='WhatsApp')."""
+    return enviar_ghl(to, texto, tipo='WhatsApp', contact_id=contact_id, opener=opener)
 
 
 def enviar_wa_meta(to, texto, *, opener=None):

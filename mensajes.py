@@ -22,6 +22,7 @@ CANALES = {
     'instagram': 'Instagram',
     'facebook': 'Facebook',
     'email': 'Email',
+    'sms': 'SMS',
     'messenger': 'Facebook',
     'ig': 'Instagram',
     'fb': 'Facebook',
@@ -190,27 +191,33 @@ def puede_ver(user, wa_id, *, visibles=None, ocultos=None):
 
 
 def canal_de(row):
-    src = (row.get('source') or '').strip().lower()
+    """Canal de la fila. No adivina por subcadena (evita marcar ghl_import como Instagram)."""
     data = row.get('data') or {}
     if isinstance(data, str):
         try:
             data = json.loads(data)
         except Exception:
             data = {}
-    for key in (src, (data.get('channel') or data.get('canal') or ''), str(data.get('from') or '')):
-        k = (key or '').lower()
-        for token, label in CANALES.items():
-            if token in k and token not in ('meta',):
-                return token if token in ('whatsapp', 'instagram', 'facebook', 'email') else {
-                    'ig': 'instagram', 'fb': 'facebook', 'wa': 'whatsapp', 'messenger': 'facebook',
-                }.get(token, 'whatsapp')
-    if src in ('meta', 'whatsapp', 'wa', ''):
-        return 'whatsapp'
-    return CANALES.get(src, None) and src or 'whatsapp'
+    wa = str(row.get('wa_id') or '')
+    if wa.startswith('ig:'):
+        return 'instagram'
+    if wa.startswith('fb:'):
+        return 'facebook'
+    if wa.startswith('email:'):
+        return 'email'
+    if wa.startswith('sms:'):
+        return 'sms'
+    ch = (data.get('channel') or data.get('canal') or '').strip().lower()
+    if ch in ('whatsapp', 'instagram', 'facebook', 'email', 'sms'):
+        return ch
+    src = (row.get('source') or '').strip().lower()
+    if src in ('whatsapp', 'instagram', 'facebook', 'email', 'sms'):
+        return src
+    return 'whatsapp'
 
 
 def canal_etiqueta(canal):
-    return {'whatsapp': 'WhatsApp', 'instagram': 'IG', 'facebook': 'FB', 'email': 'Email'}.get(canal, 'WhatsApp')
+    return {'whatsapp': 'WhatsApp', 'instagram': 'IG', 'facebook': 'FB', 'email': 'Email', 'sms': 'SMS'}.get(canal, 'WhatsApp')
 
 
 def iniciales(nombre, telefono=''):

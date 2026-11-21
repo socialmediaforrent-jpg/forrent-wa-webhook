@@ -32,8 +32,11 @@ Variables de entorno
   PORTAL_CIERRES_URL          enlace del panel admin de Cierres (Sistema Contable)
   SECRET_KEY                  firma de la cookie de sesión del portal (no es una contraseña de usuario)
   META_WA_TOKEN, WA_PHONE_NUMBER_ID  activan el envío por Cloud API (si Meta lo permite).
-  GHL_API_TOKEN, GHL_LOCATION_ID     activan el envío por WhatsApp a través de GHL (LeadConnector).
+  GHL_API_TOKEN, GHL_LOCATION_ID     activan el envío por WhatsApp/IG/FB a través de GHL y la
+                              sincronización periódica de Conversaciones (fuente de la bandeja).
   WA_SEND_PROVIDER            ghl o meta. Si falta, se usa GHL cuando no hay credenciales de Meta.
+  GHL_SYNC_INTERVAL_SEC       intervalo del hilo de sincronización (por defecto 45, mínimo 15).
+  GHL_SYNC_DISABLED=1         apaga el hilo de fondo (las pruebas lo hacen solas).
   META_SOCIAL_INBOX=1         muestra Instagram/Facebook en la bandeja (solo admin, solo lectura) usando
                               META_PAGE_TOKEN o META_PAGE_TOKEN_FILE (token de página). Apagado por defecto.
 """
@@ -57,6 +60,7 @@ import marketplace
 import inmuebles
 import carga
 import planificador as planif
+import ghl_sync
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('wa')
@@ -234,6 +238,10 @@ def init_db():
         planif.init(q, IS_PG)  # Planificador propio: social_accounts/social_posts/social_media/social_meta (aditivas)
     except Exception:
         log.exception('planificador.init')
+    try:
+        ghl_sync.ensure_tables(q)
+    except Exception:
+        log.exception('ghl_sync.ensure_tables')
     seed_emails_perfil()
 
 
@@ -505,7 +513,11 @@ def receive():
             pnid = (v.get('metadata') or {}).get('phone_number_id')
             names = {c.get('wa_id'): (c.get('profile') or {}).get('name') for c in v.get('contacts') or []}
             for m in v.get('messages') or []:
-                insert_event(kind='message', wamid=m.get('id'), wa_id=m.get('from'), name=names.get(m.get('from')),
+                mid = m.get('id')
+                if mid and ghl_sync.existe_meta_ya(q, mid, is_pg=IS_PG):
+                    n_msg += 1
+                    continue
+                insert_event(kind='message', wamid=mid, wa_id=m.get('from'), name=names.get(m.get('from')),
                              direction='inbound', msg_type=m.get('type'), text=message_text(m),
                              ts=ts_iso(m.get('timestamp')), status='', source='meta', phone_number_id=pnid, data=m)
                 n_msg += 1
@@ -988,12 +1000,24 @@ def _fmt_day(iso):
 
 
 def _fmt_phone(wa_id):
-    d = ''.join(c for c in (wa_id or '') if c.isdigit())
+    wa = wa_id or ''
+    if wa.startswith('ig:'):
+        return 'Instagram'
+    if wa.startswith('fb:'):
+        return 'Facebook'
+    if wa.startswith('email:'):
+        return wa[6:] or 'Email'
+    if wa.startswith('sms:'):
+        rest = ''.join(c for c in wa[4:] if c.isdigit())
+        if rest.startswith('58') and len(rest) >= 12:
+            return f'+58 {rest[2:5]}-{rest[5:]}'
+        return ('+' + rest) if rest else 'SMS'
+    d = ''.join(c for c in wa if c.isdigit())
     if d.startswith('58') and len(d) >= 12:
         return f'+58 {d[2:5]}-{d[5:]}'
     if d:
         return '+' + d
-    return wa_id or ''
+    return wa
 
 
 def _event_ts(row):
@@ -1045,7 +1069,10 @@ def _names_by_wa(wa_ids=None):
             rows = q(
                 f"""SELECT wa_id, name FROM (
                        SELECT wa_id, name,
-                              ROW_NUMBER() OVER (PARTITION BY wa_id ORDER BY id DESC) AS rn
+                              ROW_NUMBER() OVER (
+                                  PARTITION BY wa_id
+                                  ORDER BY CASE WHEN direction='inbound' THEN 0 ELSE 1 END, id DESC
+                              ) AS rn
                        FROM wa_events
                        WHERE name IS NOT NULL AND name <> ''
                          AND wa_id IN ({_in_clause(chunk)})
@@ -1155,6 +1182,11 @@ LISTA_CACHE_SEG = 15 if os.environ.get('RENDER') else 0
 LISTA_HTML_MAX = 80
 
 
+def _invalidar_lista():
+    with _lista_cache_lock:
+        _lista_cache.clear()
+
+
 def _huerfanos_para_lista():
     """Estados de Meta aún no emparejados con un saliente, para la vista previa y los no leídos.
 
@@ -1249,8 +1281,7 @@ def _panel_conversations_fresh(user):
         if not mensajes.puede_ver(user, wa, visibles=visibles, ocultos=ocultos):
             continue
         visible_rows.append(r)
-    sin_nombre = [r['wa_id'] for r in visible_rows if not (r.get('name') or '').strip()]
-    names = _names_by_wa(sin_nombre)
+    names = _names_by_wa([r['wa_id'] for r in visible_rows])
     huerfanos = _huerfanos_para_lista()
     ult_ghl = _ultimo_huerfano_por_wa(huerfanos)
     out = []
@@ -1606,18 +1637,53 @@ def _es_social(conv_id):
     return (conv_id or '').startswith(('ig:', 'fb:'))
 
 
+def _hilo_en_db(wa_id):
+    if not wa_id:
+        return False
+    return bool(q("SELECT 1 AS x FROM wa_events WHERE wa_id=%s AND kind IN ('message','outbound') LIMIT 1",
+                  (wa_id,), fetch=True))
+
+
+def _canal_hilo(wa_id):
+    wa = wa_id or ''
+    if wa.startswith('ig:'):
+        return 'instagram'
+    if wa.startswith('fb:'):
+        return 'facebook'
+    if wa.startswith('email:'):
+        return 'email'
+    if wa.startswith('sms:'):
+        return 'sms'
+    rows = q("""SELECT wa_id, source, data FROM wa_events
+                WHERE wa_id=%s AND kind IN ('message','outbound')
+                ORDER BY COALESCE(ts, received_at) DESC, id DESC LIMIT 1""", (wa,), fetch=True) or []
+    return mensajes.canal_de(rows[0]) if rows else 'whatsapp'
+
+
+def _contacto_ghl_de(wa_id):
+    rows = q("""SELECT data FROM wa_events
+                WHERE wa_id=%s AND kind IN ('message','outbound')
+                ORDER BY id DESC LIMIT 30""", (wa_id,), fetch=True) or []
+    for r in rows:
+        d = _data_dict(r.get('data'))
+        if d.get('ghl_contact_id'):
+            return d['ghl_contact_id']
+    return ''
+
+
 def _panel_payload(user, wa_id, *, marcar=False, social_cache=False):
     current = wa_id or ''
     social = _es_social(current)
-    if current and social and (user.get('role') != 'admin' or not bandeja.social_activo()):
+    en_db = bool(current) and _hilo_en_db(current)
+    if current and social and not en_db and (user.get('role') != 'admin' or not bandeja.social_activo()):
         return None
-    if current and not social and not mensajes.puede_ver(user, current):
+    if current and (not social or en_db) and not mensajes.puede_ver(user, current):
         return None
-    if current and marcar and not social:
+    if current and marcar and (not social or en_db):
         _marcar_visto(user, current)
     convos = panel_conversations(user)
     convos = _mezclar(convos, _social_convos(user, solo_cache=social_cache))
-    if social and current:
+    if social and current and not en_db:
         hilo = bandeja.social_hilo(current) or {'canal': 'instagram' if current.startswith('ig:') else 'facebook', 'mensajes': []}
         msgs, last_day = [], None
         for m in hilo['mensajes']:
@@ -1633,7 +1699,8 @@ def _panel_payload(user, wa_id, *, marcar=False, social_cache=False):
         reply = bandeja.estado_respuesta(hilo['canal'], '')
     else:
         msgs, name, phone = panel_thread(current) if current else ([], '', '')
-        reply = bandeja.estado_respuesta('whatsapp', _ultimo_entrante(current)) if current else None
+        canal = _canal_hilo(current) if current else 'whatsapp'
+        reply = bandeja.estado_respuesta(canal, _ultimo_entrante(current)) if current else None
     if reply and reply.get('vence'):
         reply['vence_txt'] = _fmt_time(reply['vence'])
     return {
@@ -1682,6 +1749,7 @@ def _convos_para_html(convos, current):
 def panel():
     t0 = time.perf_counter()
     q0 = _query_count
+    ghl_sync.avisar()
     wa = request.args.get('c') or ''
     data = _panel_payload(g.user, wa, marcar=bool(wa), social_cache=True)
     if data is None:
@@ -1704,6 +1772,7 @@ def panel():
 def panel_data():
     t0 = time.perf_counter()
     q0 = _query_count
+    ghl_sync.avisar()
     wa = request.args.get('c') or ''
     data = _panel_payload(g.user, wa, marcar=bool(wa), social_cache=False)
     if data is None:
@@ -1735,11 +1804,12 @@ def panel_responder():
         return resp(False, 'La sesión expiró. Recarga la página.', 400)
     if not wa:
         return resp(False, 'Falta la conversación.', 400)
-    if _es_social(wa):
+    if _es_social(wa) and not _hilo_en_db(wa) and not bandeja.ghl_envio_configurado():
         return resp(False, bandeja.estado_respuesta('instagram', '')['motivo'], 403)
     if not mensajes.puede_ver(g.user, wa):
         return resp(False, 'No tienes acceso a esta conversación.', 403)
-    est = bandeja.estado_respuesta('whatsapp', _ultimo_entrante(wa))
+    canal = _canal_hilo(wa)
+    est = bandeja.estado_respuesta(canal, _ultimo_entrante(wa))
     if not est['puede_enviar']:
         return resp(False, est['motivo'], 409)
     try:
@@ -1749,11 +1819,18 @@ def panel_responder():
     if not bandeja.limite_ok(g.user['user']):
         return resp(False, 'Demasiados envíos seguidos. Espera un minuto.', 429)
     try:
-        wamid = bandeja.enviar_wa(wa, texto)
+        if canal == 'whatsapp':
+            wamid = bandeja.enviar_wa(wa, texto)
+        else:
+            wamid = bandeja.enviar_ghl(wa, texto, tipo=ghl_sync.tipo_envio(canal),
+                                       contact_id=_contacto_ghl_de(wa))
     except bandeja.EnvioError as e:
         log.warning('Respuesta desde el portal rechazada (%s, código %s)', g.user['user'], e.codigo)
         return resp(False, str(e), 502)
-    data = {'por': g.user['user'], 'canal': 'whatsapp'}
+    data = {'por': g.user['user'], 'canal': canal}
+    cid = _contacto_ghl_de(wa)
+    if cid:
+        data['ghl_contact_id'] = cid
     if (wamid or '').startswith('ghl:'):
         data['ghl_message_id'] = wamid[4:]
         data['proveedor'] = 'ghl'
@@ -1763,6 +1840,26 @@ def panel_responder():
     _marcar_visto(g.user, wa)
     log.info('Respuesta enviada desde el portal por %s', g.user['user'])
     return resp(True, 'Mensaje enviado.', 200)
+
+
+@app.post('/panel/sincronizar')
+@require_login
+def panel_sincronizar():
+    """Una pasada de sincronización con GHL y la lista actualizada. No bloquea el HTML inicial."""
+    if not portal_lib.csrf_ok(g.user, request.headers.get('X-CSRF-Token') or (request.get_json(silent=True) or {}).get('csrf') or request.form.get('csrf')):
+        return _panel_headers(make_response(jsonify({'ok': False, 'mensaje': 'La sesión expiró. Recarga la página.'}), 400))
+    wa = (request.args.get('c') or request.form.get('c') or '').strip()
+    if ghl_sync.configurado() or os.environ.get('GHL_SYNC_FORCE') == '1':
+        try:
+            ghl_sync.sincronizar(q, insert_event, is_pg=IS_PG, on_change=_invalidar_lista)
+        except Exception:
+            log.exception('sincronización GHL bajo demanda')
+    _invalidar_lista()
+    data = _panel_payload(g.user, wa, marcar=False, social_cache=False)
+    if data is None:
+        return _panel_headers(Response('No tienes acceso a esta conversación.\n', 403))
+    data['ok'] = True
+    return _panel_headers(jsonify(data))
 
 
 def _table_count(table, where='', args=()):
@@ -3934,6 +4031,15 @@ def feed_agentiz_publico():
 
 
 init_db()
+
+
+def _arrancar_sync_fondo():
+    def factory():
+        return (q,)
+    ghl_sync.iniciar_fondo(factory, insert_event=insert_event, is_pg=IS_PG, on_change=_invalidar_lista)
+
+
+_arrancar_sync_fondo()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8000)))
