@@ -342,7 +342,7 @@ details.mod[open] .mod-sum .chev{transform:rotate(180deg)}
 .mod-prox h2{color:#5b6275}
 
 /* Inicio de Presidencia: bienvenida corta con foto del equipo. Cifras y embudo siguen en Módulos. */
-.welcome-inicio{max-width:none;width:100%;margin:0;min-height:calc(100dvh - var(--appbar) - var(--bottom) - env(safe-area-inset-bottom, 0px));display:flex;align-items:flex-end;justify-content:center;text-align:center;padding:24px 24px 36px;overflow:hidden;background-color:#1c1612;background-image:linear-gradient(to top,rgba(12,10,8,.82) 0%,rgba(12,10,8,.48) 28%,rgba(12,10,8,.18) 52%,rgba(12,10,8,.22) 100%),var(--welcome-foto);background-size:cover;background-position:center 36%;background-repeat:no-repeat}
+.welcome-inicio{max-width:none;width:100%;margin:0;min-height:calc(100dvh - var(--appbar) - var(--bottom) - env(safe-area-inset-bottom, 0px));display:flex;align-items:flex-end;justify-content:center;text-align:center;padding:24px 24px 36px;overflow:hidden;background-color:#1c1612;background-image:linear-gradient(to top,rgba(12,10,8,.82) 0%,rgba(12,10,8,.48) 28%,rgba(12,10,8,.18) 52%,rgba(12,10,8,.22) 100%),var(--welcome-foto);background-size:100% auto;background-position:center top;background-repeat:no-repeat}
 .welcome{max-width:20rem;position:relative;z-index:1}
 .welcome-title{margin:0;font-size:28px;line-height:1.2;letter-spacing:-.03em;font-weight:800;color:#fff;text-shadow:0 1px 18px rgba(0,0,0,.45)}
 .welcome-title em{font-style:normal;color:var(--naranja)}

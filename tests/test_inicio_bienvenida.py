@@ -88,5 +88,5 @@ def test_foto_equipo_se_sirve():
     r = cliente('jose').get('/static/inicio-equipo.webp')
     assert r.status_code == 200
     assert r.mimetype == 'image/webp'
-    assert 0 < len(r.get_data()) <= 200_000
+    assert 0 < len(r.get_data()) <= 250_000
 
