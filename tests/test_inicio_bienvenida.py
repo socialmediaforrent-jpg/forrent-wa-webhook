@@ -1,4 +1,5 @@
 """Inicio de Presidencia: pantalla vacía con bienvenida. Otros roles no cambian."""
+import os
 import re
 
 from test_bandeja import cliente  # noqa: F401  (configura el entorno de prueba)
@@ -90,3 +91,18 @@ def test_foto_equipo_se_sirve():
     assert r.mimetype == 'image/webp'
     assert 0 < len(r.get_data()) <= 250_000
 
+
+def test_css_saludo_queda_encima_de_la_barra():
+    """El saludo reserva la barra inferior fija y un margen sobre la mesa."""
+    ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'app.css')
+    css = open(ruta, encoding='utf-8').read()
+    m = re.search(r'\.welcome-inicio\{[^}]+\}', css)
+    assert m, 'falta la regla .welcome-inicio'
+    bloque = m.group(0)
+    assert '100dvh' in bloque
+    assert 'var(--bottom)' in bloque
+    assert 'safe-area-inset-bottom' in bloque
+    assert '22dvh' in bloque
+    # El padding fijo de 36px dejaba el título detrás de los botones en Android.
+    assert 'padding:24px 24px 36px' not in bloque
+    assert 'body:has(> main.welcome-inicio){padding-bottom:0}' in css
