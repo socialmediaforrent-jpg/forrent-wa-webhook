@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="robots" content="noindex, nofollow">
 <title>Mensajes · For Rent Online</title>
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
 <style>
 html:has(body.inbox-page){height:100dvh;overflow:hidden}
-body.inbox-page{display:flex;flex-direction:column;height:100dvh;max-height:100dvh;overflow:hidden;background:#f4f4f5}
+body.inbox-page{display:flex;flex-direction:column;height:100dvh;max-height:100dvh;overflow:hidden;background:#f4f4f5;padding-bottom:0}
 body.inbox-page .pagehint{display:none}
 .inbox{flex:1;display:grid;grid-template-columns:minmax(260px,400px) 1fr;min-height:0;overflow:hidden}
 .inbox-list,.inbox-thread{min-height:0;overflow:hidden;display:flex;flex-direction:column;background:#fff}
@@ -66,7 +66,16 @@ body.inbox-page .pagehint{display:none}
 .bub .tipo{display:inline-block;background:#111;color:#fff;border-radius:5px;padding:1px 6px;font-size:10px;margin-bottom:4px}
 .bub .st.leido{color:#0a6cff}
 .bub .st.fallo{color:#b91c1c;font-weight:700}
-.reply{background:#fff;border-top:1px solid var(--linea);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));flex:none}
+.reply{background:#fff;border-top:1px solid var(--linea);padding:10px 12px;flex:none}
+/* Reserva real para la barra fija: en el flex de 100dvh el padding del body se come y el compositor queda detrás. */
+.inbox-nav-space{display:none;flex:none;height:0;pointer-events:none}
+@media (max-width:959px){
+  .inbox-nav-space{display:block;height:var(--inbox-nav, calc(var(--bottom) + env(safe-area-inset-bottom, 0px)))}
+  body.inbox-page.kb-open .inbox-nav-space,
+  body.inbox-page:has(#reply-text:focus) .inbox-nav-space{height:var(--kb, 0px)}
+  body.inbox-page.kb-open .bottomnav,
+  body.inbox-page:has(#reply-text:focus) .bottomnav{display:none}
+}
 .reply form{display:flex;gap:8px;align-items:flex-end}
 .reply textarea{flex:1;resize:none;min-height:44px;max-height:160px;border:1px solid var(--linea);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;line-height:1.35}
 .reply textarea:focus{outline:none;border-color:#f0c9a8;box-shadow:0 0 0 3px #fff3ea}
@@ -197,6 +206,7 @@ body.inbox-page .pagehint{display:none}
     {% endif %}
   </section>
 </div>
+<div class="inbox-nav-space" aria-hidden="true"></div>
 <script type="application/json" id="inbox-boot">{{ inbox_boot|tojson }}</script>
 <script>
 (function(){
@@ -411,6 +421,37 @@ body.inbox-page .pagehint{display:none}
   apply();
   setTimeout(refresh, 50);
   setInterval(refresh, 30000);
+  (function syncInboxNav(){
+    const root = document.documentElement;
+    const body = document.body;
+    const nav = document.querySelector('.bottomnav');
+    const msgs = document.getElementById('msgs');
+    function navH(){
+      if (!nav) return 0;
+      const st = getComputedStyle(nav);
+      if (st.display === 'none' || st.visibility === 'hidden') return 0;
+      return nav.getBoundingClientRect().height || 0;
+    }
+    function sync(){
+      const h = navH();
+      if (h) root.style.setProperty('--inbox-nav', h + 'px');
+      const vv = window.visualViewport;
+      let occluded = 0;
+      if (vv) occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      root.style.setProperty('--kb', occluded + 'px');
+      const open = occluded > 80;
+      body.classList.toggle('kb-open', open);
+      if (open && msgs) msgs.scrollTop = msgs.scrollHeight;
+    }
+    sync();
+    window.addEventListener('resize', sync);
+    if (window.visualViewport){
+      window.visualViewport.addEventListener('resize', sync);
+      window.visualViewport.addEventListener('scroll', sync);
+    }
+    window.addEventListener('focusin', () => setTimeout(sync, 50));
+    window.addEventListener('focusout', () => setTimeout(sync, 50));
+  })();
 })();
 </script>
 </body>
