@@ -45,6 +45,23 @@ def test_cinco_modulos_sin_numeros():
     assert '/mercadeo/planificador' in cliente('jose').get('/modulos').get_data(as_text=True)
 
 
+def test_modulos_salen_contraidos():
+    """Al abrir Módulos, los 5 salen cerrados (solo título y chevron); se abren al tocarlos."""
+    esperados = ['inventario', 'clientes', 'operaciones', 'comisiones', 'rendimiento']
+    for slug in ('jose', 'ana', 'herlinda'):
+        h = cliente(slug).get('/modulos').get_data(as_text=True)
+        bloques = re.findall(r'<details class="sec mod"[^>]*>', h)
+        assert len(bloques) == 5, (slug, bloques)
+        keys = re.findall(r'<details class="sec mod" id="mod-([^"]+)"\s*>', h)
+        assert keys == esperados, (slug, keys)
+        for tag in bloques:
+            assert not re.search(r'(?:^|\s)open(?:\s|=|/|>|$)', tag), (slug, tag)
+        # Esta pantalla no abre un módulo por hash ni guarda cuál quedó abierto.
+        assert 'localStorage' not in h
+        assert 'sessionStorage' not in h
+        assert 'location.hash' not in h
+
+
 def test_permisos_sin_cambios():
     assert cliente('mercadeo').get('/modulos').status_code == 403
     assert cliente('inventario').get('/modulos').status_code in (302, 403)  # nunca 200
