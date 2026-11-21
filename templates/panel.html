@@ -7,11 +7,12 @@
 <title>Mensajes · For Rent Online</title>
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
-<style data-ui="composer-2">
-html:has(body.inbox-page){height:100dvh;overflow:hidden}
-body.inbox-page{display:flex;flex-direction:column;height:100dvh;max-height:100dvh;overflow:hidden;background:#f3f4f6;padding-bottom:0;overscroll-behavior-y:contain}
+<style data-ui="composer-firme">
+html:has(body.inbox-page){height:100%;height:100dvh;overflow:hidden}
+body.inbox-page{margin:0;height:100%;height:100dvh;overflow:hidden;background:#f3f4f6;padding-bottom:0;overscroll-behavior-y:contain}
 body.inbox-page .pagehint{display:none}
-.inbox{flex:1;display:grid;grid-template-columns:minmax(260px,400px) 1fr;min-height:0;overflow:hidden}
+.inbox-shell{position:fixed;inset:0;display:flex;flex-direction:column;height:100%;width:100%;min-height:0;overflow:hidden;background:#f3f4f6;box-sizing:border-box}
+.inbox{flex:1;order:1;display:grid;grid-template-columns:minmax(260px,400px) 1fr;min-height:0;overflow:hidden}
 .inbox-list,.inbox-thread{min-height:0;overflow:hidden;display:flex;flex-direction:column;background:#fff}
 .inbox-list{border-right:1px solid var(--linea);background:#f3f4f6;overscroll-behavior-y:contain}
 .inbox-tools{padding:12px 14px 8px;border-bottom:1px solid var(--linea);background:#fff;position:sticky;top:0;z-index:2}
@@ -83,12 +84,11 @@ body.inbox-page .pagehint{display:none}
 .bub .st.leido{color:#0a6cff}
 .bub .st.fallo{color:#b91c1c;font-weight:700}
 .reply{background:#fff;border-top:1px solid var(--linea);padding:10px 12px;flex:none}
-/* Reserva real para la barra fija: en el flex de 100dvh el padding del body se come y el compositor queda detrás. */
-.inbox-nav-space{display:none;flex:none;height:0;pointer-events:none}
+/* La barra inferior entra en el flujo del cascarón fixed inset:0. Así no depende de 100dvh ni de medirla con JS. */
 @media (max-width:959px){
-  .inbox-nav-space{display:block;height:var(--inbox-nav, calc(var(--bottom) + env(safe-area-inset-bottom, 0px)))}
-  body.inbox-page.kb-open .inbox-nav-space,
-  body.inbox-page:has(#reply-text:focus) .inbox-nav-space{height:var(--kb, 0px)}
+  body.inbox-page .bottomnav{position:static;left:auto;right:auto;bottom:auto;flex:none;width:100%;order:2;z-index:40}
+  body.inbox-page.kb-open .inbox-shell,
+  body.inbox-page:has(#reply-text:focus) .inbox-shell{padding-bottom:var(--kb, 0px)}
   body.inbox-page.kb-open .bottomnav,
   body.inbox-page:has(#reply-text:focus) .bottomnav{display:none}
 }
@@ -109,6 +109,7 @@ body.inbox-page .pagehint{display:none}
 </style>
 </head>
 <body class="inbox-page {{ 'con' if current else '' }}">
+<div class="inbox-shell">
 {% set nav='mensajes' %}
 {% set subtitle='Bandeja · hora de Caracas' %}
 {% include '_top.html' %}
@@ -224,7 +225,7 @@ body.inbox-page .pagehint{display:none}
     {% endif %}
   </section>
 </div>
-<div class="inbox-nav-space" aria-hidden="true"></div>
+</div>
 <script type="application/json" id="inbox-boot">{{ inbox_boot|tojson }}</script>
 <script>
 (function(){
@@ -526,20 +527,11 @@ body.inbox-page .pagehint{display:none}
   apply();
   setTimeout(refresh, 50);
   setInterval(refresh, 30000);
-  (function syncInboxNav(){
+  (function syncInboxKb(){
     const root = document.documentElement;
     const body = document.body;
-    const nav = document.querySelector('.bottomnav');
     const msgs = document.getElementById('msgs');
-    function navH(){
-      if (!nav) return 0;
-      const st = getComputedStyle(nav);
-      if (st.display === 'none' || st.visibility === 'hidden') return 0;
-      return nav.getBoundingClientRect().height || 0;
-    }
     function sync(){
-      const h = navH();
-      if (h) root.style.setProperty('--inbox-nav', h + 'px');
       const vv = window.visualViewport;
       let occluded = 0;
       if (vv) occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
