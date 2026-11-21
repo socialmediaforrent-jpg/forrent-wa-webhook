@@ -107,10 +107,16 @@ def test_inicio_primer_boton_asesora():
 
 
 def test_inicio_primer_boton_admin():
+    """El inicio de Presidencia ya no lleva tarjetas; el embudo sigue en /mis-asignaciones."""
     html = cliente('jose').get('/').get_data(as_text=True)
-    href, main = _primera_tarjeta(html)
-    assert href == '/mis-asignaciones'
-    assert 'Mis Asignaciones' in main
+    main = html.split('<main', 1)[-1]
+    assert 'Bienvenido, <em>José</em>' in main
+    assert 'For Rent Online · For Rent Grupo Inmobiliario' in main
+    assert 'Mis Asignaciones' not in main
+    assert 'Resumen de operación' not in main
+    assert 'Clientes por fase' not in main
+    asig = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    assert 'Mis Asignaciones' in asig
 
 
 def test_luz_es_admin_y_ve_todas(monkeypatch):

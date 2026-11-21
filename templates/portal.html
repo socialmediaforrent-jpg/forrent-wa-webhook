@@ -11,25 +11,11 @@
 <body>
 {% set nav='portal' %}
 {% include '_top.html' %}
-<main class="wrap-page">
-  <p class="kicker">{{ role_label }}</p>
-  <h1 class="page">Resumen de operación</h1>
-  <p class="lead">Cifras de las copias actuales del portal; cada tarjeta indica su fecha. Si no hay dato fiable, se muestra vacío.</p>
-  {% from '_icons.html' import icon %}
-  <div class="cards cards-inicio">
-    <a class="card" href="/mis-asignaciones"><h2>{{ icon('userplus') }} Mis Asignaciones</h2><p>Embudo comercial de los clientes asignados.</p></a>
-  </div>
-  {% include '_dash.html' %}
-  <section class="dash-sec">
-    <h2>Accesos</h2>
-    <div class="cards">
-      {% if estatus_url %}<a class="card" href="{{ estatus_url }}" target="_blank" rel="noopener noreferrer"><h2>Sistema de Clientes</h2><p>Estatus de todos los asesores.</p></a>{% endif %}
-      {% if cierres_url %}<a class="card" href="{{ cierres_url }}" target="_blank" rel="noopener noreferrer"><h2>Cierres</h2><p>Sistema Contable: reservas y comisiones.</p></a>{% endif %}
-      <a class="card" href="/panel"><h2>Mensajes</h2><p>WhatsApp: leer y responder dentro de 24 h.</p></a>
-      <a class="card" href="/mi-equipo"><h2>Equipos</h2><p>Captaciones y clientes por asesora.</p></a>
-      <a class="card" href="/clientes-propios"><h2>Clientes propios</h2><p>Registrados por cada asesora.</p></a>
-      <a class="card" href="/inventario"><h2>Inmuebles</h2><p>Propias y aliados.</p></a>
-    </div>
+<main class="wrap-page welcome-inicio">
+  {% set first_name = (viewer.name.split(' ')[0] if viewer else '') %}
+  <section class="welcome" aria-label="Bienvenida">
+    <h1 class="welcome-title">Bienvenido, <em>{{ first_name }}</em></h1>
+    <p class="welcome-sub">For Rent Online · For Rent Grupo Inmobiliario</p>
   </section>
 </main>
 </body>

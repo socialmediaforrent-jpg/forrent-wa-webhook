@@ -340,3 +340,14 @@ details.mod[open] .mod-sum .chev{transform:rotate(180deg)}
 .mod-cards .card{box-shadow:none;border:1px solid #eceef2}
 .mod-prox{opacity:.75;background:#f7f8fa}
 .mod-prox h2{color:#5b6275}
+
+/* Inicio de Presidencia: solo bienvenida. Cifras y embudo siguen en Módulos. */
+.welcome-inicio{min-height:calc(100dvh - var(--appbar) - var(--bottom) - env(safe-area-inset-bottom, 0px));display:flex;align-items:center;justify-content:center;text-align:center;padding:24px 20px 32px}
+.welcome{max-width:22rem}
+.welcome-title{margin:0 0 10px;font-size:28px;line-height:1.15;letter-spacing:-.03em;font-weight:800;color:var(--negro)}
+.welcome-title em{font-style:normal;color:var(--naranja)}
+.welcome-sub{margin:0;color:var(--muted);font-size:14px;line-height:1.45}
+@media (min-width:960px){
+  .welcome-inicio{min-height:calc(100dvh - var(--appbar))}
+  .welcome-title{font-size:32px}
+}

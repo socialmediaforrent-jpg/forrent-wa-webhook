@@ -2227,9 +2227,11 @@ def logout():
 @app.get('/portal')
 @require_login
 def portal():
+    # Presidencia (admin): Inicio vacío con bienvenida. Cifras, embudo y accesos
+    # siguen en /modulos, /mis-asignaciones y /mis-clientes. Otros roles no cambian.
     if g.user['role'] != 'admin':
         return _render_asesor(g.user)
-    return _panel_headers(render_template('portal.html', dash=_dashboard(g.user), fases=_fases_de(_clientes_dashboard(g.user)), **_portal_links()))
+    return _panel_headers(render_template('portal.html'))
 
 
 @app.get('/clientes-propios')
