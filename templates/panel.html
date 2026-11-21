@@ -188,6 +188,7 @@ body.inbox-page .pagehint{display:none}
     {% endif %}
   </section>
 </div>
+<script type="application/json" id="inbox-boot">{{ inbox_boot|tojson }}</script>
 <script>
 (function(){
   const params = new URLSearchParams(location.search);
@@ -315,6 +316,7 @@ body.inbox-page .pagehint{display:none}
       if (!r.ok) return;
       const d = await r.json();
       paintList(d);
+      remember(d);
       if (!d.current) return;
       paintReply(d.reply);
       const msgs = document.getElementById('msgs');
@@ -369,7 +371,28 @@ body.inbox-page .pagehint{display:none}
       setTimeout(() => { nota.classList.remove('ok','err'); }, 8000);
     });
   }
+  function remember(d){
+    try{ sessionStorage.setItem('fr_inbox', JSON.stringify({conversations:d.conversations||[], current:d.current||''})); }catch(e){}
+  }
+  try{
+    const raw = sessionStorage.getItem('fr_inbox');
+    if (raw){
+      const cached = JSON.parse(raw);
+      if (cached && cached.conversations && cached.conversations.length){
+        cached.current = currentId;
+        paintList(cached);
+      }
+    }
+  }catch(e){}
+  try{
+    const bootEl = document.getElementById('inbox-boot');
+    if (bootEl && bootEl.textContent){
+      const boot = JSON.parse(bootEl.textContent);
+      if (boot && boot.conversations){ paintList(boot); remember(boot); }
+    }
+  }catch(e){}
   apply();
+  setTimeout(refresh, 50);
   setInterval(refresh, 30000);
 })();
 </script>

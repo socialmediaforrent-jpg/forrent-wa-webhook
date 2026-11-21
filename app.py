@@ -74,6 +74,10 @@ STARTED = datetime.now(timezone.utc).isoformat()
 DB_URL = os.environ.get('DATABASE_URL', '')
 IS_PG = DB_URL.startswith('postgres')
 _lock = threading.Lock()
+_query_count = 0
+_tls = threading.local()
+# En producción reutilizamos la conexión por hilo (cada q() abría y cerraba una, caro en Postgres).
+_REUSE_DB = IS_PG and bool(os.environ.get('RENDER'))
 
 if IS_PG:
     import psycopg
@@ -81,15 +85,24 @@ if IS_PG:
 
 
 def _conn():
+    if _REUSE_DB:
+        c = getattr(_tls, 'conn', None)
+        if c is not None:
+            return c
     if IS_PG:
-        return psycopg.connect(DB_URL, autocommit=True)
-    c = sqlite3.connect(os.environ.get('SQLITE_PATH', 'wa_local.db'), check_same_thread=False)
-    c.row_factory = sqlite3.Row
+        c = psycopg.connect(DB_URL, autocommit=True)
+    else:
+        c = sqlite3.connect(os.environ.get('SQLITE_PATH', 'wa_local.db'), check_same_thread=False)
+        c.row_factory = sqlite3.Row
+    if _REUSE_DB:
+        _tls.conn = c
     return c
 
 
 def q(sql, args=(), fetch=False):
     """Ejecuta SQL escrito con %s; adapta a SQLite cuando hace falta."""
+    global _query_count
+    _query_count += 1
     if not IS_PG:
         sql = sql.replace('%s', '?')
         args = tuple(json.dumps(a, ensure_ascii=False) if isinstance(a, (dict, list)) else a for a in args)
@@ -105,7 +118,8 @@ def q(sql, args=(), fetch=False):
             cols = [d[0] for d in cur.description]
             return [dict(zip(cols, r)) for r in rows]
         finally:
-            c.close()
+            if not _REUSE_DB:
+                c.close()
 
 
 SERIAL = 'BIGSERIAL PRIMARY KEY' if IS_PG else 'INTEGER PRIMARY KEY AUTOINCREMENT'
@@ -139,6 +153,22 @@ def init_db():
         phone_number_id TEXT, received_at TEXT NOT NULL, data {JSONT})""")
     q("CREATE UNIQUE INDEX IF NOT EXISTS wa_events_uniq ON wa_events (kind, wamid, status)")
     q("CREATE INDEX IF NOT EXISTS wa_events_waid ON wa_events (wa_id, id)")
+    # Índices de la bandeja (aditivos): la lista no debe recorrer toda wa_events.
+    q("""CREATE INDEX IF NOT EXISTS wa_events_lista_ts
+         ON wa_events (wa_id, COALESCE(ts, received_at) DESC, id DESC)
+         WHERE kind IN ('message', 'outbound') AND wa_id IS NOT NULL AND wa_id <> ''""")
+    q("""CREATE INDEX IF NOT EXISTS wa_events_inbound_ts
+         ON wa_events (wa_id, COALESCE(ts, received_at))
+         WHERE kind IN ('message', 'outbound') AND direction='inbound'""")
+    q("""CREATE INDEX IF NOT EXISTS wa_events_outbound_ts
+         ON wa_events (wa_id, COALESCE(ts, received_at))
+         WHERE kind IN ('message', 'outbound') AND direction='outbound'""")
+    q("""CREATE INDEX IF NOT EXISTS wa_events_status_wamid
+         ON wa_events (wamid)
+         WHERE kind='status' AND wamid IS NOT NULL AND wamid <> ''""")
+    q("""CREATE INDEX IF NOT EXISTS wa_events_nombres
+         ON wa_events (wa_id, id DESC)
+         WHERE name IS NOT NULL AND name <> ''""")
     q("""CREATE TABLE IF NOT EXISTS mensajes_last_seen (
         user_slug TEXT NOT NULL, wa_id TEXT NOT NULL, seen_at TEXT NOT NULL,
         PRIMARY KEY (user_slug, wa_id))""")
@@ -985,7 +1015,44 @@ def _preview(row):
     return text
 
 
-def _names_by_wa():
+def _chunked(items, n=800):
+    items = list(items)
+    for i in range(0, len(items), n):
+        yield items[i:i + n]
+
+
+def _in_clause(ids):
+    """Placeholder IN (…) con %s. El caller pasa tuple(ids). Vacío no es válido."""
+    return ','.join(['%s'] * len(ids))
+
+
+def _meta_wamid_sql(alias='o'):
+    if IS_PG:
+        return f"({alias}.data->>'meta_wamid')"
+    return f"json_extract({alias}.data, '$.meta_wamid')"
+
+
+def _names_by_wa(wa_ids=None):
+    """Último nombre conocido por wa_id. Si se pasa wa_ids, no recorre toda la tabla."""
+    if wa_ids is not None:
+        ids = [w for w in wa_ids if w]
+        if not ids:
+            return {}
+        out = {}
+        for chunk in _chunked(ids):
+            rows = q(
+                f"""SELECT wa_id, name FROM (
+                       SELECT wa_id, name,
+                              ROW_NUMBER() OVER (PARTITION BY wa_id ORDER BY id DESC) AS rn
+                       FROM wa_events
+                       WHERE name IS NOT NULL AND name <> ''
+                         AND wa_id IN ({_in_clause(chunk)})
+                   ) t WHERE rn = 1""",
+                tuple(chunk),
+                fetch=True,
+            ) or []
+            out.update({r['wa_id']: r['name'] for r in rows})
+        return out
     rows = q(
         """SELECT wa_id, name FROM (
                SELECT wa_id, name,
@@ -1010,6 +1077,10 @@ def _marcar_visto(user, wa_id):
              ON CONFLICT (user_slug, wa_id) DO UPDATE SET seen_at=EXCLUDED.seen_at""", (slug, wa, now))
     else:
         q("INSERT OR REPLACE INTO mensajes_last_seen (user_slug, wa_id, seen_at) VALUES (%s,%s,%s)", (slug, wa, now))
+    if LISTA_CACHE_SEG:
+        with _lista_cache_lock:
+            for k in [k for k in _lista_cache if k[0] == slug]:
+                _lista_cache.pop(k, None)
 
 
 def _utc_key(iso):
@@ -1036,28 +1107,35 @@ def _conteo_no_leidos(user, wa_ids, huerfanos=None):
     """Inbound después del último outbound (incluye lo enviado desde GHL) o del last_seen del usuario."""
     if not wa_ids:
         return {}
+    ids = list(dict.fromkeys(wa_ids))
     seen = _last_seen_map(user)
-    outs = q(
-        """SELECT wa_id, MAX(COALESCE(ts, received_at)) AS t
-           FROM wa_events
-           WHERE kind IN ('message','outbound') AND direction='outbound'
-             AND wa_id IS NOT NULL
-           GROUP BY wa_id""",
-        fetch=True,
-    ) or []
-    last_out = {r['wa_id']: r['t'] or '' for r in outs}
+    last_out = {}
+    ins = []
+    for chunk in _chunked(ids):
+        ph = _in_clause(chunk)
+        outs = q(
+            f"""SELECT wa_id, MAX(COALESCE(ts, received_at)) AS t
+                FROM wa_events
+                WHERE kind IN ('message','outbound') AND direction='outbound'
+                  AND wa_id IN ({ph})
+                GROUP BY wa_id""",
+            tuple(chunk),
+            fetch=True,
+        ) or []
+        last_out.update({r['wa_id']: r['t'] or '' for r in outs})
+        ins.extend(q(
+            f"""SELECT wa_id, COALESCE(ts, received_at) AS t
+                FROM wa_events
+                WHERE kind IN ('message','outbound') AND direction='inbound'
+                  AND wa_id IN ({ph})""",
+            tuple(chunk),
+            fetch=True,
+        ) or [])
     for wa, t in _ultimo_huerfano_por_wa(huerfanos).items():
         a, b = _parse_caracas(last_out.get(wa) or ''), _parse_caracas(t)
         if b and (a is None or b > a):
             last_out[wa] = t
-    ins = q(
-        """SELECT wa_id, COALESCE(ts, received_at) AS t
-           FROM wa_events
-           WHERE kind IN ('message','outbound') AND direction='inbound'
-             AND wa_id IS NOT NULL""",
-        fetch=True,
-    ) or []
-    counts = {w: 0 for w in wa_ids}
+    counts = {w: 0 for w in ids}
     for r in ins:
         wa = r['wa_id']
         if wa not in counts:
@@ -1068,7 +1146,86 @@ def _conteo_no_leidos(user, wa_ids, huerfanos=None):
     return counts
 
 
+# Caché corta de la lista (solo en Render). Se apaga en pruebas para no cruzar casos.
+_lista_cache = {}
+_lista_cache_lock = threading.Lock()
+LISTA_CACHE_SEG = 15 if os.environ.get('RENDER') else 0
+LISTA_HTML_MAX = 80
+
+
+def _huerfanos_para_lista():
+    """Estados de Meta aún no emparejados con un saliente, para la vista previa y los no leídos.
+
+    No recorre cada estado contra toda la tabla (un NOT EXISTS así es muy lento).
+    Carga columnas livianas y empareja en memoria, igual que el hilo, pero sin el JSON completo.
+    """
+    st_rows = q("""SELECT wamid, wa_id, ts, received_at, status FROM wa_events
+                   WHERE kind='status' AND wamid IS NOT NULL AND wamid <> ''""", fetch=True) or []
+    if not st_rows:
+        return []
+    meta = _meta_wamid_sql('o')
+    out_rows = q(
+        f"""SELECT o.id, o.wamid, o.wa_id, o.ts, o.received_at, {meta} AS meta_wamid
+            FROM wa_events o
+            WHERE o.kind IN ('message','outbound') AND o.direction='outbound'""",
+        fetch=True,
+    ) or []
+    grupos = {}
+    for r in st_rows:
+        g = grupos.setdefault(r['wamid'], {'wamid': r['wamid'], 'wa_id': r.get('wa_id') or '', 'ts': '', 'status': ''})
+        t = _event_ts(r)
+        if t and (not g['ts'] or (_parse_caracas(t) or datetime.max.replace(tzinfo=timezone.utc))
+                  < (_parse_caracas(g['ts']) or datetime.max.replace(tzinfo=timezone.utc))):
+            g['ts'] = t
+        g['status'] = _mejor_estado(g['status'], r.get('status') or '')
+        if not g['wa_id'] and r.get('wa_id'):
+            g['wa_id'] = r['wa_id']
+    por_wamid = {}
+    sueltas = {}
+    for r in out_rows:
+        for w in (r.get('wamid') or '', r.get('meta_wamid') or ''):
+            if w:
+                por_wamid[w] = r['id']
+        if not (r.get('meta_wamid') or '') and not (r.get('wamid') or '').startswith('wamid.'):
+            dt = _parse_caracas(_event_ts(r))
+            if dt:
+                sueltas.setdefault(r.get('wa_id') or '', []).append((dt, r['id']))
+    huerfanos, usadas = [], set()
+    for g in sorted(grupos.values(), key=lambda x: x['ts'] or ''):
+        rid = por_wamid.get(g['wamid'])
+        if rid is None:
+            t = _parse_caracas(g['ts'])
+            mejor = None
+            for dt, cand in sueltas.get(g['wa_id'], []):
+                if cand in usadas or t is None:
+                    continue
+                delta = (t - dt).total_seconds()
+                if -10 <= delta <= 120 and (mejor is None or abs(delta) < mejor[0]):
+                    mejor = (abs(delta), cand)
+            if mejor:
+                rid = mejor[1]
+                usadas.add(rid)
+        if rid is None:
+            huerfanos.append(g)
+    return huerfanos
+
+
 def panel_conversations(user):
+    if LISTA_CACHE_SEG:
+        key = (user.get('user') or '', user.get('role') or '')
+        with _lista_cache_lock:
+            hit = _lista_cache.get(key)
+            if hit and (time.time() - hit[0]) < LISTA_CACHE_SEG:
+                return [dict(c) for c in hit[1]]
+    out = _panel_conversations_fresh(user)
+    if LISTA_CACHE_SEG:
+        key = (user.get('user') or '', user.get('role') or '')
+        with _lista_cache_lock:
+            _lista_cache[key] = (time.time(), [dict(c) for c in out])
+    return out
+
+
+def _panel_conversations_fresh(user):
     latest = q(
         """SELECT wa_id, name, text, ts, received_at, direction, msg_type, source, data FROM (
                SELECT wa_id, name, text, ts, received_at, direction, msg_type, source, data,
@@ -1082,16 +1239,21 @@ def panel_conversations(user):
            ) t WHERE rn = 1""",
         fetch=True,
     ) or []
-    names = _names_by_wa()
-    _, huerfanos = _salientes_por_estado()
-    ult_ghl = _ultimo_huerfano_por_wa(huerfanos)
     visibles = mensajes.telefonos_visibles_de(user, db_propios=_db_propios)
     ocultos = mensajes.telefonos_ocultos()
-    out = []
+    visible_rows = []
     for r in latest:
         wa = r['wa_id']
         if not mensajes.puede_ver(user, wa, visibles=visibles, ocultos=ocultos):
             continue
+        visible_rows.append(r)
+    sin_nombre = [r['wa_id'] for r in visible_rows if not (r.get('name') or '').strip()]
+    names = _names_by_wa(sin_nombre)
+    huerfanos = _huerfanos_para_lista()
+    ult_ghl = _ultimo_huerfano_por_wa(huerfanos)
+    out = []
+    for r in visible_rows:
+        wa = r['wa_id']
         nombre = _display_name(wa, names.get(wa) or r.get('name'))
         canal = mensajes.canal_de(r)
         iso, preview = _event_ts(r), _preview(r)
@@ -1253,8 +1415,9 @@ def panel_thread(wa_id):
         m['day'] = day if day != last_day else ''
         last_day = day
         msgs.append(m)
-    names = _names_by_wa()
-    thread_name = _display_name(wa_id, names.get(wa_id) or next((r.get('name') for r in rows if r.get('name')), None))
+    fallback = next((r.get('name') for r in rows if r.get('name')), None)
+    names = _names_by_wa([wa_id]) if not fallback else {}
+    thread_name = _display_name(wa_id, names.get(wa_id) or fallback)
     return msgs, thread_name, _fmt_phone(wa_id)
 
 
@@ -1274,12 +1437,16 @@ def _telefonos_asesores():
     return [r['telefono'] for r in rows]
 
 
-def _social_convos(user):
-    """IG/FB: solo admin y solo con META_SOCIAL_INBOX=1 (lectura por Graph API)."""
+def _social_convos(user, *, solo_cache=False):
+    """IG/FB: solo admin y solo con META_SOCIAL_INBOX=1 (lectura por Graph API).
+
+    En el HTML de /panel no llamamos a Meta: si no hay caché, la lista de WhatsApp
+    se pinta igual y /panel/data completa IG/FB después.
+    """
     if user.get('role') != 'admin' or not bandeja.social_activo():
         return []
     out = []
-    for c in bandeja.social_conversaciones():
+    for c in bandeja.social_conversaciones(solo_cache=solo_cache):
         nombre = c['nombre']
         out.append({
             'wa_id': c['id'], 'href': '/panel?c=' + quote(c['id'], safe=''), 'name': nombre, 'phone': '',
@@ -1296,7 +1463,7 @@ def _es_social(conv_id):
     return (conv_id or '').startswith(('ig:', 'fb:'))
 
 
-def _panel_payload(user, wa_id, *, marcar=False):
+def _panel_payload(user, wa_id, *, marcar=False, social_cache=False):
     current = wa_id or ''
     social = _es_social(current)
     if current and social and (user.get('role') != 'admin' or not bandeja.social_activo()):
@@ -1306,7 +1473,7 @@ def _panel_payload(user, wa_id, *, marcar=False):
     if current and marcar and not social:
         _marcar_visto(user, current)
     convos = panel_conversations(user)
-    convos = _mezclar(convos, _social_convos(user))
+    convos = _mezclar(convos, _social_convos(user, solo_cache=social_cache))
     if social and current:
         hilo = bandeja.social_hilo(current) or {'canal': 'instagram' if current.startswith('ig:') else 'facebook', 'mensajes': []}
         msgs, last_day = [], None
@@ -1355,23 +1522,51 @@ def _panel_headers(resp):
     return resp
 
 
+def _convos_para_html(convos, current):
+    """Primeras N filas en el HTML (el JSON inbox-boot lleva la lista completa)."""
+    vis = list(convos[:LISTA_HTML_MAX])
+    if current and not any(c.get('wa_id') == current for c in vis):
+        cur = next((c for c in convos if c.get('wa_id') == current), None)
+        if cur:
+            vis.append(cur)
+    return vis
+
+
 @app.get('/panel')
 @require_login
 def panel():
+    t0 = time.perf_counter()
+    q0 = _query_count
     wa = request.args.get('c') or ''
-    data = _panel_payload(g.user, wa, marcar=bool(wa))
+    data = _panel_payload(g.user, wa, marcar=bool(wa), social_cache=True)
     if data is None:
         return _panel_headers(Response('No tienes acceso a esta conversación.\n', 403))
-    return _panel_headers(render_template('panel.html', **data))
+    inbox_boot = {'conversations': data['conversations'], 'current': data['current']}
+    html = render_template(
+        'panel.html',
+        **{**data, 'conversations': _convos_para_html(data['conversations'], data['current']),
+           'inbox_boot': inbox_boot},
+    )
+    ms = (time.perf_counter() - t0) * 1000
+    log.info('panel lista user=%s convos=%d msgs=%d queries=%d ms=%.0f',
+             (g.user or {}).get('user'), len(data['conversations']), len(data.get('messages') or []),
+             _query_count - q0, ms)
+    return _panel_headers(html)
 
 
 @app.get('/panel/data')
 @require_login
 def panel_data():
+    t0 = time.perf_counter()
+    q0 = _query_count
     wa = request.args.get('c') or ''
-    data = _panel_payload(g.user, wa, marcar=bool(wa))
+    data = _panel_payload(g.user, wa, marcar=bool(wa), social_cache=False)
     if data is None:
         return _panel_headers(Response('No tienes acceso a esta conversación.\n', 403))
+    ms = (time.perf_counter() - t0) * 1000
+    log.info('panel data user=%s convos=%d msgs=%d queries=%d ms=%.0f',
+             (g.user or {}).get('user'), len(data['conversations']), len(data.get('messages') or []),
+             _query_count - q0, ms)
     return _panel_headers(jsonify(data))
 
 

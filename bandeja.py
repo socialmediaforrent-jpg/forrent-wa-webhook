@@ -196,12 +196,12 @@ _cache_lock = threading.Lock()
 CACHE_SEG = 60
 
 
-def _graph_get(path, params, *, opener=None):
+def _graph_get(path, params, *, opener=None, timeout=20):
     params = dict(params)
     params['access_token'] = _page_token()
     url = f'https://graph.facebook.com/{_graph_version()}/{path}?' + urllib.parse.urlencode(params)
     op = opener or urllib.request.urlopen
-    with op(urllib.request.Request(url, method='GET'), timeout=20) as r:
+    with op(urllib.request.Request(url, method='GET'), timeout=timeout) as r:
         return json.loads(r.read() or b'{}')
 
 
@@ -224,8 +224,11 @@ def _otro(participantes, propios):
     return (participantes or [{}])[0]
 
 
-def social_conversaciones(*, opener=None, limite=25):
-    """Lista conversaciones IG y FB (lectura). Ids de conversación con prefijo ig: / fb:. Errores -> lista vacía."""
+def social_conversaciones(*, opener=None, limite=25, solo_cache=False):
+    """Lista conversaciones IG y FB (lectura). Ids de conversación con prefijo ig: / fb:. Errores -> lista vacía.
+
+    solo_cache=True no llama a Meta: sirve para pintar WhatsApp al instante.
+    """
     if not social_activo():
         return []
     propios = {_page_id(), _ig_id()}
@@ -234,9 +237,16 @@ def social_conversaciones(*, opener=None, limite=25):
         def cargar(plat=plat):
             return _graph_get(f'{_page_id()}/conversations', {
                 'platform': plat, 'limit': str(limite),
-                'fields': 'id,updated_time,participants,messages.limit(1){message,from,created_time}'}, opener=opener)
+                'fields': 'id,updated_time,participants,messages.limit(1){message,from,created_time}'}, opener=opener, timeout=4)
         try:
-            d = _cached(('convs', plat), cargar)
+            if solo_cache:
+                with _cache_lock:
+                    hit = _cache.get(('convs', plat))
+                if not hit:
+                    continue
+                d = hit[1]
+            else:
+                d = _cached(('convs', plat), cargar)
         except Exception:
             continue
         for c in d.get('data') or []:

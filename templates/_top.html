@@ -52,3 +52,15 @@
 </nav>
 {% endif %}
 {% if subtitle %}<div class="pagehint">{{ subtitle }}</div>{% endif %}
+{% if viewer and nav != 'mensajes' %}
+<link rel="prefetch" href="/panel" as="document">
+<script>
+(function(){
+  const links=[...document.querySelectorAll('a[href="/panel"],a[href^="/panel?"]')];
+  if(!links.length) return;
+  const warm=()=>{ if(warm.done) return; warm.done=1; fetch('/panel',{credentials:'same-origin',headers:{'Accept':'text/html'}}).catch(()=>{}); };
+  if('requestIdleCallback' in window) requestIdleCallback(warm,{timeout:2000}); else setTimeout(warm,400);
+  links.forEach(a=>a.addEventListener('pointerdown',warm,{passive:true}));
+})();
+</script>
+{% endif %}
