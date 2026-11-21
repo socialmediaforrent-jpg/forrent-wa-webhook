@@ -352,7 +352,7 @@ app.jinja_env.globals['idem_token'] = idem_token
 # ---------------------------------------------------------------- F4 móvil: caché de estáticos versionados
 # Solo CSS y logos/favicons enlazados con ?v=<hash del archivo>. Al cambiar el archivo cambia el hash y la URL.
 # El HTML con datos de clientes sigue con su Cache-Control actual (private, no-store).
-STATIC_VERSIONADOS = {'app.css', 'inmuebles.css', 'logo.webp', 'logo-1200.webp', 'logo.png', 'favicon.ico', 'favicon-32.png'}
+STATIC_VERSIONADOS = {'app.css', 'inmuebles.css', 'logo.webp', 'logo-1200.webp', 'logo.png', 'favicon.ico', 'favicon-32.png', 'inicio-equipo.webp'}
 _static_hash = {}
 
 
