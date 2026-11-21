@@ -13,9 +13,10 @@
 {% include '_top.html' %}
 <main class="wrap-page welcome-inicio">
   {% set first_name = (viewer.name.split(' ')[0] if viewer else '') %}
+  {% set saludo = 'bienvenida' if viewer and viewer.user == 'luz' else 'bienvenido' %}
   <section class="welcome" aria-label="Bienvenida">
-    <h1 class="welcome-title">Bienvenido, <em>{{ first_name }}</em></h1>
-    <p class="welcome-sub">For Rent Online · For Rent Grupo Inmobiliario</p>
+    <h1 class="welcome-title"><em>{{ first_name }}</em>, {{ saludo }} a For Rent Online de For Rent Grupo Inmobiliario, C.A.</h1>
+    <p class="welcome-sub">RIF J-50475755-1</p>
   </section>
 </main>
 </body>

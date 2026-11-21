@@ -110,8 +110,8 @@ def test_inicio_primer_boton_admin():
     """El inicio de Presidencia ya no lleva tarjetas; el embudo sigue en /mis-asignaciones."""
     html = cliente('jose').get('/').get_data(as_text=True)
     main = html.split('<main', 1)[-1]
-    assert 'Bienvenido, <em>José</em>' in main
-    assert 'For Rent Online · For Rent Grupo Inmobiliario' in main
+    assert '<em>José</em>, bienvenido a For Rent Online de For Rent Grupo Inmobiliario, C.A.' in main
+    assert 'RIF J-50475755-1' in main
     assert 'Mis Asignaciones' not in main
     assert 'Resumen de operación' not in main
     assert 'Clientes por fase' not in main
