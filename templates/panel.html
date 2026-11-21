@@ -8,13 +8,10 @@
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
 <style>
-body.inbox-page{display:flex;flex-direction:column;min-height:100dvh;background:#f4f4f5}
+html:has(body.inbox-page){height:100dvh;overflow:hidden}
+body.inbox-page{display:flex;flex-direction:column;height:100dvh;max-height:100dvh;overflow:hidden;background:#f4f4f5}
 body.inbox-page .pagehint{display:none}
-.inbox{flex:1;display:grid;grid-template-columns:minmax(260px,400px) 1fr;min-height:0;
-  height:calc(100dvh - var(--appbar) - var(--bottom) - env(safe-area-inset-bottom,0px))}
-@media (min-width:960px){
-  .inbox{height:calc(100dvh - var(--appbar))}
-}
+.inbox{flex:1;display:grid;grid-template-columns:minmax(260px,400px) 1fr;min-height:0;overflow:hidden}
 .inbox-list,.inbox-thread{min-height:0;overflow:hidden;display:flex;flex-direction:column;background:#fff}
 .inbox-list{border-right:1px solid var(--linea)}
 .inbox-tools{padding:12px 14px 8px;border-bottom:1px solid var(--linea);background:#fff;position:sticky;top:0;z-index:2}
@@ -50,20 +47,26 @@ body.inbox-page .pagehint{display:none}
 .convo .unread{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#16a34a;color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
 .convo.has-unread .who,.convo.has-unread .preview{color:#111;font-weight:800}
 .inbox-thread{background:#ece7e0}
-.thread-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:1px solid var(--linea)}
+.thread-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:1px solid var(--linea);flex:none;position:sticky;top:0;z-index:3}
 .thread-head .back{display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;text-decoration:none;color:#111;font-size:20px;font-weight:700;background:#f3f4f6;flex:none}
 .thread-head .who{font-weight:800;font-size:16px;line-height:1.2}
 .thread-head .num{color:#6b7280;font-size:12px}
-.msgs{flex:1;overflow:auto;padding:16px 12px 24px;display:flex;flex-direction:column;gap:8px}
+.msgs{flex:1;min-height:0;overflow:auto;padding:16px 12px 24px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
 .day{align-self:center;background:rgba(0,0,0,.06);color:#333;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;margin:6px 0}
-.bub{max-width:min(520px,86%);padding:8px 12px;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:15px;line-height:1.4}
+.bub{max-width:min(520px,86%);min-width:0;padding:8px 12px;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:15px;line-height:1.4;overflow-wrap:anywhere;word-break:break-word}
+.bub .txt,.bub .txt a{overflow-wrap:anywhere;word-break:break-word;max-width:100%}
+.bub .txt a{color:#0a4ea3;text-decoration:underline}
+.bub:has(.foto-link){width:min(520px,86%)}.bub .foto-link{display:block;max-width:100%;min-width:0}
+.bub .foto{display:block;max-width:100%;height:auto;max-height:240px;object-fit:contain;border-radius:8px;margin:0 auto}
+.bub .ver-img[hidden]{display:none}
+.bub .ver-img{font-weight:700;text-decoration:underline;color:#0a4ea3}
 .bub.in{align-self:flex-start;background:#fff;border-top-left-radius:4px}
 .bub.out{align-self:flex-end;background:#fff3ea;border:1px solid #f0c9a8;border-top-right-radius:4px}
 .bub .meta{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:4px;color:#6b7280;font-size:11px}
 .bub .tipo{display:inline-block;background:#111;color:#fff;border-radius:5px;padding:1px 6px;font-size:10px;margin-bottom:4px}
 .bub .st.leido{color:#0a6cff}
 .bub .st.fallo{color:#b91c1c;font-weight:700}
-.reply{background:#fff;border-top:1px solid var(--linea);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))}
+.reply{background:#fff;border-top:1px solid var(--linea);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));flex:none}
 .reply form{display:flex;gap:8px;align-items:flex-end}
 .reply textarea{flex:1;resize:none;min-height:44px;max-height:160px;border:1px solid var(--linea);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;line-height:1.35}
 .reply textarea:focus{outline:none;border-color:#f0c9a8;box-shadow:0 0 0 3px #fff3ea}
@@ -163,7 +166,13 @@ body.inbox-page .pagehint{display:none}
         {% if m.day %}<div class="day">{{ m.day }}</div>{% endif %}
         <div class="bub {{ m.direction }}">
           {% if m.type_label %}<div class="tipo">{{ m.type_label }}</div>{% endif %}
-          <div class="txt">{{ m.text }}</div>
+          {% if m.image_url %}
+          <a class="foto-link" href="{{ m.image_url }}" target="_blank" rel="noopener noreferrer">
+            <img class="foto" src="{{ m.image_url }}" alt="Imagen" loading="lazy" onerror="this.hidden=true;var v=this.nextElementSibling;if(v)v.hidden=false">
+            <span class="ver-img" hidden>Ver imagen</span>
+          </a>
+          {% endif %}
+          {% if m.text_html %}<div class="txt">{{ m.text_html|safe }}</div>{% endif %}
           <div class="meta">
             {% if m.status %}<span class="st {{ m.status_class }}">{{ m.status }}</span>{% endif %}
             <span>{{ m.time }}</span>
@@ -332,7 +341,15 @@ body.inbox-page .pagehint{display:none}
         if (m.day){ const day=document.createElement('div'); day.className='day'; day.textContent=m.day; msgs.appendChild(day); }
         const bub=document.createElement('div'); bub.className='bub '+m.direction;
         if (m.type_label){ const t=document.createElement('div'); t.className='tipo'; t.textContent=m.type_label; bub.appendChild(t); }
-        const txt=document.createElement('div'); txt.className='txt'; txt.textContent=m.text; bub.appendChild(txt);
+        if (m.image_url){
+          const a=document.createElement('a'); a.className='foto-link'; a.href=m.image_url; a.target='_blank'; a.rel='noopener noreferrer';
+          const img=document.createElement('img'); img.className='foto'; img.src=m.image_url; img.alt='Imagen'; img.loading='lazy';
+          const ver=document.createElement('span'); ver.className='ver-img'; ver.hidden=true; ver.textContent='Ver imagen';
+          img.addEventListener('error',()=>{ img.hidden=true; ver.hidden=false; });
+          a.appendChild(img); a.appendChild(ver); bub.appendChild(a);
+        }
+        if (m.text_html){ const txt=document.createElement('div'); txt.className='txt'; txt.innerHTML=m.text_html; bub.appendChild(txt); }
+        else if (m.text && !m.image_url){ const txt=document.createElement('div'); txt.className='txt'; txt.textContent=m.text; bub.appendChild(txt); }
         const meta=document.createElement('div'); meta.className='meta';
         if (m.status){ const st=document.createElement('span'); st.className='st '+(m.status_class||''); st.textContent=m.status; meta.appendChild(st); }
         const tm=document.createElement('span'); tm.textContent=m.time; meta.appendChild(tm);
