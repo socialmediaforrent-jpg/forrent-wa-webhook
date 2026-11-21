@@ -3,7 +3,7 @@
 <h1 class="page">Módulos</h1>
 <p class="lead">Los 5 módulos de For Rent Online. Lo que dice «En preparación» todavía no tiene pantalla; no muestra números.</p>
 {% for m in modulos %}
-<details class="sec mod" id="mod-{{ m.key }}" {{ 'open' if loop.first else '' }}>
+<details class="sec mod" id="mod-{{ m.key }}">
   <summary class="mod-sum">{{ icon(m.icon) }}<span><b>{{ m.n }}. {{ m.titulo }}</b></span>{{ icon('chev', 'i chev') }}</summary>
   <div class="cards mod-cards">
   {% for sct in m.secciones %}
