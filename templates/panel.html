@@ -7,7 +7,7 @@
 <title>Mensajes · For Rent Online</title>
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
-<style>
+<style data-ui="composer-2">
 html:has(body.inbox-page){height:100dvh;overflow:hidden}
 body.inbox-page{display:flex;flex-direction:column;height:100dvh;max-height:100dvh;overflow:hidden;background:#f3f4f6;padding-bottom:0;overscroll-behavior-y:contain}
 body.inbox-page .pagehint{display:none}
@@ -60,8 +60,11 @@ body.inbox-page .pagehint{display:none}
 .convo .unread{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#16a34a;color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
 .convo.has-unread .who,.convo.has-unread .preview{color:#111;font-weight:800}
 .inbox-thread{background:#ece7e0}
-.thread-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-bottom:1px solid var(--linea);flex:none;position:sticky;top:0;z-index:3}
-.thread-head .back{display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;text-decoration:none;color:#111;font-size:20px;font-weight:700;background:#f3f4f6;flex:none}
+.thread-head{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 8px;background:#fff;border-bottom:1px solid var(--linea);flex:none;position:sticky;top:0;z-index:3}
+.thread-head .back{display:none;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;text-decoration:none;color:#111;background:#f3f4f6;flex:none;line-height:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.thread-head .back svg{display:block;width:22px;height:22px;flex:none}
+.thread-head .back:hover,.thread-head .back:focus-visible{background:var(--naranja-suave);color:var(--naranja-2);outline:none}
+.thread-head .back:active,.thread-head .back.is-pressed{background:var(--naranja-suave);color:var(--naranja)}
 .thread-head .who{font-weight:800;font-size:16px;line-height:1.2}
 .thread-head .num{color:#6b7280;font-size:12px}
 .msgs{flex:1;min-height:0;overflow:auto;padding:16px 12px 24px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
@@ -175,7 +178,7 @@ body.inbox-page .pagehint{display:none}
   <section class="inbox-thread">
     {% if current %}
     <div class="thread-head">
-      <a class="back" href="/panel" aria-label="Volver a la lista">←</a>
+      <a class="back" href="/panel" aria-label="Volver a la lista"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"/></svg></a>
       <div class="av" style="background:{{ conversations|selectattr('wa_id','equalto',current)|map(attribute='color')|first or '#111' }};width:36px;height:36px;font-size:12px">{{ conversations|selectattr('wa_id','equalto',current)|map(attribute='iniciales')|first or '' }}</div>
       <div>
         <div class="who">{{ thread_name }}</div>

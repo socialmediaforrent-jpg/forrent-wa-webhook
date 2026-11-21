@@ -17,7 +17,7 @@ def _limpiar_eventos():
 def _css_panel():
     ruta = os.path.join(ROOT, 'templates', 'panel.html')
     html = open(ruta, encoding='utf-8').read()
-    m = re.search(r'<style>(.*?)</style>', html, re.S)
+    m = re.search(r'<style[^>]*>(.*?)</style>', html, re.S)
     assert m, 'falta el CSS de Mensajes'
     return m.group(1)
 
@@ -63,7 +63,9 @@ def test_conversacion_lleva_barra_del_cliente():
     assert 'Cliente Ana' in html or 'Cliente' in html
     assert 'id="msgs"' in html
     assert 'class="inbox-page con"' in html
-    assert '←' in html  # botón atrás en móvil
+    assert 'class="back"' in html or 'class="back "' in html
+    assert 'aria-label="Volver a la lista"' in html
+    assert '<svg' in html and 'M15 6' in html
     assert 'Escribe una respuesta' in html or 'id="reply"' in html
 
 

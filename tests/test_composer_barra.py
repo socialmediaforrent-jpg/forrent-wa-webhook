@@ -26,7 +26,7 @@ def _panel_html():
 
 def _css_panel():
     html = _panel_html()
-    m = re.search(r'<style>(.*?)</style>', html, re.S)
+    m = re.search(r'<style[^>]*>(.*?)</style>', html, re.S)
     assert m, 'falta el CSS de Mensajes'
     return m.group(1)
 
@@ -77,3 +77,44 @@ def test_conversacion_lleva_compositor_aviso_y_espacio():
     assert 'id="reply-nota"' in html
     assert 'Escribe una respuesta' in html or 'id="reply-text"' in html
     assert 'class="nota' in html
+
+
+def test_boton_atras_es_svg_centrado_y_mas_grande():
+    """El ← de la conversación es un chevron SVG de 48 px, centrado con flex."""
+    css = _css_panel()
+    back = _regla(css, '.thread-head .back')
+    assert 'width:48px' in back
+    assert 'height:48px' in back
+    assert 'align-items:center' in back
+    assert 'justify-content:center' in back
+    assert 'line-height:0' in back
+    assert 'background:#f3f4f6' in back
+    svg = _regla(css, '.thread-head .back svg')
+    assert 'display:block' in svg
+    active = _regla(css, '.thread-head .back:active,.thread-head .back.is-pressed')
+    assert 'var(--naranja-suave)' in active
+    head = _regla(css, '.thread-head')
+    assert 'align-items:center' in head
+    html = _panel_html()
+    assert 'data-ui="composer-2"' in html
+    assert 'aria-label="Volver a la lista"' in html
+    assert 'stroke-width="2.4"' in html
+    assert 'M15 6 9 12l6 6' in html
+    assert '←</a>' not in html
+
+
+def test_conversacion_sigue_reserva_barra_y_aviso_24h():
+    """No se esconde la barra inferior; el aviso de 24 h sigue sobre la caja."""
+    css = _css_panel()
+    assert '.inbox-nav-space' in css
+    assert 'var(--bottom)' in css
+    assert 'safe-area-inset-bottom' in css
+    # La barra solo se oculta con el teclado, no al abrir la conversación.
+    assert 'body.inbox-page.con .bottomnav{display:none}' not in css.replace(' ', '')
+    entrante(CLI_ANA, texto='Hola, busco un apartamento')
+    html = cliente('jose').get('/panel?c=' + CLI_ANA).get_data(as_text=True)
+    assert 'class="bottomnav"' in html
+    assert 'id="reply"' in html
+    assert 'id="reply-nota"' in html
+    assert 'Ventana de 24 h' in html or 'id="reply-nota"' in html
+    assert 'class="inbox-nav-space"' in html

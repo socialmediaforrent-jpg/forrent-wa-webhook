@@ -1,0 +1,158 @@
+[
+  {
+    "innerHeight": 839,
+    "visualHeight": 839,
+    "visualBottom": 839,
+    "navVisible": true,
+    "nav": {
+      "top": 778,
+      "bottom": 839,
+      "height": 61
+    },
+    "reply": {
+      "top": 677,
+      "bottom": 778
+    },
+    "btn": {
+      "top": 688,
+      "bottom": 732,
+      "height": 44
+    },
+    "nota": {
+      "top": 738,
+      "bottom": 768
+    },
+    "okBtn": true,
+    "okNota": true,
+    "okReply": true,
+    "back": {
+      "w": 48,
+      "h": 48,
+      "top": 64,
+      "left": 8,
+      "display": "flex",
+      "lineHeight": "0px",
+      "text": "",
+      "hasSvg": true
+    },
+    "backCentered": {
+      "dx": 0,
+      "dy": 0,
+      "ok": true
+    },
+    "av": {
+      "w": 36,
+      "h": 36,
+      "cy": 88
+    },
+    "who": {
+      "cy": 80.5
+    },
+    "device": "pixel7",
+    "tag": "despues"
+  },
+  {
+    "innerHeight": 658,
+    "visualHeight": 658,
+    "visualBottom": 658,
+    "navVisible": true,
+    "nav": {
+      "top": 597,
+      "bottom": 658,
+      "height": 61
+    },
+    "reply": {
+      "top": 496,
+      "bottom": 597
+    },
+    "btn": {
+      "top": 507,
+      "bottom": 551,
+      "height": 44
+    },
+    "nota": {
+      "top": 557,
+      "bottom": 587
+    },
+    "okBtn": true,
+    "okNota": true,
+    "okReply": true,
+    "back": {
+      "w": 48,
+      "h": 48,
+      "top": 64.59,
+      "left": 8,
+      "display": "flex",
+      "lineHeight": "0px",
+      "text": "",
+      "hasSvg": true
+    },
+    "backCentered": {
+      "dx": 0,
+      "dy": 0,
+      "ok": true
+    },
+    "av": {
+      "w": 30.13,
+      "h": 36,
+      "cy": 88.59
+    },
+    "who": {
+      "cy": 73.59
+    },
+    "device": "s9plus",
+    "tag": "despues"
+  },
+  {
+    "innerHeight": 1024,
+    "visualHeight": 1024,
+    "visualBottom": 1024,
+    "navVisible": true,
+    "nav": {
+      "top": 963,
+      "bottom": 1024,
+      "height": 61
+    },
+    "reply": {
+      "top": 862,
+      "bottom": 963
+    },
+    "btn": {
+      "top": 873,
+      "bottom": 917,
+      "height": 44
+    },
+    "nota": {
+      "top": 923,
+      "bottom": 953
+    },
+    "okBtn": true,
+    "okNota": true,
+    "okReply": true,
+    "back": {
+      "w": 48,
+      "h": 48,
+      "top": 64,
+      "left": 8,
+      "display": "flex",
+      "lineHeight": "0px",
+      "text": "",
+      "hasSvg": true
+    },
+    "backCentered": {
+      "dx": 0,
+      "dy": 0,
+      "ok": true
+    },
+    "av": {
+      "w": 36,
+      "h": 36,
+      "cy": 88
+    },
+    "who": {
+      "cy": 80.5
+    },
+    "device": "473x1024",
+    "tag": "despues"
+  }
+]
