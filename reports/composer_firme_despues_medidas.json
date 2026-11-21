@@ -1,0 +1,98 @@
+[
+  {
+    "innerHeight": 839,
+    "visualHeight": 839,
+    "visualBottom": 839,
+    "navVisible": true,
+    "navPos": "static",
+    "nav": {
+      "top": 778,
+      "bottom": 839,
+      "height": 61
+    },
+    "reply": {
+      "top": 677,
+      "bottom": 778,
+      "height": 101
+    },
+    "btn": {
+      "top": 688,
+      "bottom": 732,
+      "height": 44
+    },
+    "nota": {
+      "top": 738,
+      "bottom": 768
+    },
+    "gapBtnNav": 46,
+    "gapReplyNav": 0,
+    "okBtn": true,
+    "okNota": true,
+    "okReply": true,
+    "bodyPos": "static",
+    "bodyPadBottom": "0px",
+    "shell": {
+      "pos": "fixed",
+      "inset": "0px",
+      "padBottom": "0px",
+      "top": 0,
+      "bottom": 839
+    },
+    "spaceH": 0,
+    "inboxNav": "",
+    "kb": "0px",
+    "href": "/panel?c=ig%3Arociohernandezrpinmobiliaria",
+    "device": "pixel7",
+    "route": "url",
+    "tag": "despues",
+    "mismatch": true
+  },
+  {
+    "innerHeight": 1024,
+    "visualHeight": 1024,
+    "visualBottom": 1024,
+    "navVisible": true,
+    "navPos": "static",
+    "nav": {
+      "top": 963,
+      "bottom": 1024,
+      "height": 61
+    },
+    "reply": {
+      "top": 862,
+      "bottom": 963,
+      "height": 101
+    },
+    "btn": {
+      "top": 873,
+      "bottom": 917,
+      "height": 44
+    },
+    "nota": {
+      "top": 923,
+      "bottom": 953
+    },
+    "gapBtnNav": 46,
+    "gapReplyNav": 0,
+    "okBtn": true,
+    "okNota": true,
+    "okReply": true,
+    "bodyPos": "static",
+    "bodyPadBottom": "0px",
+    "shell": {
+      "pos": "fixed",
+      "inset": "0px",
+      "padBottom": "0px",
+      "top": 0,
+      "bottom": 1024
+    },
+    "spaceH": 0,
+    "inboxNav": "",
+    "kb": "0px",
+    "href": "/panel?c=ig%3Arociohernandezrpinmobiliaria",
+    "device": "473x1024",
+    "route": "url",
+    "tag": "despues",
+    "mismatch": true
+  }
+]
