@@ -1,11 +1,13 @@
-"""Bandeja unificada: responder desde el portal (WhatsApp Cloud API) y canales IG/FB (solo lectura, con bandera).
+"""Bandeja unificada: responder desde el portal (WhatsApp por GHL o Cloud API) y canales IG/FB (solo lectura).
 
 Reglas que se aplican en el SERVIDOR (no solo en la pantalla):
 - Solo se responde: nunca se inicia una conversación ni se usan plantillas.
-- Texto libre solo dentro de las 24 h desde el último mensaje del cliente (ventana de servicio de Meta).
+- Texto libre solo dentro de las 24 h desde el último mensaje del cliente (ventana de servicio).
 - Mismo filtro que los scripts de la caja (send_reply / wa_send): sin enlaces wa.me ni teléfonos de asesores.
-- WhatsApp solo envía si existen META_WA_TOKEN y WA_PHONE_NUMBER_ID en el entorno. Sin ellas el botón queda
-  deshabilitado con la explicación.
+- WhatsApp envía si está configurado GHL (GHL_API_TOKEN y GHL_LOCATION_ID) o Meta (META_WA_TOKEN y
+  WA_PHONE_NUMBER_ID). Sin ellos el botón queda deshabilitado con la explicación. WA_SEND_PROVIDER=ghl
+  fuerza GHL; si no se indica, se usa GHL cuando no hay credenciales de Meta.
+- El envío por GHL busca el contactId por teléfono (no crea el contacto si GHL no lo tiene).
 - Instagram / Facebook: lectura por Graph API solo si META_SOCIAL_INBOX=1 y hay token de página
   (META_PAGE_TOKEN o el archivo META_PAGE_TOKEN_FILE). Solo admin los ve (todavía no hay forma segura de
   vincular un chat de IG/FB con el cliente asignado de un asesor). Responder IG/FB queda deshabilitado
@@ -37,8 +39,31 @@ def _graph_version():
 
 
 # ------------------------------------------------------------------ WhatsApp: envío
-def wa_envio_configurado():
+GHL_API_BASE = 'https://services.leadconnectorhq.com'
+GHL_API_VERSION = '2021-07-28'
+
+
+def wa_meta_configurado():
     return bool(os.environ.get('META_WA_TOKEN') and os.environ.get('WA_PHONE_NUMBER_ID'))
+
+
+def ghl_envio_configurado():
+    return bool((os.environ.get('GHL_API_TOKEN') or '').strip() and (os.environ.get('GHL_LOCATION_ID') or '').strip())
+
+
+def wa_envio_configurado():
+    """True si hay algún proveedor de envío listo (GHL o Meta)."""
+    return ghl_envio_configurado() or wa_meta_configurado()
+
+
+def proveedor_envio():
+    """Proveedor a usar: 'ghl' o 'meta'. WA_SEND_PROVIDER lo fuerza; si falta, GHL cuando no hay Meta."""
+    p = (os.environ.get('WA_SEND_PROVIDER') or '').strip().lower()
+    if p == 'ghl':
+        return 'ghl'
+    if p == 'meta':
+        return 'meta'
+    return 'meta' if wa_meta_configurado() else 'ghl'
 
 
 def _parse(iso):
@@ -73,7 +98,7 @@ def estado_respuesta(canal, ultimo_entrante_iso, now=None):
     abierta, vence, motivo = ventana(ultimo_entrante_iso, now)
     if abierta and not wa_envio_configurado():
         return {'canal': 'whatsapp', 'puede_enviar': False, 'vence': vence.isoformat() if vence else '',
-                'motivo': 'El envío por WhatsApp desde el portal aún no está activado (falta conectar Meta en el servidor).'}
+                'motivo': 'El envío por WhatsApp desde el portal aún no está activado (falta conectar el envío en el servidor).'}
     return {'canal': 'whatsapp', 'puede_enviar': abierta, 'vence': vence.isoformat() if vence else '',
             'motivo': motivo}
 
@@ -120,7 +145,97 @@ _META_ERRORES = {
 }
 
 
-def enviar_wa(to, texto, *, opener=None):
+def _ghl_token():
+    return (os.environ.get('GHL_API_TOKEN') or '').strip()
+
+
+def _ghl_location():
+    return (os.environ.get('GHL_LOCATION_ID') or '').strip()
+
+
+def _ghl_headers():
+    return {'Authorization': 'Bearer ' + _ghl_token(), 'Version': GHL_API_VERSION,
+            'Accept': 'application/json', 'Content-Type': 'application/json',
+            'User-Agent': 'ForRentOnline/1.0'}
+
+
+def _ghl_call(method, path, *, params=None, body=None, opener=None):
+    """Llama a la API de GHL. Devuelve (status, dict_o_none). Nunca expone el token."""
+    url = GHL_API_BASE + path
+    if params:
+        url += '?' + urllib.parse.urlencode(params)
+    data = json.dumps(body, ensure_ascii=False).encode() if body is not None else None
+    req = urllib.request.Request(url, data=data, method=method, headers=_ghl_headers())
+    op = opener or urllib.request.urlopen
+    try:
+        with op(req, timeout=20) as r:
+            raw = r.read() or b'{}'
+            try:
+                parsed = json.loads(raw)
+            except Exception:
+                parsed = {}
+            return getattr(r, 'status', 200) or 200, parsed if isinstance(parsed, dict) else {}
+    except urllib.error.HTTPError as e:
+        raw = b''
+        try:
+            raw = e.read() or b''
+        except Exception:
+            raw = b''
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            parsed = {}
+        return e.code, parsed if isinstance(parsed, dict) else {}
+    except Exception as e:
+        raise EnvioError(f'No se pudo contactar a GHL ({type(e).__name__}).')
+
+
+def buscar_contacto_ghl(telefono, *, opener=None):
+    """contactId de GHL para ese teléfono, o None. Nunca crea el contacto."""
+    loc = _ghl_location()
+    num = _digitos(telefono)
+    if not (loc and _ghl_token() and len(num) >= 10):
+        return None
+    st, d = _ghl_call('GET', '/contacts/search/duplicate',
+                      params={'locationId': loc, 'number': '+' + num}, opener=opener)
+    if st != 200 or not isinstance(d, dict):
+        if st in (400, 404):
+            return None
+        if st in (401, 403):
+            raise EnvioError('El envío por GHL no está autorizado en el servidor.')
+        if st >= 500:
+            raise EnvioError(f'GHL no respondió al buscar el contacto (HTTP {st}).')
+        return None
+    c = d.get('contact')
+    if isinstance(c, dict) and c.get('id'):
+        return str(c['id'])
+    if isinstance(d.get('contacts'), list):
+        for item in d['contacts']:
+            if isinstance(item, dict) and item.get('id'):
+                return str(item['id'])
+    return None
+
+
+def enviar_wa_ghl(to, texto, *, opener=None):
+    """Envía un texto por la API de GHL (WhatsApp). Devuelve wamid 'ghl:{messageId}'. No crea contactos."""
+    if not ghl_envio_configurado():
+        raise EnvioError('El envío por WhatsApp no está configurado en el servidor.')
+    cid = buscar_contacto_ghl(to, opener=opener)
+    if not cid:
+        raise EnvioError('GHL no tiene un contacto con ese número. No se crea el contacto ni se inicia la conversación.')
+    st, d = _ghl_call('POST', '/conversations/messages',
+                      body={'type': 'WhatsApp', 'contactId': cid, 'message': texto}, opener=opener)
+    if st in (401, 403):
+        raise EnvioError('El envío por GHL no está autorizado en el servidor.', st)
+    if st not in (200, 201) or not isinstance(d, dict):
+        raise EnvioError(f'GHL rechazó el envío (HTTP {st}).', st)
+    mid = d.get('messageId') or ((d.get('messageIds') or [None])[0])
+    if not mid:
+        raise EnvioError('GHL no devolvió el id del mensaje.')
+    return 'ghl:' + str(mid)
+
+
+def enviar_wa_meta(to, texto, *, opener=None):
     """Envía un texto libre por Cloud API. Devuelve el wamid. Nunca devuelve ni registra el token."""
     tok, pid = os.environ.get('META_WA_TOKEN'), os.environ.get('WA_PHONE_NUMBER_ID')
     if not (tok and pid):
@@ -147,6 +262,20 @@ def enviar_wa(to, texto, *, opener=None):
     if not wamid:
         raise EnvioError('Meta no devolvió el id del mensaje.')
     return wamid
+
+
+def enviar_wa(to, texto, *, opener=None):
+    """Envía por GHL o Meta según el proveedor configurado. Devuelve el id (wamid o ghl:messageId)."""
+    prov = proveedor_envio()
+    if prov == 'ghl' and ghl_envio_configurado():
+        return enviar_wa_ghl(to, texto, opener=opener)
+    if prov == 'meta' and wa_meta_configurado():
+        return enviar_wa_meta(to, texto, opener=opener)
+    if ghl_envio_configurado():
+        return enviar_wa_ghl(to, texto, opener=opener)
+    if wa_meta_configurado():
+        return enviar_wa_meta(to, texto, opener=opener)
+    raise EnvioError('El envío por WhatsApp no está configurado en el servidor.')
 
 
 _rate = {}

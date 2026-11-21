@@ -15,8 +15,8 @@ Endpoints
   GET  / y /portal                   -> portal For Rent (sesión; redirige a /login)
   GET  /panel                        -> bandeja de entrada (sesión; José ve todas, asesores solo las suyas, solo lectura)
   GET  /panel/data                   -> JSON de la bandeja (para auto-actualizar)
-  POST /panel/responder              -> responder por WhatsApp desde la bandeja (sesión + CSRF; ventana 24 h; solo
-                                        si META_WA_TOKEN y WA_PHONE_NUMBER_ID existen). Mismos permisos que /panel.
+  POST /panel/responder              -> responder por WhatsApp desde la bandeja (sesión + CSRF; ventana 24 h; si
+                                        está configurado GHL o Meta). Mismos permisos que /panel.
   GET  /inventario                   -> inventario propios / alianza / red (solo lectura)
 
 Variables de entorno
@@ -31,7 +31,9 @@ Variables de entorno
   PORTAL_ESTATUS_URL          enlace del panel admin del Sistema de Clientes
   PORTAL_CIERRES_URL          enlace del panel admin de Cierres (Sistema Contable)
   SECRET_KEY                  firma de la cookie de sesión del portal (no es una contraseña de usuario)
-  META_WA_TOKEN, WA_PHONE_NUMBER_ID  también activan el botón «Responder» de la bandeja (sin ellas queda deshabilitado)
+  META_WA_TOKEN, WA_PHONE_NUMBER_ID  activan el envío por Cloud API (si Meta lo permite).
+  GHL_API_TOKEN, GHL_LOCATION_ID     activan el envío por WhatsApp a través de GHL (LeadConnector).
+  WA_SEND_PROVIDER            ghl o meta. Si falta, se usa GHL cuando no hay credenciales de Meta.
   META_SOCIAL_INBOX=1         muestra Instagram/Facebook en la bandeja (solo admin, solo lectura) usando
                               META_PAGE_TOKEN o META_PAGE_TOKEN_FILE (token de página). Apagado por defecto.
 """
@@ -1413,9 +1415,13 @@ def panel_responder():
     except bandeja.EnvioError as e:
         log.warning('Respuesta desde el portal rechazada (%s, código %s)', g.user['user'], e.codigo)
         return resp(False, str(e), 502)
+    data = {'por': g.user['user'], 'canal': 'whatsapp'}
+    if (wamid or '').startswith('ghl:'):
+        data['ghl_message_id'] = wamid[4:]
+        data['proveedor'] = 'ghl'
     insert_event(kind='outbound', wamid=wamid, wa_id=wa, direction='outbound', msg_type='text', text=texto,
                  ts=now_iso(), status='', auto=0, source='portal', phone_number_id=os.environ.get('WA_PHONE_NUMBER_ID'),
-                 data={'por': g.user['user'], 'canal': 'whatsapp'})
+                 data=data)
     _marcar_visto(g.user, wa)
     log.info('Respuesta enviada desde el portal por %s', g.user['user'])
     return resp(True, 'Mensaje enviado.', 200)
@@ -1432,10 +1438,24 @@ def _table_count(table, where='', args=()):
         return None
 
 
-def _already_live_event(wa_id, kind, text, ts, msg_type):
-    """True if a live (non-import) event already represents this message. Does not mutate it."""
+def _ghl_message_id(wamid, data=None):
+    """Id de mensaje de GHL (sin el prefijo ghl:), o cadena vacía."""
+    w = str(wamid or '')
+    if w.startswith('ghl:'):
+        return w[4:]
+    d = data if isinstance(data, dict) else {}
+    return str(d.get('ghl_message_id') or '')
+
+
+def _already_live_event(wa_id, kind, text, ts, msg_type, wamid=None, data=None):
+    """True if a live (non-import) event already represents this message. Does not mutate it.
+
+    Dedup: mismo wamid o mismo messageId de GHL (evita que el import de GHL duplique un saliente
+    del portal), o mismo texto en el mismo minuto.
+    """
+    mid = _ghl_message_id(wamid, data)
     rows = q(
-        """SELECT text, ts, msg_type FROM wa_events
+        """SELECT text, ts, msg_type, wamid, data FROM wa_events
            WHERE wa_id=%s AND kind=%s AND kind IN ('message','outbound')
              AND (source IS NULL OR source <> %s)""",
         (wa_id, kind, 'ghl_import'),
@@ -1443,7 +1463,15 @@ def _already_live_event(wa_id, kind, text, ts, msg_type):
     ) or []
     minute = (ts or '')[:16].replace('Z', '')
     text = (text or '').strip()
+    wamid = str(wamid or '')
     for x in rows:
+        xw = str(x.get('wamid') or '')
+        xd = _data_dict(x.get('data'))
+        if wamid and xw == wamid:
+            return True
+        xmid = _ghl_message_id(xw, xd)
+        if mid and xmid == mid:
+            return True
         same_text = (x.get('text') or '').strip() == text
         same_min = (x.get('ts') or '')[:16].replace('Z', '') == minute
         if text and same_text and same_min:
@@ -1499,7 +1527,8 @@ def panel_import_ghl():
             continue
         r = dict(r)
         r['source'] = 'ghl_import'
-        if _already_live_event(r.get('wa_id') or '', r.get('kind') or '', r.get('text') or '', r.get('ts') or '', r.get('msg_type') or ''):
+        if _already_live_event(r.get('wa_id') or '', r.get('kind') or '', r.get('text') or '', r.get('ts') or '',
+                               r.get('msg_type') or '', wamid=wamid, data=r.get('data') or {}):
             skipped_live += 1
             continue
         before = q("SELECT 1 FROM wa_events WHERE kind=%s AND wamid=%s AND coalesce(status,'')=coalesce(%s,'') LIMIT 1",

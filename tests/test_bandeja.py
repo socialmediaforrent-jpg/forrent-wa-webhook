@@ -13,7 +13,8 @@ os.environ['PANEL_PASSWORD'] = 'clave-jose'
 os.environ['MERCADEO_PASSWORD'] = 'clave-mercadeo'
 os.environ['PORTAL_ASESORES_SHA256'] = json.dumps({'ana': hashlib.sha256(b'clave-ana').hexdigest(),
                                                    'luz': hashlib.sha256(b'clave-luz').hexdigest()})
-for k in ('META_WA_TOKEN', 'WA_PHONE_NUMBER_ID', 'META_SOCIAL_INBOX', 'META_PAGE_TOKEN', 'REDES_SOCIALES_JSON'):
+for k in ('META_WA_TOKEN', 'WA_PHONE_NUMBER_ID', 'META_SOCIAL_INBOX', 'META_PAGE_TOKEN', 'REDES_SOCIALES_JSON',
+          'GHL_API_TOKEN', 'GHL_LOCATION_ID', 'WA_SEND_PROVIDER'):
     os.environ.pop(k, None)
 os.chdir(_tmp)
 
@@ -32,6 +33,9 @@ def entorno(monkeypatch):
     })
     monkeypatch.delenv('META_WA_TOKEN', raising=False)
     monkeypatch.delenv('WA_PHONE_NUMBER_ID', raising=False)
+    monkeypatch.delenv('GHL_API_TOKEN', raising=False)
+    monkeypatch.delenv('GHL_LOCATION_ID', raising=False)
+    monkeypatch.delenv('WA_SEND_PROVIDER', raising=False)
     bandeja._rate.clear()
     appmod.q('DELETE FROM wa_events')
     yield
@@ -131,6 +135,124 @@ def test_responder_bloqueos(monkeypatch):
     assert cliente('jose').post('/panel/responder', data={'c': '584129999999', 'texto': 'x', 'csrf': csrf('jose')}, headers=h).status_code == 409
     # sin sesión
     assert appmod.app.test_client().post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x'}, headers=h).status_code == 401
+
+
+
+def _ghl_env(monkeypatch):
+    monkeypatch.setenv('GHL_API_TOKEN', 'tok-ghl-prueba')
+    monkeypatch.setenv('GHL_LOCATION_ID', 'loc-prueba')
+    monkeypatch.setenv('WA_SEND_PROVIDER', 'ghl')
+
+
+def test_proveedor_envio(monkeypatch):
+    assert bandeja.proveedor_envio() == 'ghl'
+    assert bandeja.wa_envio_configurado() is False
+    monkeypatch.setenv('META_WA_TOKEN', 't'); monkeypatch.setenv('WA_PHONE_NUMBER_ID', '1')
+    assert bandeja.proveedor_envio() == 'meta'
+    monkeypatch.setenv('GHL_API_TOKEN', 'g'); monkeypatch.setenv('GHL_LOCATION_ID', 'loc')
+    assert bandeja.proveedor_envio() == 'meta'  # hay credenciales de Meta y no se forzó proveedor
+    monkeypatch.setenv('WA_SEND_PROVIDER', 'ghl')
+    assert bandeja.proveedor_envio() == 'ghl'
+    monkeypatch.setenv('WA_SEND_PROVIDER', 'meta')
+    assert bandeja.proveedor_envio() == 'meta'
+
+
+def test_estado_respuesta_habilita_con_ghl(monkeypatch):
+    _ghl_env(monkeypatch)
+    now = datetime(2026, 11, 16, 12, tzinfo=timezone.utc)
+    est = bandeja.estado_respuesta('whatsapp', (now - timedelta(hours=1)).isoformat(), now)
+    assert est['puede_enviar'] is True
+    est2 = bandeja.estado_respuesta('whatsapp', '', now)
+    assert est2['puede_enviar'] is False and 'nunca nos escribió' in est2['motivo']
+    est3 = bandeja.estado_respuesta('instagram', (now - timedelta(hours=1)).isoformat(), now)
+    assert est3['puede_enviar'] is False
+
+
+def test_responder_via_ghl_envia_y_registra(monkeypatch):
+    import urllib.parse
+    _ghl_env(monkeypatch)
+    llamadas = []
+
+    def fake_open(req, timeout=20):
+        url = getattr(req, 'full_url', None) or req.get_full_url()
+        method = req.get_method()
+        llamadas.append((method, url, req.data, dict(req.headers)))
+        if method == 'GET' and '/contacts/search/duplicate' in url:
+            assert 'number=%2B' in url and '584121111111' in urllib.parse.unquote(url)
+            assert 'locationId=loc-prueba' in url
+            return FakeResp(json.dumps({'contact': {'id': 'cid-ana'}}).encode())
+        if method == 'POST' and url.endswith('/conversations/messages'):
+            body = json.loads(req.data)
+            assert body == {'type': 'WhatsApp', 'contactId': 'cid-ana', 'message': 'US$750 al mes'}
+            assert 'tok-ghl-prueba' in req.headers['Authorization']
+            return FakeResp(json.dumps({'messageId': 'msg-ghl-1', 'conversationId': 'conv-1'}).encode())
+        raise AssertionError('llamada inesperada a %s %s' % (method, url))
+
+    import urllib.parse
+    monkeypatch.setattr(bandeja.urllib.request, 'urlopen', fake_open)
+    entrante(CLI_ANA)
+    r = cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'US$750 al mes', 'csrf': csrf('ana')},
+                            headers={'Accept': 'application/json'})
+    assert r.status_code == 200 and r.get_json()['ok']
+    assert [c[0] for c in llamadas] == ['GET', 'POST']
+    assert not any('/contacts' in u and m == 'POST' for m, u, *_ in llamadas)
+    row = appmod.q("SELECT source, wamid, data FROM wa_events WHERE kind='outbound'", fetch=True)[0]
+    datos = row['data'] if isinstance(row['data'], dict) else json.loads(row['data'])
+    assert row['source'] == 'portal' and row['wamid'] == 'ghl:msg-ghl-1'
+    assert datos['ghl_message_id'] == 'msg-ghl-1' and datos['por'] == 'ana'
+    assert 'tok-ghl-prueba' not in r.get_data(as_text=True)
+    assert 'tok-ghl-prueba' not in json.dumps(datos)
+
+
+def test_responder_ghl_sin_contacto_no_crea_ni_envia(monkeypatch):
+    _ghl_env(monkeypatch)
+    llamadas = []
+
+    def fake_open(req, timeout=20):
+        url = getattr(req, 'full_url', None) or req.get_full_url()
+        llamadas.append((req.get_method(), url))
+        return FakeResp(json.dumps({}).encode())
+
+    monkeypatch.setattr(bandeja.urllib.request, 'urlopen', fake_open)
+    entrante(CLI_ANA)
+    r = cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'hola', 'csrf': csrf('ana')},
+                            headers={'Accept': 'application/json'})
+    assert r.status_code == 502
+    assert 'no tiene un contacto' in r.get_json()['mensaje']
+    assert all(m == 'GET' for m, _ in llamadas)
+    assert not any(m == 'POST' for m, _ in llamadas)
+    assert not appmod.q("SELECT 1 FROM wa_events WHERE kind='outbound'", fetch=True)
+
+
+def test_responder_ghl_respeta_ventana_y_permisos(monkeypatch):
+    _ghl_env(monkeypatch)
+    monkeypatch.setattr(bandeja.urllib.request, 'urlopen', lambda *a, **k: pytest.fail('no debe enviar'))
+    entrante(CLI_ANA); entrante(CLI_OTRO)
+    h = {'Accept': 'application/json'}
+    assert cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x'}, headers=h).status_code == 400
+    assert cliente('ana').post('/panel/responder', data={'c': CLI_OTRO, 'texto': 'x', 'csrf': csrf('ana')}, headers=h).status_code == 403
+    appmod.q('DELETE FROM wa_events'); entrante(CLI_ANA, horas_atras=30)
+    assert cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x', 'csrf': csrf('ana')}, headers=h).status_code == 409
+    assert cliente('jose').post('/panel/responder', data={'c': '584129999999', 'texto': 'x', 'csrf': csrf('jose')}, headers=h).status_code == 409
+    assert cliente('luz').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x', 'csrf': csrf('luz')}, headers=h).status_code == 409
+
+
+def test_import_ghl_no_duplica_por_message_id():
+    appmod.insert_event(kind='outbound', wamid='ghl:msg-ghl-1', wa_id=CLI_ANA, direction='outbound',
+                        msg_type='text', text='US$750 al mes', ts='2026-11-16T15:01:00+00:00',
+                        status='', source='portal', data={'ghl_message_id': 'msg-ghl-1', 'por': 'ana'})
+    # Mismo id, otro texto/hora/estado: el import no debe crear otra fila
+    r = cliente('jose').post('/panel/import-ghl', json={'rows': [{
+        'kind': 'outbound', 'wamid': 'ghl:msg-ghl-1', 'wa_id': CLI_ANA, 'direction': 'outbound',
+        'msg_type': 'text', 'text': 'US$750 al mes (copia GHL)', 'ts': '2026-11-16T15:10:00+00:00',
+        'status': 'sent', 'data': {'ghl_message_id': 'msg-ghl-1'},
+    }]})
+    assert r.status_code == 200
+    d = r.get_json()
+    assert d['skipped_live'] == 1 and d['inserted'] == 0
+    rows = appmod.q("SELECT wamid, source, status FROM wa_events WHERE kind='outbound' AND wa_id=%s",
+                    (CLI_ANA,), fetch=True)
+    assert len(rows) == 1 and rows[0]['source'] == 'portal' and rows[0]['wamid'] == 'ghl:msg-ghl-1'
 
 
 def test_social_apagado_por_defecto():
