@@ -35,13 +35,13 @@ Variables de entorno
   META_SOCIAL_INBOX=1         muestra Instagram/Facebook en la bandeja (solo admin, solo lectura) usando
                               META_PAGE_TOKEN o META_PAGE_TOKEN_FILE (token de página). Apagado por defecto.
 """
-import csv, hashlib, hmac, ipaddress, json, logging, os, sqlite3, threading, time, urllib.request
+import csv, hashlib, hmac, html, ipaddress, json, logging, os, re, sqlite3, threading, time, urllib.request
 from pathlib import Path as _Path
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from functools import wraps
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from flask import Flask, Response, abort, g, jsonify, make_response, redirect, render_template, request, session
 
@@ -1211,9 +1211,139 @@ def _estado_clase(st_raw):
     return ''
 
 
+
+_URL_EN_TEXTO = re.compile(r'(?i)\b(?:https?://|www\.)[^\s<>\'")]+')
+_PUNTOS_URL = '.,;:!?…'
+_PREFIJO_IMAGEN = re.compile(r'^\s*\[(?:imagen|image)\]\s*', re.I)
+_IMG_EXT = re.compile(r'\.(?:jpe?g|png|webp|gif|bmp|avif)(?:\?|#|$)', re.I)
+_CLAVES_IMG = {
+    'url', 'image_url', 'img_url', 'src', 'href', 'link', 'media_url', 'file_url',
+    'publicurl', 'public_url', 'imageurl', 'photo_url', 'attachment_url',
+}
+
+
+def href_seguro(crudo):
+    """Devuelve una URL http(s) usable o None. No acepta javascript: ni otros esquemas."""
+    if not isinstance(crudo, str):
+        return None
+    raw = crudo.strip()
+    if not raw:
+        return None
+    bajo = raw.lower()
+    if bajo.startswith(('javascript:', 'data:', 'vbscript:', 'file:')):
+        return None
+    if bajo.startswith('www.'):
+        raw = 'https://' + raw
+    try:
+        partes = urlparse(raw)
+    except Exception:
+        return None
+    if partes.scheme.lower() not in ('http', 'https') or not partes.netloc:
+        return None
+    if not (partes.hostname or '').lower():
+        return None
+    return raw
+
+
+def _recortar_url(crudo):
+    cola = ''
+    while crudo and crudo[-1] in _PUNTOS_URL:
+        cola = crudo[-1] + cola
+        crudo = crudo[:-1]
+    return crudo, cola
+
+
+def texto_con_enlaces(texto):
+    """Escapa el HTML y convierte http/https/www. en enlaces a pestaña nueva."""
+    s = texto or ''
+    partes, ultimo = [], 0
+    for m in _URL_EN_TEXTO.finditer(s):
+        partes.append(html.escape(s[ultimo:m.start()]))
+        crudo, cola = _recortar_url(m.group(0))
+        href = href_seguro(crudo)
+        if href:
+            partes.append(
+                f'<a href="{html.escape(href, quote=True)}" target="_blank" rel="noopener noreferrer">{html.escape(crudo)}</a>'
+            )
+            partes.append(html.escape(cola))
+        else:
+            partes.append(html.escape(m.group(0)))
+        ultimo = m.end()
+    partes.append(html.escape(s[ultimo:]))
+    return ''.join(partes)
+
+
+def _como_dict(data):
+    if isinstance(data, dict):
+        return data
+    if isinstance(data, str) and data.strip():
+        try:
+            val = json.loads(data)
+        except Exception:
+            return {}
+        return val if isinstance(val, dict) else {}
+    return {}
+
+
+def url_de_imagen(texto, data=None):
+    """Primera URL https/http segura de una imagen (texto o datos del evento)."""
+    candidatos = []
+
+    def agregar(s):
+        href = href_seguro(s)
+        if not href:
+            return
+        h = href.lower()
+        peso = 0
+        if _IMG_EXT.search(href):
+            peso += 3
+        if 'static-assets' in h:
+            peso += 2
+        if h.startswith('https://'):
+            peso += 1
+        if 'graph.facebook.com' in h:
+            peso -= 2
+        candidatos.append((peso, href))
+
+    def recorrer(obj, clave=None):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                recorrer(v, str(k))
+        elif isinstance(obj, list):
+            for v in obj:
+                recorrer(v, clave)
+        elif isinstance(obj, str) and clave:
+            ck = clave.lower()
+            if ck in _CLAVES_IMG or _IMG_EXT.search(obj) or 'static-assets' in obj.lower():
+                agregar(obj)
+
+    recorrer(_como_dict(data))
+    for m in _URL_EN_TEXTO.finditer(texto or ''):
+        crudo, _cola = _recortar_url(m.group(0))
+        agregar(crudo)
+    if not candidatos:
+        return ''
+    candidatos.sort(key=lambda x: -x[0])
+    return candidatos[0][1]
+
+
+def texto_visible_imagen(texto, image_url):
+    """Quita el prefijo [imagen] y la URL de la foto, deja solo el pie de foto."""
+    s = _PREFIJO_IMAGEN.sub('', texto or '')
+    if image_url:
+        def quitar(m):
+            crudo, cola = _recortar_url(m.group(0))
+            href = href_seguro(crudo)
+            if href == image_url or crudo == image_url:
+                return cola
+            return m.group(0)
+        s = _URL_EN_TEXTO.sub(quitar, s)
+    return ' '.join(s.split()).strip()
+
+
 def panel_thread(wa_id):
     rows = q(
-        """SELECT id, kind, wamid, wa_id, name, direction, msg_type, text, ts, status, auto, source, received_at
+        """SELECT id, kind, wamid, wa_id, name, direction, msg_type, text, ts, status, auto, source, received_at, data
            FROM wa_events
            WHERE wa_id=%s AND kind IN ('message', 'outbound')
            ORDER BY COALESCE(ts, received_at) ASC, id ASC""",
@@ -1227,17 +1357,28 @@ def panel_thread(wa_id):
         typ = r.get('msg_type') or ''
         typ_label = TIPO_ETIQUETA.get(typ, typ if typ and typ != 'text' else '')
         body = (r.get('text') or '').strip() or (typ_label and f'[{typ_label}]') or 'Mensaje'
+        image_url = url_de_imagen(body, r.get('data')) if typ == 'image' else ''
+        if image_url:
+            visible = texto_visible_imagen(body, image_url)
+            text_html = texto_con_enlaces(visible) if visible else ''
+            body_visible = visible
+        else:
+            text_html = texto_con_enlaces(body)
+            body_visible = body
         st_raw = (r.get('status') or '') or estado_fila.get(r['id'], '')
         items.append((iso, r['id'], {
             'direction': 'out' if r.get('direction') == 'outbound' else 'in',
-            'text': body,
-            'type_label': typ_label if typ != 'text' else '',
+            'text': body_visible,
+            'text_html': text_html,
+            'image_url': image_url,
+            'type_label': typ_label if typ != 'text' and not image_url else '',
             'status': STATUS_ETIQUETA.get(st_raw, st_raw),
             'status_class': _estado_clase(st_raw),
         }))
     for g in huerfanos:
         items.append((g['ts'], 0, {
-            'direction': 'out', 'text': GHL_PENDIENTE_TXT, 'type_label': 'Enviado desde GHL',
+            'direction': 'out', 'text': GHL_PENDIENTE_TXT, 'text_html': texto_con_enlaces(GHL_PENDIENTE_TXT),
+            'image_url': '', 'type_label': 'Enviado desde GHL',
             'status': STATUS_ETIQUETA.get(g['status'], g['status']), 'status_class': _estado_clase(g['status']),
             'pendiente': True,
         }))
@@ -1312,7 +1453,9 @@ def _panel_payload(user, wa_id, *, marcar=False):
         msgs, last_day = [], None
         for m in hilo['mensajes']:
             day = _fmt_day(m['ts'])
-            msgs.append({'direction': 'out' if m['saliente'] else 'in', 'text': m['texto'] or 'Mensaje',
+            body = m['texto'] or 'Mensaje'
+            msgs.append({'direction': 'out' if m['saliente'] else 'in', 'text': body,
+                         'text_html': texto_con_enlaces(body), 'image_url': '',
                          'type_label': '', 'status': '', 'status_class': '', 'time': _fmt_time(m['ts']),
                          'day': day if day != last_day else ''})
             last_day = day
