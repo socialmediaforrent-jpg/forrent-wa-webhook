@@ -1,5 +1,7 @@
 """Sincronización GHL, canales, tarjetas de la lista y pull-to-refresh (sin red)."""
 import json
+import threading
+import time
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -110,23 +112,92 @@ def test_lista_muestra_icono_de_canal_y_css_de_tarjetas():
     assert 'badge-ch instagram' in html
 
 
-def test_sincronizar_endpoint_refresca_lista(monkeypatch):
+def test_sincronizar_endpoint_no_corre_el_sync_en_el_request(monkeypatch):
+    """El pull-to-refresh solo avisa al hilo; no bloquea el worker con una pasada de GHL."""
     _ev('584121111111', name='Carla Test', text='Antes', canal='whatsapp', hours=2)
-    llamado = {'n': 0}
+    llamado = {'sync': 0, 'aviso': 0}
 
     def fake_sync(*a, **k):
-        llamado['n'] += 1
-        _ev('ig:cidNuevo', name='nuevo.ig', text='Llegó por GHL', canal='instagram', hours=0)
+        llamado['sync'] += 1
         return {'ok': True, 'insertadas': 1}
 
+    def fake_aviso():
+        llamado['aviso'] += 1
+
     monkeypatch.setattr(appmod.ghl_sync, 'sincronizar', fake_sync)
+    monkeypatch.setattr(appmod.ghl_sync, 'avisar', fake_aviso)
     monkeypatch.setattr(appmod.ghl_sync, 'configurado', lambda: True)
     r = cliente('jose').post('/panel/sincronizar', headers={'X-CSRF-Token': csrf('jose')})
     assert r.status_code == 200
     d = r.get_json()
-    assert d['ok'] is True and llamado['n'] == 1
+    assert d['ok'] is True
+    assert llamado['sync'] == 0 and llamado['aviso'] == 1
     ids = {c['wa_id'] for c in d['conversations']}
-    assert 'ig:cidNuevo' in ids and '584121111111' in ids
+    assert '584121111111' in ids
+
+
+def test_healthz_no_toca_la_db(monkeypatch):
+    def boom(*a, **k):
+        raise AssertionError('healthz no debe consultar la base')
+    monkeypatch.setattr(appmod, 'q', boom)
+    r = appmod.app.test_client().get('/healthz')
+    assert r.status_code == 200 and r.get_data(as_text=True) == 'ok'
+
+
+def test_sincronizar_no_reentrante(monkeypatch):
+    entra = threading.Event()
+    sigue = threading.Event()
+
+    def listar(*a, **k):
+        entra.set()
+        sigue.wait(2)
+        return [], None
+
+    monkeypatch.setattr(ghl_sync, 'listar_conversaciones', listar)
+    monkeypatch.setattr(ghl_sync, 'configurado', lambda: True)
+    monkeypatch.setenv('GHL_API_TOKEN', 'x')
+    monkeypatch.setenv('GHL_LOCATION_ID', 'y')
+    out = {}
+
+    def uno():
+        out['a'] = ghl_sync.sincronizar(appmod.q, appmod.insert_event, is_pg=False, opener=object())
+
+    h = threading.Thread(target=uno)
+    h.start()
+    assert entra.wait(2)
+    b = ghl_sync.sincronizar(appmod.q, appmod.insert_event, is_pg=False, opener=object())
+    assert b.get('error') == 'ocupado' and b.get('ok') is False
+    sigue.set()
+    h.join(2)
+    assert out['a'].get('ok') is True
+
+
+def test_sincronizar_respeta_el_tope_de_tiempo(monkeypatch):
+    monkeypatch.setattr(ghl_sync, 'max_ciclo', lambda: 0.01)
+    monkeypatch.setattr(ghl_sync, 'configurado', lambda: True)
+    monkeypatch.setenv('GHL_API_TOKEN', 'x')
+    monkeypatch.setenv('GHL_LOCATION_ID', 'y')
+    convs = [{'id': 'c%s' % i, 'lastMessageDate': 1795000000000 + i, 'contactId': 'k%s' % i} for i in range(8)]
+    vistos = {'n': 0}
+
+    def listar(*a, **k):
+        return convs, None
+
+    def mensajes(cid, **k):
+        vistos['n'] += 1
+        time.sleep(0.02)
+        return [], None
+
+    monkeypatch.setattr(ghl_sync, 'listar_conversaciones', listar)
+    monkeypatch.setattr(ghl_sync, 'mensajes_de', mensajes)
+    r = ghl_sync.sincronizar(appmod.q, appmod.insert_event, is_pg=False, opener=object())
+    assert r.get('ok') is True and r.get('cortado') is True
+    assert 0 < vistos['n'] < len(convs)
+
+
+def test_timeout_http_es_corto():
+    assert 2 <= ghl_sync.timeout_http() <= 15
+    assert ghl_sync.timeout_http() == 8
 
 
 def test_webhook_no_duplica_si_ya_vino_por_ghl(monkeypatch):

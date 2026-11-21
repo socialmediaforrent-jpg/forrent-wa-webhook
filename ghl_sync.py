@@ -5,8 +5,10 @@ mensajes de cada conversación actualizada. Deduplica por id de GHL (wamid='ghl:
 y por altId de Meta, para no repetir lo que ya llegó por el webhook.
 
 No envía mensajes, no borra filas y nunca registra tokens. El hilo de fondo no se
-arranca en pytest. Intervalo: GHL_SYNC_INTERVAL_SEC (por defecto 45).
-Se apaga con GHL_SYNC_DISABLED=1.
+arranca en pytest ni en el ciclo de un request (el pull-to-refresh solo avisa al
+hilo). Intervalo: GHL_SYNC_INTERVAL_SEC (por defecto 45). Cada pasada tiene un
+tope de GHL_SYNC_MAX_SEC (8 s) y las llamadas HTTP un timeout de 8 s. Se apaga
+con GHL_SYNC_DISABLED=1.
 """
 from __future__ import annotations
 
@@ -71,6 +73,30 @@ def intervalo():
     except ValueError:
         n = INTERVALO_DEF
     return max(15, min(n, 600))
+
+
+def timeout_http():
+    try:
+        n = float(os.environ.get('GHL_SYNC_HTTP_TIMEOUT_SEC') or 8)
+    except ValueError:
+        n = 8
+    return max(2.0, min(n, 15.0))
+
+
+def max_ciclo():
+    try:
+        n = float(os.environ.get('GHL_SYNC_MAX_SEC') or 8)
+    except ValueError:
+        n = 8
+    return max(3.0, min(n, 25.0))
+
+
+def retraso_inicial():
+    try:
+        n = float(os.environ.get('GHL_SYNC_START_DELAY_SEC') or 15)
+    except ValueError:
+        n = 15
+    return max(0.0, min(n, 60.0))
 
 
 def ensure_tables(q):
@@ -288,8 +314,10 @@ def _headers():
     }
 
 
-def llamar(method, path, *, params=None, body=None, opener=None, timeout=30):
+def llamar(method, path, *, params=None, body=None, opener=None, timeout=None):
     """(status, dict_o_texto). Nunca incluye el token en el valor devuelto."""
+    if timeout is None:
+        timeout = timeout_http()
     url = GHL_API_BASE + path
     if params:
         url += '?' + urllib.parse.urlencode({k: v for k, v in params.items() if v is not None and v != ''})
@@ -314,13 +342,13 @@ def llamar(method, path, *, params=None, body=None, opener=None, timeout=30):
 
 
 def _retry(method, path, **kw):
-    delay = 1.0
+    delay = 0.4
     st, d = 0, ''
-    for _ in range(5):
+    for _ in range(3):
         st, d = llamar(method, path, **kw)
         if st == 429 or st >= 500 or st == 0:
             time.sleep(delay)
-            delay = min(delay * 2, 20)
+            delay = min(delay * 2, 2.0)
             continue
         return st, d
     return st, d
@@ -505,8 +533,19 @@ def sincronizar(q, insert_event, *, is_pg=False, opener=None, loc=None, on_chang
     """Una pasada de sincronización. Devuelve un resumen sin secretos ni textos."""
     resumen = {
         'ok': False, 'at': _ahora_iso(), 'conversaciones': 0, 'insertadas': 0,
-        'omitidas': 0, 'errores': 0, 'error': '',
+        'omitidas': 0, 'errores': 0, 'error': '', 'cortado': False,
     }
+    if not _lock.acquire(blocking=False):
+        resumen['error'] = 'ocupado'
+        return resumen
+    try:
+        return _sincronizar_cuerpo(q, insert_event, is_pg=is_pg, opener=opener,
+                                  loc=loc, on_change=on_change, resumen=resumen)
+    finally:
+        _lock.release()
+
+
+def _sincronizar_cuerpo(q, insert_event, *, is_pg, opener, loc, on_change, resumen):
     if not configurado() and opener is None:
         # En pruebas se pasa opener; en vivo hacen falta las variables.
         if not (os.environ.get('GHL_API_TOKEN') and os.environ.get('GHL_LOCATION_ID')):
@@ -527,12 +566,18 @@ def sincronizar(q, insert_event, *, is_pg=False, opener=None, loc=None, on_chang
         return resumen
     resumen['conversaciones'] = len(convs)
     max_ms = desde
+    limite = time.monotonic() + max_ciclo()
     for c in convs:
-        if (c.get('lastMessageDate') or 0):
-            max_ms = max(max_ms, _ms(c.get('lastMessageDate')))
+        if time.monotonic() >= limite:
+            resumen['cortado'] = True
+            break
+        last = _ms(c.get('lastMessageDate') or 0)
         if c.get('isLastMessageInternalComment') and not (c.get('lastMessageType') in KEEP_TYPES):
+            if last:
+                max_ms = max(max_ms, last)
             continue
-        if _ms(c.get('lastMessageDate')) and _ms(c.get('lastMessageDate')) < corte_ms():
+        if last and last < corte_ms():
+            max_ms = max(max_ms, last)
             continue
         msgs, e2 = mensajes_de(c.get('id'), opener=opener)
         if e2:
@@ -554,6 +599,8 @@ def sincronizar(q, insert_event, *, is_pg=False, opener=None, loc=None, on_chang
         ins, omit = aplicar_filas(filas, insert_event=insert_event, conocidos_iniciales=conocidos)
         resumen['insertadas'] += ins
         resumen['omitidas'] += omit
+        if last:
+            max_ms = max(max_ms, last)
     resumen['ok'] = True
     _guardar_estado(q, {
         'cursor_ms': str(max_ms or desde),
@@ -595,7 +642,11 @@ def en_pruebas():
 
 
 def iniciar_fondo(app_factory, *, insert_event, is_pg, on_change=None):
-    """Arranca un hilo daemon. app_factory() debe devolver (q,). No se usa en pytest."""
+    """Arranca un hilo daemon. app_factory() debe devolver (q,). No se usa en pytest.
+
+    Espera retraso_inicial() antes de la primera pasada para no competir con /healthz
+    al arrancar el worker. No corre dos pasadas seguidas por la carrera de _pedir.
+    """
     global _hilo
     if en_pruebas() or not configurado():
         return False
@@ -604,6 +655,7 @@ def iniciar_fondo(app_factory, *, insert_event, is_pg, on_change=None):
 
     def loop():
         global _ultima, _ultimo_resumen
+        _parar.wait(retraso_inicial())
         while not _parar.is_set():
             disparo = _pedir.is_set()
             _pedir.clear()
@@ -616,11 +668,11 @@ def iniciar_fondo(app_factory, *, insert_event, is_pg, on_change=None):
             except Exception:
                 log.exception('ghl_sync fondo')
             _ultima = time.time()
+            _pedir.clear()
             _parar.wait(1)
 
     _hilo = threading.Thread(target=loop, name='ghl-sync', daemon=True)
     _hilo.start()
-    _pedir.set()
     return True
 
 
