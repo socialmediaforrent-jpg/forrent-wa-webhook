@@ -84,11 +84,13 @@ def _atras(html):
 
 
 def test_boton_atras():
-    """El encabezado muestra ← Atrás fuera de Inicio y Mensajes, con fallback al padre."""
+    """El encabezado muestra Atrás (ícono SVG + texto) fuera de Inicio y Mensajes, con fallback al padre."""
     # /modulos lo tiene (José lo pidió al entrar ahí); el fallback es Inicio.
     h = cliente('ana').get('/modulos').get_data(as_text=True)
     m = _atras(h)
-    assert m and m.group(1) == '/portal' and '← Atrás' in h
+    assert m and m.group(1) == '/portal'
+    btn = re.search(r'<a class="btn-atras"[^>]*>.*?</a>', h, re.S)
+    assert btn and '<svg' in btn.group(0) and '>Atrás</span>' in btn.group(0) and '←' not in btn.group(0)
     h = cliente('jose').get('/modulos').get_data(as_text=True)
     assert _atras(h) and _atras(h).group(1) == '/portal'
     h = cliente('herlinda').get('/modulos').get_data(as_text=True)

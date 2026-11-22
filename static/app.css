@@ -9,8 +9,10 @@ body{min-height:100%;font-size:15px}
 .appbar{position:sticky;top:0;z-index:40;height:var(--appbar);display:flex;align-items:center;justify-content:space-between;
   gap:12px;padding:0 12px 0 10px;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--linea)}
 .appbar-left{display:flex;align-items:center;gap:2px;min-width:0;flex:1}
-.btn-atras{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 10px 0 6px;margin-left:-6px;border-radius:12px;text-decoration:none;color:var(--negro);font:inherit;font-weight:750;font-size:15px;line-height:1;flex:none;white-space:nowrap}
-.btn-atras:hover,.btn-atras:focus-visible{background:var(--naranja-suave);color:var(--naranja-2)}
+.btn-atras{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:44px;min-height:44px;padding:0 12px 0 8px;margin-left:-6px;border-radius:12px;text-decoration:none;color:var(--negro);font-family:inherit;font-weight:600;font-size:17px;line-height:0;flex:none;white-space:nowrap;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.btn-atras svg{display:block;width:20px;height:20px;flex:none}
+.btn-atras span{display:block;line-height:1;font-weight:600}
+.btn-atras:hover,.btn-atras:focus-visible{background:var(--naranja-suave);color:var(--naranja-2);outline:none}
 .btn-atras:active,.btn-atras.is-pressed{background:var(--naranja-suave);color:var(--naranja)}
 .appbar:has(.btn-atras) .logo{max-width:34vw}
 .brand{display:inline-flex;align-items:center;line-height:0;text-decoration:none}
