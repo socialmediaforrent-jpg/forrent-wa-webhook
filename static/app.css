@@ -211,9 +211,16 @@ details.fase-sec .inv{margin:0 0 8px}
 
 /* Inventario / captaciones: lista compacta + ficha */
 .inv-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.inv-row{display:flex;gap:12px;width:100%;align-items:center;text-align:left;background:#fff;border:0;border-radius:12px;box-shadow:var(--sombra);padding:8px 10px;cursor:pointer;font:inherit;color:inherit;min-height:76px}
+.inv-item{background:#fff;border-radius:12px;box-shadow:var(--sombra);overflow:hidden}
+.inv-n{flex:none;width:22px;font-weight:800;font-size:13px;color:#6b7280;text-align:center;font-variant-numeric:tabular-nums}
+.inv-dot{margin:0 4px;color:#c3c8d2}
+.inv-cod{font-weight:700;color:#30343d}
+.inv-row{display:flex;gap:12px;width:100%;align-items:center;text-align:left;background:transparent;border:0;border-radius:0;box-shadow:none;padding:8px 10px;cursor:pointer;font:inherit;color:inherit;min-height:76px}
 .inv-row:hover,.inv-row:focus-visible{background:#fffaf6;outline:none}
-.inv-row:focus-visible{box-shadow:0 0 0 3px var(--naranja-suave),var(--sombra)}
+.inv-item.on .inv-row{background:#fffaf6}
+.inv-row:focus-visible{box-shadow:0 0 0 3px var(--naranja-suave) inset}
+.inv-ficha-exp{border-top:1px solid var(--linea,#eceef2)}
+.inv-ficha-exp .inv-gal{border-radius:0}
 .inv-thumb,.inv-ph{width:64px;height:64px;border-radius:8px;background:#eef0f4;flex:none;overflow:hidden;display:block}
 .inv-thumb img{width:64px;height:64px;object-fit:cover;display:block}
 .inv-ph{background:#eef0f4 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239aa0ad'><path d='M19 5H5c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 12H5V7h14v10zm-6.5-3.5-2-2.5-3 4h10l-2.5-3.5z'/></svg>") center/28px no-repeat}

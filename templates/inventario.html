@@ -41,11 +41,26 @@
 
   <div id="wz-lista">
   {% if not filas %}<div class="wz-empty">No hay inmuebles con estos filtros. <a href="/inventario">Limpiar</a></div>{% else %}
-  <ul class="wz-cards">
+  <ul class="wz-list">
   {% for it in filas %}
     {% set fotos = it.fotos or [] %}
     {% set ver = '/inventario/ver?k=' ~ (it.key|urlencode) ~ '&volver=' ~ (('/inventario?' ~ qs_sin)|urlencode) %}
-    <li class="wz-card" data-share="{{ loop.index0 }}">
+    <li class="wz-item" data-share="{{ loop.index0 }}">
+      <div class="wz-sum-bar">
+        <button type="button" class="wz-sum" data-inm-toggle aria-expanded="false" aria-controls="wz-card-{{ loop.index0 }}">
+          <span class="wz-n" aria-hidden="true">{{ loop.index }}</span>
+          <span class="wz-minithumb">
+            {% if fotos %}<img src="{{ fotos[0].thumb or fotos[0].full }}" alt="" width="48" height="48" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="wz-minipho" aria-hidden="true"></span>{% endif %}
+          </span>
+          <span class="wz-sum-body">
+            <span class="wz-sum-title">{{ it.titulo or it.zona or it.codigo or 'Inmueble' }}</span>
+            <span class="wz-sum-meta">{% if it.codigo %}<span class="wz-sum-cod">{{ it.codigo }}</span>{% endif %}{% if it.operacion %}{% if it.codigo %}<span class="wz-sum-dot">·</span>{% endif %}<span>{{ it.operacion }}</span>{% endif %}{% if it.precio %}<span class="wz-sum-dot">·</span><span class="wz-sum-precio">{{ it.precio }}</span>{% endif %}{% if it.estado %}<span class="wz-sum-dot">·</span><span class="wz-st {{ 'dest' if it.destacado else ('disp' if it.estado == 'Disponible' else '') }}">{{ it.estado }}</span>{% endif %}</span>
+          </span>
+        </button>
+        <button type="button" class="wz-share" data-compartir="{{ loop.index0 }}" aria-label="Compartir">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg></button>
+      </div>
+      <div class="wz-card" id="wz-card-{{ loop.index0 }}" hidden>
       <div class="wz-gal">
         {% if fotos %}
         <div class="wz-track" data-n="{{ fotos|length }}">
@@ -84,6 +99,7 @@
           {% if it.habitaciones %}&nbsp;· {{ it.habitaciones }} hab.{% endif %}</span>
           <a class="wz-ver" href="{{ ver }}">Ver detalle ›</a>
         </div>
+      </div>
       </div>
     </li>
   {% endfor %}
@@ -168,6 +184,31 @@
       dots.forEach(function(d, j){ d.classList.toggle('on', j === Math.min(i, dots.length - 1)); });
     }, {passive: true});
   });
+  var lista = document.getElementById('wz-lista');
+  if (lista) {
+    lista.addEventListener('click', function(e){
+      if (e.target.closest('.wz-share, .wz-kebab, .wz-menu, .wz-ver, .wz-track, a, [data-compartir], [data-copiar]')) return;
+      var btn = e.target.closest('[data-inm-toggle]');
+      if (!btn) return;
+      var item = btn.closest('.wz-item');
+      if (!item) return;
+      var ya = item.classList.contains('on');
+      lista.querySelectorAll('.wz-item.on').forEach(function(it){
+        it.classList.remove('on');
+        var b = it.querySelector('[data-inm-toggle]');
+        var c = it.querySelector('.wz-card');
+        if (b) b.setAttribute('aria-expanded', 'false');
+        if (c) c.hidden = true;
+      });
+      if (!ya) {
+        item.classList.add('on');
+        btn.setAttribute('aria-expanded', 'true');
+        var card = item.querySelector('.wz-card');
+        if (card) card.hidden = false;
+        try { item.scrollIntoView({block: 'nearest'}); } catch (err) {}
+      }
+    });
+  }
   var txt = []; try { txt = JSON.parse(document.getElementById('wz-share-txt').textContent || '[]'); } catch (e) {}
   function aviso(m){ var a = document.createElement('div'); a.textContent = m; a.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;z-index:99;font-size:14px'; document.body.appendChild(a); setTimeout(function(){ a.remove(); }, 1800); }
   function copiar(t){ if (navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ aviso('Copiado'); }); }

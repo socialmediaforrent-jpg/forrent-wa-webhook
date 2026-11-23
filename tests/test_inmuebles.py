@@ -1,5 +1,5 @@
 """Inmuebles estilo Wasi: lista, filtros y ficha. Solo lectura; permisos iguales; sin enlaces ajenos. SQLite local, sin red."""
-import hashlib, json, os, sys, tempfile
+import hashlib, json, os, re, sys, tempfile
 from urllib.parse import quote
 
 import pytest
@@ -201,3 +201,41 @@ def test_otros_roles_sin_cambios():
     assert cliente('ana').get('/mis-clientes').status_code == 200
     h = html(cliente('jose').get('/inventario'))
     assert 'Encargado del inmueble' in h and '>Inmuebles<' in h
+
+
+def test_lista_compacta_numerada_empieza_cerrada():
+    h = html(cliente('ana').get('/inventario'))
+    lista = h.split('id="wz-lista"')[1].split('id="wz-mapa"')[0]
+    assert 'class="wz-list"' in lista
+    assert 'data-inm-toggle' in lista
+    assert 'data-compartir' in lista
+    cards = re.findall(r'<div class="wz-card"[^>]*>', lista)
+    assert len(cards) == 3 and all('hidden' in c for c in cards)
+    nums = re.findall(r'class="wz-n"[^>]*>(\d+)</span>', lista)
+    assert nums == ['1', '2', '3'], nums
+    # La fila compacta trae lo esencial; la tarjeta completa sigue en el HTML, oculta.
+    assert '10542820' in lista and 'Alquiler' in lista and 'US$ 300' in lista
+
+
+def test_numeracion_sigue_filtro_y_orden():
+    h = html(cliente('ana').get('/inventario?lista=propias'))
+    lista = h.split('id="wz-lista"')[1].split('id="wz-mapa"')[0]
+    assert re.findall(r'class="wz-n"[^>]*>(\d+)</span>', lista) == ['1', '2']
+    assert 'Cubículo en El Rosal' not in lista
+    h = html(cliente('ana').get('/inventario?orden=mayor'))
+    lista = h.split('id="wz-lista"')[1].split('id="wz-mapa"')[0]
+    assert re.findall(r'class="wz-n"[^>]*>(\d+)</span>', lista) == ['1', '2', '3']
+    assert lista.index('El Cafetal') < lista.index('El Rosal') < lista.index('Av. Urdaneta 7')
+    # El 1 es el primero del orden aplicado (mayor precio).
+    first = re.search(r'class="wz-item".*?</li>', lista, re.S).group(0)
+    assert 'class="wz-n"' in first and '>1</span>' in first and 'El Cafetal' in first
+
+
+def test_mis_captaciones_lista_numerada_cerrada():
+    h = html(cliente('ana').get('/mis-captaciones'))
+    assert 'class="inv-n"' in h
+    assert re.findall(r'class="inv-n"[^>]*>(\d+)</span>', h) == ['1']
+    exp = re.findall(r'<div class="inv-ficha-exp"[^>]*>', h)
+    assert exp and all('hidden' in e for e in exp)
+    assert 'inv-modal' not in h
+    assert 'data-inm-toggle' in h

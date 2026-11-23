@@ -3,8 +3,9 @@
 <ul class="inv-list" id="{{ sid }}-list">
 {% for it in items %}
   {% set fotos = it.fotos or [] %}
-  <li>
-    <button type="button" class="inv-row" data-sid="{{ sid }}" data-i="{{ loop.index0 }}" aria-haspopup="dialog">
+  <li class="inv-item">
+    <button type="button" class="inv-row" data-inm-toggle data-sid="{{ sid }}" data-i="{{ loop.index0 }}" aria-expanded="false" aria-controls="{{ sid }}-ficha-{{ loop.index0 }}">
+      <span class="inv-n" aria-hidden="true">{{ loop.index }}</span>
       <span class="inv-thumb">
         {% if fotos %}
         <img src="{{ fotos[0].thumb or fotos[0].full }}" alt="" width="64" height="64" loading="lazy" referrerpolicy="no-referrer">
@@ -13,101 +14,90 @@
         {% endif %}
       </span>
       <span class="inv-body">
-        <span class="inv-title">{{ it.titulo }}{% if it.solo_cliente_directo %} <span class="badge">Solo cliente directo</span>{% endif %}</span>
-        <span class="inv-meta"><span class="op{{ ' alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span> {{ it.zona }}</span>
-        <span class="inv-price">{{ it.precio }}</span>
+        <span class="inv-title">{{ it.titulo or it.zona or it.codigo or 'Inmueble' }}{% if it.solo_cliente_directo %} <span class="badge">Solo cliente directo</span>{% endif %}</span>
+        <span class="inv-meta">{% if it.codigo %}<span class="inv-cod">{{ it.codigo }}</span>{% endif %}{% if it.operacion %}{% if it.codigo %}<span class="inv-dot">·</span>{% endif %}<span class="op{{ ' alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span>{% endif %}{% if it.precio %}<span class="inv-dot">·</span><span class="inv-price">{{ it.precio }}</span>{% endif %}{% if it.estado %}<span class="inv-dot">·</span><span>{{ it.estado }}</span>{% endif %}</span>
       </span>
     </button>
+    <div class="inv-ficha-exp" id="{{ sid }}-ficha-{{ loop.index0 }}" hidden>
+      {% if fotos %}
+      <div class="inv-gal">
+        <div class="inv-gal-main">
+          {% if fotos|length > 1 %}
+          <button type="button" class="inv-gal-nav prev" data-gal="{{ sid }}" data-dir="-1" aria-label="Foto anterior">‹</button>
+          {% endif %}
+          <img src="{{ fotos[0].full or fotos[0].thumb }}" alt="{{ it.titulo }}" referrerpolicy="no-referrer" data-fotos='{{ fotos|tojson }}'>
+          {% if fotos|length > 1 %}
+          <button type="button" class="inv-gal-nav next" data-gal="{{ sid }}" data-dir="1" aria-label="Foto siguiente">›</button>
+          {% endif %}
+        </div>
+        <div class="inv-gal-bar"><span>1 / {{ fotos|length }}</span></div>
+      </div>
+      {% endif %}
+      <div class="inv-ficha">
+        <h2 class="inv-ficha-title">{{ it.titulo }}</h2>
+        <p class="inv-ficha-price">{{ it.precio }}</p>
+        <dl class="inv-dl">
+          <div><dt>Operación</dt><dd>{{ it.operacion or '—' }}</dd></div>
+          <div><dt>Tipo</dt><dd>{{ it.tipo or '—' }}</dd></div>
+          <div><dt>Zona</dt><dd>{{ it.zona or '—' }}</dd></div>
+          <div><dt>Código</dt><dd>{{ it.codigo or '—' }}</dd></div>
+        </dl>
+        {% if it.solo_cliente_directo %}<p class="inv-badge-wrap"><span class="badge">Solo cliente directo</span></p>{% endif %}
+      </div>
+    </div>
   </li>
 {% endfor %}
 </ul>
-<script type="application/json" id="{{ sid }}-json">{{ items|tojson }}</script>
-<dialog class="inv-modal" id="{{ sid }}-modal" aria-labelledby="{{ sid }}-modal-title">
-  <div class="inv-modal-inner">
-    <button type="button" class="inv-modal-x" data-close="{{ sid }}" aria-label="Cerrar">&times;</button>
-    <div class="inv-gal" hidden>
-      <div class="inv-gal-main">
-        <button type="button" class="inv-gal-nav prev" data-gal="{{ sid }}" data-dir="-1" aria-label="Foto anterior">‹</button>
-        <img id="{{ sid }}-foto" alt="" referrerpolicy="no-referrer">
-        <button type="button" class="inv-gal-nav next" data-gal="{{ sid }}" data-dir="1" aria-label="Foto siguiente">›</button>
-      </div>
-      <div class="inv-gal-bar"><span id="{{ sid }}-foto-n"></span></div>
-    </div>
-    <div class="inv-ficha">
-      <h2 class="inv-ficha-title" id="{{ sid }}-modal-title"></h2>
-      <p class="inv-ficha-price" id="{{ sid }}-precio"></p>
-      <dl class="inv-dl">
-        <div><dt>Operación</dt><dd id="{{ sid }}-operacion"></dd></div>
-        <div><dt>Tipo</dt><dd id="{{ sid }}-tipo"></dd></div>
-        <div><dt>Zona</dt><dd id="{{ sid }}-zona"></dd></div>
-        <div><dt>Código</dt><dd id="{{ sid }}-codigo"></dd></div>
-      </dl>
-      <p class="inv-badge-wrap" id="{{ sid }}-badge" hidden><span class="badge">Solo cliente directo</span></p>
-    </div>
-  </div>
-</dialog>
 <script>
 (function(){
   var sid = {{ sid|tojson }};
-  var data = [];
-  try { data = JSON.parse(document.getElementById(sid + '-json').textContent || '[]'); } catch (e) { data = []; }
-  var modal = document.getElementById(sid + '-modal');
-  var img = document.getElementById(sid + '-foto');
-  var num = document.getElementById(sid + '-foto-n');
-  var gal = modal.querySelector('.inv-gal');
-  var idx = 0, fotos = [];
+  var list = document.getElementById(sid + '-list');
+  if (!list) return;
 
-  function showFoto(i){
-    if (!fotos.length) return;
-    idx = (i + fotos.length) % fotos.length;
-    var f = fotos[idx];
-    img.src = f.full || f.thumb || '';
-    num.textContent = (idx + 1) + ' / ' + fotos.length;
+  function cerrar(item){
+    item.classList.remove('on');
+    var b = item.querySelector('[data-inm-toggle]');
+    var p = item.querySelector('.inv-ficha-exp');
+    if (b) b.setAttribute('aria-expanded', 'false');
+    if (p) p.hidden = true;
+  }
+  function abrir(item){
+    item.classList.add('on');
+    var b = item.querySelector('[data-inm-toggle]');
+    var p = item.querySelector('.inv-ficha-exp');
+    if (b) b.setAttribute('aria-expanded', 'true');
+    if (p) p.hidden = false;
+    try { item.scrollIntoView({block: 'nearest'}); } catch (e) {}
   }
 
-  function openFicha(i){
-    var it = data[i];
-    if (!it) return;
-    document.getElementById(sid + '-modal-title').textContent = it.titulo || '';
-    document.getElementById(sid + '-precio').textContent = it.precio || '';
-    document.getElementById(sid + '-operacion').textContent = it.operacion || '—';
-    document.getElementById(sid + '-tipo').textContent = it.tipo || '—';
-    document.getElementById(sid + '-zona').textContent = it.zona || '—';
-    var cod = it.codigo || '';
-    document.getElementById(sid + '-codigo').textContent = cod || '—';
-    document.getElementById(sid + '-badge').hidden = !it.solo_cliente_directo;
-    fotos = it.fotos || [];
-    idx = 0;
-    if (fotos.length){
-      gal.hidden = false;
-      modal.querySelectorAll('.inv-gal-nav').forEach(function(b){ b.hidden = fotos.length < 2; });
-      showFoto(0);
-    } else {
-      gal.hidden = true;
-      img.removeAttribute('src');
-    }
-    if (typeof modal.showModal === 'function') modal.showModal();
-    else modal.setAttribute('open','');
-  }
-
-  document.getElementById(sid + '-list').addEventListener('click', function(e){
-    var btn = e.target.closest('.inv-row');
+  list.addEventListener('click', function(e){
+    if (e.target.closest('.inv-gal-nav')) return;
+    var btn = e.target.closest('[data-inm-toggle]');
     if (!btn) return;
-    openFicha(parseInt(btn.getAttribute('data-i'), 10));
+    var item = btn.closest('.inv-item');
+    if (!item) return;
+    var ya = item.classList.contains('on');
+    list.querySelectorAll('.inv-item.on').forEach(cerrar);
+    if (!ya) abrir(item);
   });
-  modal.addEventListener('click', function(e){
-    if (e.target === modal || e.target.getAttribute('data-close') === sid){ if (typeof modal.close==='function') modal.close(); else modal.removeAttribute('open'); }
-  });
-  modal.querySelectorAll('.inv-gal-nav').forEach(function(b){
+
+  list.querySelectorAll('.inv-gal-nav').forEach(function(b){
     b.addEventListener('click', function(e){
       e.stopPropagation();
-      showFoto(idx + parseInt(b.getAttribute('data-dir'), 10));
+      var gal = b.closest('.inv-gal');
+      if (!gal) return;
+      var img = gal.querySelector('img');
+      var bar = gal.querySelector('.inv-gal-bar span');
+      var fotos = [];
+      try { fotos = JSON.parse(img.getAttribute('data-fotos') || '[]'); } catch (err) { fotos = []; }
+      if (!fotos.length) return;
+      var i = parseInt(img.getAttribute('data-i') || '0', 10);
+      i = (i + parseInt(b.getAttribute('data-dir'), 10) + fotos.length) % fotos.length;
+      var f = fotos[i];
+      img.src = (f && (f.full || f.thumb)) || '';
+      img.setAttribute('data-i', String(i));
+      if (bar) bar.textContent = (i + 1) + ' / ' + fotos.length;
     });
-  });
-  modal.addEventListener('keydown', function(e){
-    if (gal.hidden) return;
-    if (e.key === 'ArrowRight') showFoto(idx + 1);
-    if (e.key === 'ArrowLeft') showFoto(idx - 1);
   });
 
   var q = document.getElementById('q');

@@ -22,6 +22,24 @@
 .wz-cards{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 @media(min-width:1000px){.wz{max-width:1180px}.wz-cards{grid-template-columns:repeat(3,1fr)}}
 @media(min-width:700px) and (max-width:999px){.wz-cards{grid-template-columns:repeat(2,1fr)}}
+.wz-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.wz-item{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.05);overflow:hidden}
+.wz-sum-bar{display:flex;align-items:stretch;gap:0}
+.wz-sum{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left;border:0;background:transparent;padding:8px 8px 8px 10px;cursor:pointer;font:inherit;color:inherit;min-height:64px}
+.wz-sum-bar>.wz-share{margin:8px 8px 8px 0;align-self:center}
+.wz-item.on .wz-sum{background:var(--w-azul-suave)}
+.wz-n{flex:none;width:22px;font-weight:800;font-size:13px;color:#5b6475;text-align:center;font-variant-numeric:tabular-nums}
+.wz-minithumb,.wz-minipho{width:48px;height:48px;border-radius:8px;background:#e9edf2;flex:none;overflow:hidden;display:block}
+.wz-minithumb img{width:48px;height:48px;object-fit:cover;display:block}
+.wz-minipho{background:#e9edf2 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239aa0ad'><path d='M19 5H5c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 12H5V7h14v10zm-6.5-3.5-2-2.5-3 4h10l-2.5-3.5z'/></svg>") center/24px no-repeat}
+.wz-sum-body{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.wz-sum-title{font-weight:800;font-size:13px;line-height:1.25;color:var(--w-azul);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.wz-sum-meta{font-size:12px;color:#5b6475;display:flex;flex-wrap:wrap;align-items:baseline}
+.wz-sum-cod{font-weight:700;color:#333}
+.wz-sum-precio{font-weight:800;color:#111}
+.wz-sum-dot{margin:0 4px;color:#c3c8d2}
+.wz-item .wz-card{border-radius:0;box-shadow:none;border-top:1px solid var(--w-linea)}
+@media(min-width:1000px){.wz-list{max-width:760px}}
 .wz-card{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.05);overflow:hidden;display:flex;flex-direction:column}
 .wz-gal{position:relative;aspect-ratio:4/3;background:#e9edf2}
 .wz-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:100%;scrollbar-width:none}
