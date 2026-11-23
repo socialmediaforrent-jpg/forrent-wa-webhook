@@ -35,9 +35,12 @@ def test_mas_sin_redundancia_con_modulos():
     nav_j = _bottomnav(cliente('jose').get('/modulos').get_data(as_text=True))
     sheet_j = _sheet(cliente('jose').get('/modulos').get_data(as_text=True))
     for href in ('/mis-clientes', '/inventario', '/mis-inmuebles', '/inventario/cola',
-                 '/mi-equipo', '/mis-captaciones', '/mercadeo', '/mercadeo/planificador',
+                 '/mi-equipo', '/mis-captaciones', '/mercadeo',
                  '/ofertas', '/cierres', '/admin/actividades', '/clientes-propios', '/visitas'):
         assert f'href="{href}"' not in nav_j, href
+    # Planificador solo en Más, para rol admin (José y Luz). No se repite en Módulos.
+    assert 'href="/mercadeo/planificador"' in sheet_j
+    assert 'href="/mercadeo/planificador"' in _sheet(cliente('luz').get('/modulos').get_data(as_text=True))
     assert 'href="/aprobaciones"' in sheet_j
     assert 'href="/admin/correos"' in sheet_j
     assert 'Cerrar sesión' in sheet_j
@@ -52,6 +55,7 @@ def test_mas_sin_redundancia_con_modulos():
         assert f'href="{href}"' not in nav_a, href
     assert 'href="/perfil"' in sheet_a
     assert 'href="/aprobaciones"' in sheet_a
+    assert 'href="/mercadeo/planificador"' not in sheet_a
     assert 'Cerrar sesión' in sheet_a
     # Asesora: solo perfil (y Cerrar sesión).
     nav_h = _bottomnav(cliente('herlinda').get('/modulos').get_data(as_text=True))
@@ -61,6 +65,7 @@ def test_mas_sin_redundancia_con_modulos():
         assert f'href="{href}"' not in nav_h, href
     assert 'href="/perfil"' in sheet_h
     assert 'href="/aprobaciones"' not in sheet_h
+    assert 'href="/mercadeo/planificador"' not in sheet_h
     assert 'Cerrar sesión' in sheet_h
     # Las rutas siguen existiendo; solo se quitó la entrada duplicada del menú.
     assert cliente('jose').get('/mis-clientes').status_code == 200
@@ -78,9 +83,10 @@ def test_cinco_modulos_sin_numeros():
     for card in re.findall(r'<div class="(?:card |mod-sub )?mod-prox".*?</div>', main, re.S):
         assert not re.search(r'\d+\s*(%|US\$|clientes|inmuebles)', card), card
     assert 'En preparación' in main
-    # Planificador solo para Administrador.
+    # Planificador sale de Módulos (vive en Más, solo admin).
     assert '/mercadeo/planificador' not in main
-    assert '/mercadeo/planificador' in cliente('jose').get('/modulos').get_data(as_text=True)
+    main_j = re.search(r'<main.*?</main>', cliente('jose').get('/modulos').get_data(as_text=True), re.S).group(0)
+    assert '/mercadeo/planificador' not in main_j
 
 
 def test_modulos_salen_contraidos():
@@ -103,7 +109,7 @@ def test_modulos_salen_contraidos():
 
 
 def test_captaciones_agrupadas():
-    """Mis Captaciones y Captaciones For Rent aparecen una sola vez, con Inmuebles y Mercadeo dentro."""
+    """Inventario: Mis Captaciones y Captaciones For Rent, cada una con Inmuebles, Mercadeo y Estadísticas."""
     for slug in ('jose', 'ana'):
         h = cliente(slug).get('/modulos').get_data(as_text=True)
         main = re.search(r'<main.*?</main>', h, re.S).group(0)
@@ -115,32 +121,33 @@ def test_captaciones_agrupadas():
             r'<details class="card mod-group">\s*<summary class="mod-group-sum">\s*<span>\s*<h2>([^<]+)</h2>(.*?)</details>',
             main, re.S)
         labels = [g[0] for g in grupos]
-        assert labels[:3] == ['Mis Captaciones', 'Captaciones For Rent', 'Mercadeo'], (slug, labels)
+        assert labels[:2] == ['Mis Captaciones', 'Captaciones For Rent'], (slug, labels)
+        assert 'Mercadeo' not in labels
         for titulo, cuerpo in grupos[:2]:
             assert re.search(r'<h3>Inmuebles</h3>', cuerpo), titulo
             assert re.search(r'<h3>Mercadeo', cuerpo), titulo
+            assert re.search(r'<h3>Estadísticas', cuerpo), titulo
+            assert 'En preparación' in cuerpo
+            assert 'Llega en la etapa 8, solo con datos reales.' in cuerpo
         mc = grupos[0][1]
         assert 'href="/mis-captaciones"' in mc and 'href="/mercadeo"' in mc
+        assert 'href="/mercadeo/forrent"' not in mc
         assert 'Propios, Alianza y Todos.' in mc
         fr = grupos[1][1]
         assert 'href="/inventario"' in fr
         if slug == 'ana':
-            assert 'En preparación' in fr and not re.search(r'href="/mercadeo"', fr)
+            assert 'En preparación' in fr and not re.search(r'href="/mercadeo', fr)
         else:
-            assert 'href="/mercadeo"' in fr
-        mer = dict(grupos)['Mercadeo']
-        assert re.search(r'<h3>Estadísticas', mer) and 'En preparación' in mer
-        assert 'Estadísticas de Mercadeo' not in mer
-        assert 'Llega en la etapa 8, solo con datos reales.' in mer
+            assert 'href="/mercadeo/forrent"' in fr
+            assert not re.search(r'href="/mercadeo"', fr)
         assert 'Cargar inmueble' not in main
         assert 'href="/mis-inmuebles"' not in main
+        assert 'href="/mercadeo/planificador"' not in main
+        assert 'Planificador' not in main
         if slug == 'jose':
-            assert re.search(r'<h3>Planificador</h3>', mer)
-            assert 'href="/mercadeo/planificador"' in mer and 'Solo Administrador.' in mer
             assert 'Por revisar (carga)' in main
         else:
-            assert 'Planificador' not in mer
-            assert 'href="/mercadeo/planificador"' not in main
+            assert 'Por revisar (carga)' not in main
 
 def test_permisos_sin_cambios():
     assert cliente('mercadeo').get('/modulos').status_code == 403
@@ -195,3 +202,39 @@ def test_cargar_inmueble_en_mis_captaciones():
         h = cliente(slug).get('/mis-captaciones').get_data(as_text=True)
         m = re.search(r'<a class="btn-carga" href="([^"]+)">([^<]+)</a>', h)
         assert m and m.group(1) == '/mis-inmuebles' and m.group(2) == 'Cargar inmueble', slug
+
+def test_mercadeo_mis_captaciones_solo_del_usuario():
+    """Mis Captaciones › Mercadeo cuenta solo las captaciones del usuario conectado."""
+    import app as appmod
+    import portal_lib
+    ana = portal_lib.user_by_username('ana')
+    jose = portal_lib.user_by_username('jose')
+    _, mias_ana, _ = appmod._mercadeo_items(ana, alcance='mias')
+    _, fr_jose, _ = appmod._mercadeo_items(jose, alcance='forrent')
+    _, mias_jose, _ = appmod._mercadeo_items(jose, alcance='mias')
+    assert mias_ana and all(c.get('asesor') == 'ana' for c in mias_ana)
+    assert len(mias_ana) == len(portal_lib.load_captaciones(slug='ana'))
+    assert len(mias_jose) == 0
+    assert len(fr_jose) > len(mias_ana)
+    h = cliente('ana').get('/mercadeo').get_data(as_text=True)
+    assert 'popovertarget="mk-info"' in h
+    assert 'Todos los inmuebles de For Rent' not in h.split('id="mk-info"', 1)[1][:800]
+    assert 'Tus inmuebles en los 10 Portales' in h
+    assert 'Planificador de anuncios' not in h
+    assert 'class="lead"' not in h
+    # No se mezclan captaciones de otras asesoras.
+    h_j = cliente('jose').get('/mercadeo').get_data(as_text=True)
+    assert 'No tienes captaciones propias todavía' in h_j
+    h_fr = cliente('jose').get('/mercadeo/forrent').get_data(as_text=True)
+    assert 'Todos los inmuebles de For Rent' in h_fr
+    assert 'No tienes captaciones propias todavía' not in h_fr
+    assert cliente('ana').get('/mercadeo/forrent').status_code == 403
+
+
+def test_mercadeo_info_y_sin_planificador():
+    h = cliente('jose').get('/mercadeo/forrent').get_data(as_text=True)
+    main = re.search(r'<main.*?</main>', h, re.S).group(0)
+    assert 'popovertarget="mk-info"' in main
+    assert 'id="mk-info"' in main
+    assert 'Planificador de anuncios' not in main
+    assert 'class="lead"' not in main

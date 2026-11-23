@@ -352,7 +352,7 @@ def test_luz_es_admin():
 def test_marketplace_ruta_luz_y_jose():
     appmod.q('DELETE FROM crm_marketplace_links'); appmod.q('DELETE FROM crm_marketplace_links_log')
     with appmod.app.test_request_context():
-        _, items, _ = appmod._mercadeo_items(portal_lib.user_by_username('jose'))
+        _, items, _ = appmod._mercadeo_items(portal_lib.user_by_username('jose'), alcance='forrent')
     if not items:
         pytest.skip('sin inventario local')
     key = appmod.portales.key_de(items[0])
