@@ -1,6 +1,6 @@
 """Datos y autenticación del portal For Rent (asesores y José). Sin secretos en este archivo."""
 import hashlib, hmac, json, os, re, unicodedata
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 from corte_clientes import en_ejercicio, filtrar, CORTE_FECHA, CORTE_ISO, CORTE_LABEL, CORTE_NOTA
 
@@ -18,7 +18,7 @@ ESTATUS_OPCIONES = [
 
 # Fases del pipeline (solo agrupan; no cambian los valores de estatus).
 FASE_DEFS = [
-    ('f1', 'Fase 1 · Asignación y contacto', ('Sin estatus', 'Nuevo', 'Contactado', 'No contactado')),
+    ('f1', 'Fase 1 · Asignación y contacto', ('Nuevas Asignaciones', 'Clientes sin estatus', 'Contactado')),
     ('f2', 'Fase 2 · Búsqueda / En proceso', ('Buscando', 'Esperando', 'En espera', 'En proceso')),
     ('f3', 'Fase 3 · Visitas', ('Visita agendada', 'Visita realizada')),
     ('f4', 'Fase 4 · Negociación', ('Oferta realizada', 'Oferta aceptada', 'Reserva agendada')),
@@ -50,7 +50,63 @@ def es_perdido(estado='', situacion='', estatus='', tg=''):
     return any(_texto_perdido(x) for x in (estado, situacion, estatus, tg))
 
 
-def fase_de(estado='', situacion='', estatus='', tg=''):
+def ahora_caracas():
+    """Instante actual en America/Caracas. Se calcula al cargar la página, no se congela en la copia."""
+    return datetime.now(CARACAS)
+
+
+def parse_asignado_at(raw):
+    """Lee el campo asignado_at. Si no trae zona, se interpreta en America/Caracas (igual que el corte)."""
+    s = str(raw or '').strip()
+    if not s:
+        return None
+    try:
+        dt = datetime.fromisoformat(s.replace('Z', '+00:00'))
+    except Exception:
+        try:
+            dt = datetime.combine(date.fromisoformat(s[:10]), datetime.min.time())
+        except Exception:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=CARACAS)
+    return dt.astimezone(CARACAS)
+
+
+def asignado_hace_menos_de_24h(asignado_at='', now=None):
+    """True solo si hay fecha/hora de asignación y aún no se cumplen 24 horas."""
+    dt = parse_asignado_at(asignado_at)
+    if dt is None:
+        return False
+    ahora = now or ahora_caracas()
+    if ahora.tzinfo is None:
+        ahora = ahora.replace(tzinfo=CARACAS)
+    return (ahora.astimezone(CARACAS) - dt).total_seconds() < 24 * 3600
+
+
+# ASIGNADO, No contactado, Nuevo, Sin estatus o vacío no cuentan como avance.
+_SIN_AVANCE = frozenset({'', 'sin estatus', 'asignado', 'no contactado', 'nuevo'})
+
+
+def es_sin_avance(estado='', situacion='', estatus='', tg=''):
+    """Sin avance: no está perdido y el primer valor (situacion, estado, estatus) no es un estatus real."""
+    if es_perdido(estado, situacion, estatus, tg):
+        return False
+    for raw in (situacion, estado, estatus):
+        v = (raw or '').strip()
+        if not v:
+            continue
+        return v.casefold() in _SIN_AVANCE
+    return True
+
+
+def destino_sin_avance(asignado_at='', now=None):
+    """nuevas si lleva menos de 24 h; sin_estatus si lleva 24 h o más, o no tiene fecha."""
+    if asignado_hace_menos_de_24h(asignado_at, now=now):
+        return 'nuevas'
+    return 'sin_estatus'
+
+
+def fase_de(estado='', situacion='', estatus='', tg='', asignado_at='', now=None):
     """((id de fase, etiqueta de desglose)). Prioriza estado=Perdido sobre Buscando/Esperando."""
     e, si, st = (estado or '').strip(), (situacion or '').strip(), (estatus or '').strip()
     if es_perdido(e, si, st, tg):
@@ -59,6 +115,11 @@ def fase_de(estado='', situacion='', estatus='', tg=''):
         if e == 'Perdido':
             return 'perdidos', 'Perdido'
         return 'perdidos', si or st or (tg or '').strip() or e or 'Perdido'
+    if es_sin_avance(e, si, st, tg):
+        dest = destino_sin_avance(asignado_at, now=now)
+        if dest == 'nuevas':
+            return 'f1', 'Nuevas Asignaciones'
+        return 'f1', 'Clientes sin estatus'
     if si in _FASE_KEY:
         return _FASE_KEY[si], si
     if e in _FASE_KEY:
@@ -73,9 +134,10 @@ def tiene_estatus(estado='', situacion='', estatus=''):
     return (e and e != 'Sin estatus') or (st and st != 'Sin estatus')
 
 
-def resumen_fases(clientes):
+def resumen_fases(clientes, *, now=None):
     """Agrupa clientes por fase. Cada ítem puede traer estado, situacion, estatus y tg."""
     from collections import Counter
+    ahora = now or ahora_caracas()
     orden = [fid for fid, _t, _k in FASE_DEFS] + ['perdidos', 'otros']
     titulos = {fid: t for fid, t, _k in FASE_DEFS}
     titulos['perdidos'] = 'Perdidos'
@@ -85,7 +147,7 @@ def resumen_fases(clientes):
     for c in clientes:
         c = dict(c)
         e, si, st = c.get('estado') or '', c.get('situacion') or '', c.get('estatus') or c.get('status') or ''
-        fid, lab = fase_de(e, si, st, c.get('tg') or '')
+        fid, lab = fase_de(e, si, st, c.get('tg') or '', c.get('asignado_at') or '', now=ahora)
         c['fase'], c['fase_label'] = fid, lab
         buckets[fid]['clientes'].append(c)
         buckets[fid]['desglose'][lab] += 1
@@ -119,8 +181,10 @@ def resumen_fases(clientes):
 #
 # Mapeo (prioridad: situacion, luego estado, luego estatus; es_perdido va primero
 # para no duplicar Perdido·Esperando / Perdido·Buscando en otra baldosa):
-#   Nuevas Asignaciones           → Nuevo, No contactado, ASIGNADO
-#   Clientes sin estatus          → Sin estatus (o estado/situacion/estatus vacíos)
+#   Nuevas Asignaciones           → sin avance y asignados hace menos de 24 horas
+#                                   (ASIGNADO, No contactado, Nuevo, Sin estatus o vacío)
+#   Clientes sin estatus          → sin avance y con 24 horas o más desde asignado_at
+#                                   (o sin fecha de asignación)
 #   Contactado                    → Contactado
 #   En Búsqueda/Esperando         → Buscando, Esperando, En espera
 #   Agendado/Visitado             → Visita agendada, Visita realizada
@@ -255,19 +319,24 @@ def canon_estatus_asignacion(estado='', situacion='', estatus='', tg=''):
     return 'Otros'
 
 
-def tile_de_asignacion(estado='', situacion='', estatus='', tg=''):
+def tile_de_asignacion(estado='', situacion='', estatus='', tg='', asignado_at='', now=None):
+    if es_perdido(estado, situacion, estatus, tg):
+        return 'perdidos'
+    if es_sin_avance(estado, situacion, estatus, tg):
+        return destino_sin_avance(asignado_at, now=now)
     v = canon_estatus_asignacion(estado, situacion, estatus, tg)
     return ASIGNACIONES_ESTATUS.get(v) or 'otros'
 
 
-def resumen_asignaciones(clientes):
-    """Conteos reales por baldosa. No inventa filas ni cifras."""
+def resumen_asignaciones(clientes, *, now=None):
+    """Conteos reales por baldosa. No inventa filas ni cifras. La regla de 24 h se calcula al cargar."""
+    ahora = now or ahora_caracas()
     buckets = {tid: [] for tid in _TILE_DEFS}
     for c in clientes:
         c = dict(c)
         e, si, st = c.get('estado') or '', c.get('situacion') or '', c.get('estatus') or c.get('status') or ''
-        tid = tile_de_asignacion(e, si, st, c.get('tg') or '')
-        fid, lab = fase_de(e, si, st, c.get('tg') or '')
+        tid = tile_de_asignacion(e, si, st, c.get('tg') or '', c.get('asignado_at') or '', now=ahora)
+        fid, lab = fase_de(e, si, st, c.get('tg') or '', c.get('asignado_at') or '', now=ahora)
         c['fase'], c['fase_label'] = fid, lab
         c['tile'] = tid
         if tid:

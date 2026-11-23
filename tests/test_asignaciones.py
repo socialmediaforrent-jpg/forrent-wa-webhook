@@ -41,12 +41,27 @@ def _carga(monkeypatch, extras=None):
 
 
 def test_mapeo_estatus():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
     m = portal_lib.tile_de_asignacion
-    assert m('Nuevo', '', 'Nuevo') == 'nuevas'
+    ahora = datetime(2026, 11, 22, 21, 0, tzinfo=ZoneInfo('America/Caracas'))
+    reciente = '2026-11-22T20:00:00'
+    vieja = '2026-11-20T20:00:00'
+    # Sin fecha de asignación, o con 24 h o más: Sin estatus (si no hay avance).
+    assert m('Nuevo', '', 'Nuevo') == 'sin_estatus'
     assert m('Sin estatus', '', 'Sin estatus') == 'sin_estatus'
     assert m('', '', '') == 'sin_estatus'
-    assert m('Nuevo', 'No contactado', 'No contactado') == 'nuevas'
+    assert m('Nuevo', '', 'Nuevo', '', vieja, now=ahora) == 'sin_estatus'
+    assert m('', '', 'ASIGNADO', '', vieja, now=ahora) == 'sin_estatus'
+    # Menos de 24 h y sin avance: Nuevas Asignaciones.
+    assert m('Nuevo', '', 'Nuevo', '', reciente, now=ahora) == 'nuevas'
+    assert m('Nuevo', 'No contactado', 'No contactado', '', reciente, now=ahora) == 'nuevas'
+    assert m('', '', 'ASIGNADO', '', reciente, now=ahora) == 'nuevas'
+    assert m('', '', 'asignado', '', reciente, now=ahora) == 'nuevas'
+    assert m('ASIGNADO', '', 'ASIGNADO', '', reciente, now=ahora) == 'nuevas'
+    # Un avance (Contactado, etc.) no entra en Nuevas, aunque sea reciente.
     assert m('Nuevo', 'Contactado', 'Contactado') == 'contactado'
+    assert m('Nuevo', 'Contactado', 'Contactado', '', reciente, now=ahora) == 'contactado'
     assert m('En proceso', 'Buscando', 'Buscando') == 'busqueda'
     assert m('En proceso', 'Visita agendada', 'Visita agendada') == 'agendado'
     assert m('Negociación', 'Oferta realizada', 'Oferta realizada') == 'oferta'
@@ -59,9 +74,6 @@ def test_mapeo_estatus():
     assert m('En proceso', 'Esperando', 'Esperando') == 'busqueda'
     assert m('', 'En espera', 'En espera') == 'busqueda'
     assert m('En proceso', 'Visita realizada', 'Visita realizada') == 'agendado'
-    assert m('', '', 'ASIGNADO') == 'nuevas'
-    assert m('', '', 'asignado') == 'nuevas'
-    assert m('ASIGNADO', '', 'ASIGNADO') == 'nuevas'
     # Lo que no tiene baldosa propia cae en Otros, nunca se pierde.
     assert m('En proceso', '', 'En proceso') == 'otros'
     assert m('', 'Documento privado', 'Documento privado') == 'otros'
@@ -79,8 +91,9 @@ def test_resumen_no_inventa_ceros():
         {'estado': 'Nuevo', 'situacion': '', 'estatus': 'Nuevo', 'nombre': 'A'},
     ])
     tiles = r['tiles']
-    assert tiles['nuevas']['n'] == 1
-    assert tiles['sin_estatus']['n'] == 0
+    # Sin asignado_at cae en Sin estatus, no en Nuevas.
+    assert tiles['nuevas']['n'] == 0
+    assert tiles['sin_estatus']['n'] == 1
     assert tiles['contactado']['n'] == 0
     assert tiles['busqueda']['n'] == 0
     assert tiles['agendado']['n'] == 0
@@ -135,15 +148,14 @@ def test_luz_es_admin_y_ve_todas(monkeypatch):
     _carga(monkeypatch)
     html = cliente('luz').get('/mis-asignaciones').get_data(as_text=True)
     assert 'Nueva Ana' not in html  # la lista aparece al hacer clic
-    # Conteos: nuevas = solo Ana (Nuevo). Luz va a Clientes sin estatus.
-    # Ana también tiene buscando, agendada, oferta; perdida y anterior no cuentan en esas baldosas.
+    # Las del fixture tienen más de 24 h: Nueva Ana y Luz van a Clientes sin estatus.
     lista = cliente('luz').get('/mis-asignaciones?e=nuevas').get_data(as_text=True)
-    assert 'Nueva Ana' in lista
+    assert 'Nueva Ana' not in lista
     assert 'Sin estatus Luz' not in lista
     assert 'Contactada Miriam' not in lista
     sin_e = cliente('luz').get('/mis-asignaciones?e=sin_estatus').get_data(as_text=True)
     assert 'Sin estatus Luz' in sin_e
-    assert 'Nueva Ana' not in sin_e
+    assert 'Nueva Ana' in sin_e
     # Luz ve asignados de otras asesoras en el listado (admin).
     todos = cliente('jose').get('/mis-asignaciones?e=contactado').get_data(as_text=True)
     assert 'Contactada Miriam' in todos
@@ -151,7 +163,7 @@ def test_luz_es_admin_y_ve_todas(monkeypatch):
 
 def test_asesora_solo_las_suyas(monkeypatch):
     _carga(monkeypatch)
-    html = cliente('ana').get('/mis-asignaciones?e=nuevas').get_data(as_text=True)
+    html = cliente('ana').get('/mis-asignaciones?e=sin_estatus').get_data(as_text=True)
     assert 'Nueva Ana' in html
     assert 'Sin estatus Luz' not in html
     assert 'Contactada Miriam' not in html
@@ -177,12 +189,12 @@ def test_conteos_por_rol(monkeypatch):
 
     # Orden: nuevas, sin_estatus, contactado, busqueda, agendado, oferta,
     # oferta_aceptada, reserva_agendada, reserva_firmada, registrado, entregado, perdidos
-    # Ana vigentes: Nueva, Busca, Espera, Agendada, Oferta, Perdida. Anterior no.
-    assert nums('ana') == [1, 0, 0, 2, 1, 1, 0, 0, 0, 0, 0, 1]
-    # José y Luz: nuevas 1 (Ana), sin_estatus 1 (Luz), contactado 1 (Miriam),
+    # Ana vigentes: Nueva (≥24 h → sin_estatus), Busca, Espera, Agendada, Oferta, Perdida.
+    assert nums('ana') == [0, 1, 0, 2, 1, 1, 0, 0, 0, 0, 0, 1]
+    # José y Luz: nuevas 0, sin_estatus 2 (Ana+Luz), contactado 1 (Miriam),
     # busqueda 2 (Busca+Espera), agendado 1, oferta 1, perdidos 1 (Ana)
-    assert nums('jose') == [1, 1, 1, 2, 1, 1, 0, 0, 0, 0, 0, 1]
-    assert nums('luz') == [1, 1, 1, 2, 1, 1, 0, 0, 0, 0, 0, 1]
+    assert nums('jose') == [0, 2, 1, 2, 1, 1, 0, 0, 0, 0, 0, 1]
+    assert nums('luz') == [0, 2, 1, 2, 1, 1, 0, 0, 0, 0, 0, 1]
 
 
 def test_mercadeo_no_entra():
@@ -219,9 +231,12 @@ def test_texto_corte_vive_en_info(monkeypatch):
     """El párrafo del corte 31-oct no va suelto bajo el título: queda en el popover de info."""
     _carga(monkeypatch)
     texto = 'Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí.'
+    regla = 'Nuevas Asignaciones son las de hace menos de 24 horas'
     for slug in ('jose', 'ana', 'luz'):
         html = cliente(slug).get('/mis-asignaciones').get_data(as_text=True)
         assert texto in html
+        assert regla in html
+        assert 'ASIGNADO, No contactado o el campo vacío no cuentan como avance' in html
         assert '<p class="lead">Embudo comercial' not in html
         assert 'class="asig-info-btn"' in html
         assert 'popovertarget="asig-info"' in html
@@ -249,15 +264,16 @@ def test_embudo_sin_flechas_y_tarjetas_compactas(monkeypatch):
 def test_sin_estatus_y_perdidos_segun_datos(monkeypatch):
     """Las filas nuevas usan nociones ya existentes y no alteran las otras baldosas."""
     _carga(monkeypatch)
-    # Sin estatus (ya definido por tiene_estatus / valor «Sin estatus») no se mezcla con Nuevo.
+    # Sin fecha, tanto «Sin estatus» como «Nuevo» van a Clientes sin estatus.
     assert portal_lib.tile_de_asignacion('Sin estatus', '', 'Sin estatus') == 'sin_estatus'
-    assert portal_lib.tile_de_asignacion('Nuevo', '', 'Nuevo') == 'nuevas'
+    assert portal_lib.tile_de_asignacion('Nuevo', '', 'Nuevo') == 'sin_estatus'
     # Perdido (es_perdido / estado=Perdido) no se cuela en En Búsqueda.
     assert portal_lib.tile_de_asignacion('Perdido', 'Buscando', 'Buscando') == 'perdidos'
     assert portal_lib.tile_de_asignacion('En proceso', 'Buscando', 'Buscando') == 'busqueda'
     html = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
-    assert html.find('1. Nuevas Asignaciones') < html.find('Clientes sin estatus') < html.find('2. En Proceso')
-    assert html.find('4. Entrega de Inmueble') < html.find('Perdidos')
+    bloque = html[html.find('class="embudo"'):]
+    assert bloque.find('1. Nuevas Asignaciones') < bloque.find('Clientes sin estatus') < bloque.find('2. En Proceso')
+    assert bloque.find('4. Entrega de Inmueble') < bloque.find('Perdidos')
     perd = cliente('jose').get('/mis-asignaciones?e=perdidos').get_data(as_text=True)
     assert 'Perdida Ana' in perd
     assert 'Busca Ana' not in perd
@@ -288,9 +304,13 @@ def test_cuadre_misasig_igual_mis_clientes(monkeypatch):
     assert 'href="/mis-asignaciones?e=otros"' in html_jose
     lista = cliente('jose').get('/mis-asignaciones?e=otros').get_data(as_text=True)
     assert 'Privado Ana' in lista
+    # ASIGNADO del 14 nov ya superó las 24 h: va a Sin estatus, no a Nuevas.
     nuevas = cliente('jose').get('/mis-asignaciones?e=nuevas').get_data(as_text=True)
-    assert 'Asignado Luz' in nuevas
+    assert 'Asignado Luz' not in nuevas
     assert 'Privado Ana' not in nuevas
+    sin_e = cliente('jose').get('/mis-asignaciones?e=sin_estatus').get_data(as_text=True)
+    assert 'Asignado Luz' in sin_e
+    assert 'Clientes sin estatus' in html_cli or 'Clientes sin estatus' in cliente('jose').get('/mis-clientes').get_data(as_text=True)
 
 
 def test_nada_se_pierde_y_perdidos_no_se_duplican():
@@ -310,8 +330,8 @@ def test_nada_se_pierde_y_perdidos_no_se_duplican():
     r = portal_lib.resumen_asignaciones(clientes)
     f = portal_lib.resumen_fases(clientes)
     assert r['en_embudo'] == r['total'] == f['total'] == len(clientes)
-    assert r['tiles']['nuevas']['n'] == 2  # Nuevo + ASIGNADO
-    assert r['tiles']['sin_estatus']['n'] == 1
+    assert r['tiles']['nuevas']['n'] == 0  # sin fecha no entra en Nuevas
+    assert r['tiles']['sin_estatus']['n'] == 3  # Nuevo + ASIGNADO + Sin estatus
     assert r['tiles']['busqueda']['n'] == 2  # Buscando + Esperando
     assert r['tiles']['agendado']['n'] == 1  # Visita realizada
     assert r['tiles']['perdidos']['n'] == 2  # no se suman también a Búsqueda
@@ -319,3 +339,40 @@ def test_nada_se_pierde_y_perdidos_no_se_duplican():
     for c in clientes:
         assert portal_lib.tile_de_asignacion(
             c['estado'], c['situacion'], c['estatus']) is not None
+
+
+def test_regla_24h():
+    """Nuevas: menos de 24 h y sin avance. Sin estatus: 24 h o más, o sin fecha."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    ahora = datetime(2026, 11, 22, 21, 0, tzinfo=ZoneInfo('America/Caracas'))
+    clientes = [
+        {'nombre': 'Reciente ASIGNADO', 'estado': 'ASIGNADO', 'situacion': '', 'estatus': 'ASIGNADO',
+         'asignado_at': '2026-11-22T10:00:00'},  # 11 h
+        {'nombre': 'Reciente vacío', 'estado': '', 'situacion': '', 'estatus': '',
+         'asignado_at': '2026-11-21T21:00:01'},  # 23 h 59 m
+        {'nombre': 'Justo 24 h', 'estado': 'No contactado', 'situacion': '', 'estatus': 'No contactado',
+         'asignado_at': '2026-11-21T21:00:00'},  # exactamente 24 h
+        {'nombre': 'Viejo Sin estatus', 'estado': 'Sin estatus', 'situacion': '', 'estatus': 'Sin estatus',
+         'asignado_at': '2026-11-10T08:00:00'},
+        {'nombre': 'Sin fecha', 'estado': 'Nuevo', 'situacion': '', 'estatus': 'Nuevo', 'asignado_at': ''},
+        {'nombre': 'Contactado reciente', 'estado': 'Nuevo', 'situacion': 'Contactado', 'estatus': 'Contactado',
+         'asignado_at': '2026-11-22T10:00:00'},
+        {'nombre': 'Perdido reciente', 'estado': 'Perdido', 'situacion': 'Esperando', 'estatus': 'Esperando',
+         'asignado_at': '2026-11-22T10:00:00'},
+    ]
+    r = portal_lib.resumen_asignaciones(clientes, now=ahora)
+    f = portal_lib.resumen_fases(clientes, now=ahora)
+    assert r['en_embudo'] == r['total'] == f['total'] == len(clientes)
+    nombres = lambda tid: [c['nombre'] for c in r['tiles'][tid]['clientes']]
+    assert nombres('nuevas') == ['Reciente ASIGNADO', 'Reciente vacío']
+    assert nombres('sin_estatus') == ['Justo 24 h', 'Viejo Sin estatus', 'Sin fecha']
+    assert nombres('contactado') == ['Contactado reciente']
+    assert nombres('perdidos') == ['Perdido reciente']
+    # La Fase 1 de Mis Clientes usa las mismas etiquetas y no pierde a nadie.
+    f1 = next(g for g in f['grupos'] if g['id'] == 'f1')
+    des = dict(f1['desglose'])
+    assert des.get('Nuevas Asignaciones') == 2
+    assert des.get('Clientes sin estatus') == 3
+    assert des.get('Contactado') == 1
+    assert f1['total'] == 6

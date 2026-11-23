@@ -2291,11 +2291,13 @@ def _clientes_dashboard(user):
     propios = _db_propios(portal_lib.visible_slugs(user))
     out = []
     for r in propios:
-        out.append({'estatus': r.get('status') or 'Sin estatus', 'estado': '', 'situacion': ''})
+        out.append({'estatus': r.get('status') or 'Sin estatus', 'estado': '', 'situacion': '',
+                    'asignado_at': r.get('created_at') or ''})
     for r in asignados:
         out.append({
             'estatus': r.get('estatus') or 'Sin estatus',
             'estado': r.get('estado') or '', 'situacion': r.get('situacion') or '',
+            'asignado_at': r.get('asignado_at') or '',
         })
     return out
 
