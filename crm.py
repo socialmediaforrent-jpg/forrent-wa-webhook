@@ -96,7 +96,7 @@ def _contactos_portal(q):
            FROM crm_contacts
            WHERE NOT excluido AND asesor_slug IS NOT NULL
              AND (in_registro OR asignado_at IS NOT NULL OR asignado_at_raw IS NOT NULL)
-           ORDER BY COALESCE(asignado_at, asignado_at_raw) NULLS LAST, id""",
+           ORDER BY asignado_at NULLS LAST, asignado_at_raw NULLS LAST, id""",
         fetch=True,
     ) or []
     out = []

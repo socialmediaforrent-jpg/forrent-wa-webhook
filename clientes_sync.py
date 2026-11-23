@@ -144,15 +144,19 @@ def pasada(q, *, is_pg=False, opener=None, also_crm=True):
     resp = leer_respuestas(opener=opener)
     data = None
     # Preferir la lista que el portal ya sirve (CRM si está listo).
+    crm_listo = False
     if also_crm:
         try:
             import crm as _crm
-            if _crm.crm_listo(q):
+            crm_listo = bool(_crm.crm_listo(q))
+            if crm_listo:
                 data = _crm.portal_payload('clientes_asignados.json', q)
         except Exception:
             log.exception('clientes_sync crm payload')
-            data = None
-    if data is None:
+            # Si el CRM está cargado, no caemos a una copia vieja de portal_datos.
+            resumen['error'] = 'crm payload'
+            return resumen
+    if data is None and not crm_listo:
         data = _cargar_asignados(q)
     if not data:
         resumen['error'] = 'sin lista'
@@ -166,6 +170,8 @@ def pasada(q, *, is_pg=False, opener=None, also_crm=True):
             log.exception('clientes_sync crm estatus')
     resumen.update(ok=True, cambiados=n_cam, n=len(nuevo.get('clientes') or []),
                    actualizado=nuevo.get('actualizado') or '')
+    log.info('clientes_sync ok n=%s cambiados=%s actualizado=%s',
+             resumen['n'], resumen['cambiados'], resumen['actualizado'])
     return resumen
 
 
