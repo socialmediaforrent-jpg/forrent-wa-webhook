@@ -944,7 +944,7 @@ def _modulos_para(role):
     if admin:
         inv.append(s('Planificador', '/mercadeo/planificador', 'Solo Administrador.'))
     inv.append(s('Estadísticas de Mercadeo', None, 'Llega en la etapa 8, solo con datos reales.'))
-    inv.append(s('Cargar inmueble', '/mis-inmuebles'))
+    # «Cargar inmueble» vive dentro de Mis Captaciones › Inmuebles (/mis-captaciones), no como entrada suelta.
     if admin:
         inv.append(s('Por revisar (carga)', '/inventario/cola'))
 

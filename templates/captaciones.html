@@ -2,7 +2,12 @@
 {% block body %}
 
 {% from '_cap_table.html' import cap_table %}
-<h1 class="page">Mis Captaciones</h1>
+<div class="page-row">
+  <h1 class="page">Mis Captaciones</h1>
+  {% if viewer.role in ('asesor', 'lider', 'admin') %}
+  <a class="btn-carga" href="/mis-inmuebles">Cargar inmueble</a>
+  {% endif %}
+</div>
 <p class="lead">Solo donde figuras como captadora. Inventario del {{ inv_fecha }}. <a href="/inventario">Ver Inmuebles →</a></p>
 <nav class="tabs" aria-label="Filtro">
   <a href="/mis-captaciones?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propios ({{ n_prop }})</a>

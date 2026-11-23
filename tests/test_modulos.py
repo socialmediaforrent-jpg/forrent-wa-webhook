@@ -90,7 +90,9 @@ def test_captaciones_agrupadas():
             assert 'En preparación' in fr and not re.search(r'href="/mercadeo"', fr)
         else:
             assert 'href="/mercadeo"' in fr
-        assert 'Estadísticas de Mercadeo' in main and 'Cargar inmueble' in main
+        assert 'Estadísticas de Mercadeo' in main
+        assert 'Cargar inmueble' not in main
+        assert 'href="/mis-inmuebles"' not in main
         if slug == 'jose':
             assert 'Planificador' in main and 'Por revisar (carga)' in main
         else:
@@ -141,3 +143,11 @@ def test_boton_atras():
     assert _atras(h) and _atras(h).group(1) == '/modulos'
     # Mercadeo: su inicio y su planificador (raíces de su barra) no lo duplican.
     assert 'btn-atras' not in cliente('mercadeo').get('/mercadeo').get_data(as_text=True)
+
+
+def test_cargar_inmueble_en_mis_captaciones():
+    """La carga se abre desde Mis Captaciones › Inmuebles, no como entrada suelta en Módulos."""
+    for slug in ('jose', 'ana'):
+        h = cliente(slug).get('/mis-captaciones').get_data(as_text=True)
+        m = re.search(r'<a class="btn-carga" href="([^"]+)">([^<]+)</a>', h)
+        assert m and m.group(1) == '/mis-inmuebles' and m.group(2) == 'Cargar inmueble', slug
