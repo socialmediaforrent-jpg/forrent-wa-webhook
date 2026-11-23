@@ -699,6 +699,16 @@ def fmt_fecha(iso):
         return s or '—'
 
 
+def fmt_fecha_hora(iso):
+    """Fecha y hora en America/Caracas para el sello «Actualizado»."""
+    dt = parse_caracas(iso) if iso else None
+    if not dt:
+        return 'fecha no disponible'
+    h = dt.hour % 12 or 12
+    ap = 'a. m.' if dt.hour < 12 else 'p. m.'
+    return f'{dt.day} de {MESES[dt.month - 1]} de {dt.year}, {h}:{dt.strftime("%M")} {ap} (Caracas)'
+
+
 def normalizar_telefono(s):
     s = (s or '').strip()
     if not s:

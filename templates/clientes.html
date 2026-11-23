@@ -15,7 +15,7 @@
 <main class="wrap-page">
   <h1 class="page">Mis Clientes</h1>
   {{ fase_cards(fases, '/mis-clientes') }}
-  <p class="lead">{{ n_clientes }} en total. Los asignados vienen del Sistema de Clientes ({{ cli_fecha }}) y su estatus se cambia allí. Los «Propio del asesor» se editan aquí.</p>
+  <p class="lead">{{ n_clientes }} en total. Actualizado: {{ cli_fecha }}. Los asignados vienen del Sistema de Clientes y su estatus se cambia allí. Los «Propio del asesor» se editan aquí.</p>
   {% if flash_ok %}<div class="alert ok">{{ flash_ok }}</div>{% endif %}
   {% if flash_err %}<div class="alert err">{{ flash_err }}</div>{% endif %}
   {% if puede_agregar %}

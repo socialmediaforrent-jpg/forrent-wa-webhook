@@ -22,7 +22,7 @@
     </button>
   </div>
   <div id="asig-info" class="asig-info-pop" popover>
-    Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí. Nuevas Asignaciones son las de hace menos de 24 horas, contadas desde la fecha y hora de asignación, que todavía no tienen avance. Clientes sin estatus son las que ya cumplen 24 horas (o no tienen fecha) y siguen sin avance. Un avance es un estatus real: Contactado, Buscando, Esperando, Agendado, etc. ASIGNADO, No contactado o el campo vacío no cuentan como avance. El cálculo se actualiza cada vez que se carga la página.{% if cli_fecha %} Copia del {{ cli_fecha }}.{% endif %}
+    Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí. Nuevas Asignaciones son las de hace menos de 24 horas, contadas desde la fecha y hora de asignación, que todavía no tienen avance. Clientes sin estatus son las que ya cumplen 24 horas (o no tienen fecha) y siguen sin avance. Un avance es un estatus real: Contactado, Buscando, Esperando, Agendado, etc. ASIGNADO, No contactado o el campo vacío no cuentan como avance. El cálculo se actualiza cada vez que se carga la página.{% if cli_fecha %} Actualizado: {{ cli_fecha }}.{% endif %}
   </div>
 
   <div class="embudo" aria-label="Embudo comercial">

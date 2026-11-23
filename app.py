@@ -63,6 +63,7 @@ import inmuebles
 import carga
 import planificador as planif
 import ghl_sync
+import clientes_sync
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger('wa')
@@ -2241,11 +2242,12 @@ def _render_asesor(user, flash_ok='', flash_err='', form=None):
 
 
 def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200):
+    clientes_sync.maybe_refresh(q, is_pg=IS_PG, invalidate=lambda: _live_cache.__setitem__('t', 0.0))
     clientes, cli_fecha = _asesor_clientes(user)
     resp = _panel_headers(render_template(
         'clientes.html',
         clientes=clientes, n_clientes=len(clientes), fases=_fases_de(clientes),
-        cli_fecha=portal_lib.fmt_fecha(cli_fecha) if cli_fecha else 'fecha no disponible',
+        cli_fecha=portal_lib.fmt_fecha_hora(cli_fecha) if cli_fecha else 'fecha no disponible',
         estatus_opciones=portal_lib.ESTATUS_OPCIONES,
         csrf=portal_lib.csrf_token(user), puede_agregar=user['role'] != 'admin',
         mostrar_asesor=user.get('role') == 'admin',
@@ -2734,6 +2736,7 @@ def clientes_propios():
 @require_login
 def mis_asignaciones():
     """Embudo comercial de asignaciones. Mercadeo queda en 403 por require_login."""
+    clientes_sync.maybe_refresh(q, is_pg=IS_PG, invalidate=lambda: _live_cache.__setitem__('t', 0.0))
     clientes, actualizado = _clientes_asignaciones(g.user)
     embudo = portal_lib.resumen_asignaciones(clientes)
     tile_id = (request.args.get('e') or '').strip()
@@ -2745,7 +2748,7 @@ def mis_asignaciones():
         csrf=portal_lib.csrf_token(g.user),
         estatus_opciones=portal_lib.ESTATUS_OPCIONES,
         mostrar_asesor=g.user.get('role') == 'admin',
-        cli_fecha=portal_lib.fmt_fecha(actualizado) if actualizado else 'fecha no disponible',
+        cli_fecha=portal_lib.fmt_fecha_hora(actualizado) if actualizado else 'fecha no disponible',
     ))
 
 
@@ -2810,7 +2813,7 @@ def mi_equipo_asesora(slug):
         propias=_fichas_publicas([x for x in cap if x.get('origen') == 'propio']),
         alianzas=_fichas_publicas([x for x in cap if x.get('origen') == 'alianza']),
         clientes=clientes, fases=_fases_de(clientes),
-        cli_fecha=portal_lib.fmt_fecha(cli_fecha) if cli_fecha else 'fecha no disponible',
+        cli_fecha=portal_lib.fmt_fecha_hora(cli_fecha) if cli_fecha else 'fecha no disponible',
         inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''),
     ))
 
@@ -4083,7 +4086,9 @@ def _arrancar_sync_fondo():
     def factory():
         return (q_fondo,)
 
-    return ghl_sync.iniciar_fondo(factory, insert_event=insert_event, is_pg=IS_PG, on_change=_invalidar_lista)
+    ghl_sync.iniciar_fondo(factory, insert_event=insert_event, is_pg=IS_PG, on_change=_invalidar_lista)
+    clientes_sync.iniciar_fondo(factory, is_pg=IS_PG, invalidate=lambda: _live_cache.__setitem__('t', 0.0))
+    return True
 
 
 _arrancar_sync_fondo()

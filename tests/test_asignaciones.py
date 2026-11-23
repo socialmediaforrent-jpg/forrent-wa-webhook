@@ -376,3 +376,21 @@ def test_regla_24h():
     assert des.get('Clientes sin estatus') == 3
     assert des.get('Contactado') == 1
     assert f1['total'] == 6
+
+
+def test_sello_actualizado_en_vivo_no_dice_copia(monkeypatch):
+    _carga(monkeypatch)
+    html_a = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    html_c = cliente('jose').get('/mis-clientes').get_data(as_text=True)
+    sello = portal_lib.fmt_fecha_hora('2026-11-16T12:00:00-04:00')
+    assert 'Copia del' not in html_a
+    assert 'Actualizado: ' + sello in html_a
+    assert 'Copia del' not in html_c
+    assert 'Actualizado: ' + sello in html_c
+
+
+def test_fmt_fecha_hora_caracas():
+    s = portal_lib.fmt_fecha_hora('2026-11-22T18:23:54-05:00')
+    # 18:23 en UTC-5 = 19:23 en Caracas (UTC-4).
+    assert s == '22 de noviembre de 2026, 7:23 p. m. (Caracas)'
+    assert portal_lib.fmt_fecha_hora('') == 'fecha no disponible'

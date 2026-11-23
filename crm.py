@@ -69,18 +69,38 @@ def _meta(q, key, default=None):
     return _j(rows[0]['value'])
 
 
+def _iso_asignado(raw, typed=None):
+    """ISO corto (YYYY-MM-DDTHH:MM:SS) desde texto o timestamp."""
+    for v in (raw, typed):
+        if v is None or v == '':
+            continue
+        if hasattr(v, 'isoformat'):
+            try:
+                if getattr(v, 'tzinfo', None) is None:
+                    v = v.replace(tzinfo=TZ)
+                v = v.astimezone(TZ)
+            except Exception:
+                pass
+            s = v.isoformat()
+        else:
+            s = str(v).replace(' ', 'T')
+        s = s.replace('Z', '')
+        return s[:19]
+    return ''
+
+
 def _contactos_portal(q):
     rows = q(
         """SELECT registro_id, ghl_id, propio_id, asesor_slug, name, estatus, estado, situacion,
-                  inmueble, operacion, asignado_at_raw, origen
+                  inmueble, operacion, asignado_at_raw, asignado_at, origen
            FROM crm_contacts
-           WHERE in_registro AND NOT excluido AND asesor_slug IS NOT NULL
-           ORDER BY asignado_at_raw NULLS LAST, id""",
+           WHERE NOT excluido AND asesor_slug IS NOT NULL
+             AND (in_registro OR asignado_at IS NOT NULL OR asignado_at_raw IS NOT NULL)
+           ORDER BY COALESCE(asignado_at, asignado_at_raw) NULLS LAST, id""",
         fetch=True,
     ) or []
     out = []
     for r in rows:
-        aa = (r.get('asignado_at_raw') or '')[:19]
         out.append({
             'id': r.get('registro_id') or r.get('ghl_id') or r.get('propio_id') or '',
             'asesor': r.get('asesor_slug') or '',
@@ -90,7 +110,7 @@ def _contactos_portal(q):
             'situacion': r.get('situacion') or '',
             'inmueble': r.get('inmueble') or '',
             'operacion': r.get('operacion') or '',
-            'asignado_at': aa,
+            'asignado_at': _iso_asignado(r.get('asignado_at_raw'), r.get('asignado_at')),
             'origen': r.get('origen') or 'Asignado por For Rent',
         })
     return out
@@ -180,19 +200,45 @@ def crm_listo(q) -> bool:
         return False
 
 
+def _stamp_vivo(q, meta=None):
+    """Sello de actualización en vivo: el cambio más reciente en el CRM, no la fecha de un import."""
+    meta = meta or {}
+    try:
+        rows = q(
+            """SELECT GREATEST(
+                    COALESCE((SELECT MAX(updated_at) FROM crm_contacts), '-infinity'::timestamptz),
+                    COALESCE((SELECT MAX(assigned_at) FROM crm_assignments), '-infinity'::timestamptz)
+               ) AS u""",
+            fetch=True,
+        ) or []
+        u = rows[0].get('u') if rows else None
+        if u is not None and str(u) not in ('', 'None', '-infinity'):
+            iso = _iso_asignado(None, u)
+            if iso:
+                # Conserva zona Caracas en el sello.
+                if hasattr(u, 'isoformat'):
+                    if getattr(u, 'tzinfo', None) is None:
+                        u = u.replace(tzinfo=TZ)
+                    return u.astimezone(TZ).isoformat(timespec='seconds')
+                return iso
+    except Exception:
+        pass
+    return datetime.now(TZ).isoformat(timespec='seconds')
+
+
 def portal_payload(nombre, q):
     """Arma el mismo JSON que el portal ya consume. None si este nombre no sale del CRM o aún no hay carga."""
     if nombre not in PORTAL_NOMBRES or not crm_listo(q):
         return None
     meta = _meta(q, 'import_ok', {}) or {}
-    ahora = meta.get('actualizado') or datetime.now(TZ).isoformat(timespec='seconds')
+    ahora = _stamp_vivo(q, meta)
     if nombre == 'clientes_asignados.json':
         clientes = _contactos_portal(q)
         return {
             'actualizado': ahora,
             'registro_actualizado': meta.get('registro_actualizado') or '',
-            'respuestas_en_vivo': False,
-            'fuente': 'CRM propia (Postgres): export GHL + registro/respuestas. Corte 31-oct-2026 al servir.',
+            'respuestas_en_vivo': True,
+            'fuente': 'CRM propia (Postgres) y Sistema de Clientes. Corte 31-oct-2026 al servir.',
             'clientes': clientes,
         }
     if nombre == 'clientes_telefonos.json':
@@ -202,7 +248,7 @@ def portal_payload(nombre, q):
         clientes = _contactos_portal(q)
         return {
             'actualizado': ahora,
-            'respuestas_en_vivo': False,
+            'respuestas_en_vivo': True,
             'fuente': 'CRM propia (Postgres), ejercicio desde el corte 31-oct-2026',
             'por_asesor': _productividad(q, clientes),
         }
