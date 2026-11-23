@@ -7,7 +7,20 @@
   <summary class="mod-sum">{{ icon(m.icon) }}<span><b>{{ m.n }}. {{ m.titulo }}</b></span>{{ icon('chev', 'i chev') }}</summary>
   <div class="cards mod-cards">
   {% for sct in m.secciones %}
-    {% if sct.href %}
+    {% if sct.hijos %}
+    <details class="card mod-group">
+      <summary class="mod-group-sum"><span><h2>{{ sct.label }}</h2></span>{{ icon('chev', 'i chev') }}</summary>
+      <div class="mod-subs">
+      {% for sub in sct.hijos %}
+        {% if sub.href %}
+        <a class="mod-sub" href="{{ sub.href }}"><h3>{{ sub.label }}</h3>{% if sub.nota %}<p>{{ sub.nota }}</p>{% endif %}</a>
+        {% else %}
+        <div class="mod-sub mod-prox" aria-disabled="true"><h3>{{ sub.label }} <span class="pill">En preparación</span></h3>{% if sub.nota %}<p>{{ sub.nota }}</p>{% endif %}</div>
+        {% endif %}
+      {% endfor %}
+      </div>
+    </details>
+    {% elif sct.href %}
     <a class="card" href="{{ sct.href }}"><h2>{{ sct.label }}</h2>{% if sct.nota %}<p>{{ sct.nota }}</p>{% endif %}</a>
     {% else %}
     <div class="card mod-prox" aria-disabled="true"><h2>{{ sct.label }} <span class="pill">En preparación</span></h2>{% if sct.nota %}<p>{{ sct.nota }}</p>{% endif %}</div>

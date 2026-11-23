@@ -343,7 +343,19 @@ details.mod[open] .mod-sum .chev{transform:rotate(180deg)}
 .mod-cards .card h2{margin:0;font-size:16px;line-height:1.25;font-weight:700}
 .mod-cards .card p{margin:2px 0 0;font-size:13px;line-height:1.3;color:#4b5263}
 .mod-prox{opacity:.75;background:#f7f8fa}
-.mod-prox h2{color:#5b6275}
+.mod-prox h2,.mod-prox h3{color:#5b6275}
+.mod-group{padding:0;justify-content:flex-start}
+.mod-group-sum{list-style:none;display:flex;align-items:center;gap:8px;padding:10px 12px;min-height:44px;cursor:pointer;box-sizing:border-box}
+.mod-group-sum::-webkit-details-marker{display:none}
+.mod-group-sum h2{margin:0;font-size:16px;line-height:1.25;font-weight:700}
+.mod-group-sum .chev{margin-left:auto;color:#8a93a3;transition:transform .15s;flex:none}
+.mod-group[open] .mod-group-sum .chev{transform:rotate(180deg)}
+.mod-subs{display:flex;flex-direction:column;gap:4px;padding:0 8px 8px 20px}
+.mod-sub{display:flex;flex-direction:column;justify-content:center;min-height:44px;padding:8px 12px;border-radius:10px;text-decoration:none;color:inherit;background:#f7f8fa;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.mod-sub h3{margin:0;font-size:15px;line-height:1.25;font-weight:700}
+.mod-sub p{margin:2px 0 0;font-size:13px;line-height:1.3;color:#4b5263}
+a.mod-sub:hover,a.mod-sub:focus-visible{background:var(--naranja-suave);outline:none}
+a.mod-sub:active{background:var(--naranja-suave);color:var(--naranja)}
 
 /* Inicio de Presidencia: bienvenida corta con foto del equipo. Cifras y embudo siguen en Módulos.
    El bloque llega al borde inferior del viewport (100dvh - encabezado). El padding inferior

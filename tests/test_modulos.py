@@ -37,7 +37,7 @@ def test_cinco_modulos_sin_numeros():
         assert t in h, t
     main = re.search(r'<main.*?</main>', h, re.S).group(0)
     # Las secciones en preparación no muestran cifras.
-    for card in re.findall(r'<div class="card mod-prox".*?</div>', main, re.S):
+    for card in re.findall(r'<div class="(?:card |mod-sub )?mod-prox".*?</div>', main, re.S):
         assert not re.search(r'\d+\s*(%|US\$|clientes|inmuebles)', card), card
     assert 'En preparación' in main
     # Planificador solo para Administrador.
@@ -61,6 +61,40 @@ def test_modulos_salen_contraidos():
         assert 'sessionStorage' not in h
         assert 'location.hash' not in h
 
+
+
+
+def test_captaciones_agrupadas():
+    """Mis Captaciones y Captaciones For Rent aparecen una sola vez, con Inmuebles y Mercadeo dentro."""
+    for slug in ('jose', 'ana'):
+        h = cliente(slug).get('/modulos').get_data(as_text=True)
+        main = re.search(r'<main.*?</main>', h, re.S).group(0)
+        assert main.count('Mis Captaciones') == 1, slug
+        assert main.count('Captaciones For Rent') == 1, slug
+        assert 'Mis Captaciones ›' not in main and 'Captaciones For Rent ›' not in main
+        assert not re.search(r'<details class="card mod-group"[^>]*\sopen', main)
+        grupos = re.findall(
+            r'<details class="card mod-group">\s*<summary class="mod-group-sum">\s*<span>\s*<h2>([^<]+)</h2>(.*?)</details>',
+            main, re.S)
+        labels = [g[0] for g in grupos]
+        assert labels[:2] == ['Mis Captaciones', 'Captaciones For Rent'], (slug, labels)
+        for titulo, cuerpo in grupos[:2]:
+            assert re.search(r'<h3>Inmuebles</h3>', cuerpo), titulo
+            assert re.search(r'<h3>Mercadeo', cuerpo), titulo
+        mc = grupos[0][1]
+        assert 'href="/mis-captaciones"' in mc and 'href="/mercadeo"' in mc
+        assert 'Propios, Alianza y Todos.' in mc
+        fr = grupos[1][1]
+        assert 'href="/inventario"' in fr
+        if slug == 'ana':
+            assert 'En preparación' in fr and not re.search(r'href="/mercadeo"', fr)
+        else:
+            assert 'href="/mercadeo"' in fr
+        assert 'Estadísticas de Mercadeo' in main and 'Cargar inmueble' in main
+        if slug == 'jose':
+            assert 'Planificador' in main and 'Por revisar (carga)' in main
+        else:
+            assert 'Planificador' not in main
 
 def test_permisos_sin_cambios():
     assert cliente('mercadeo').get('/modulos').status_code == 403

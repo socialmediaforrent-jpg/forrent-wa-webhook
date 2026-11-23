@@ -926,14 +926,21 @@ def _modulos_para(role):
     admin = role == 'admin'
     lider = role == 'lider'
 
-    def s(label, href=None, nota=''):
-        return {'label': label, 'href': href, 'nota': nota}
+    def s(label, href=None, nota='', hijos=None):
+        item = {'label': label, 'href': href, 'nota': nota}
+        if hijos:
+            item['hijos'] = hijos
+        return item
 
-    inv = [s('Mis Captaciones › Inmuebles', '/mis-captaciones', 'Propios, Alianza y Todos.'),
-           s('Mis Captaciones › Mercadeo (portales y redes)', '/mercadeo', 'Tus enlaces en los 10 portales y las 6 redes.'),
-           s('Captaciones For Rent › Inmuebles', '/inventario', 'Todo el inventario de For Rent.'),
-           s('Captaciones For Rent › Mercadeo', '/mercadeo' if admin else None,
-             '' if admin else 'Llega en la etapa 2.')]
+    inv = [s('Mis Captaciones', hijos=[
+               s('Inmuebles', '/mis-captaciones', 'Propios, Alianza y Todos.'),
+               s('Mercadeo', '/mercadeo', 'Tus enlaces en los 10 portales y las 6 redes.'),
+           ]),
+           s('Captaciones For Rent', hijos=[
+               s('Inmuebles', '/inventario', 'Todo el inventario de For Rent.'),
+               s('Mercadeo', '/mercadeo' if admin else None,
+                 '' if admin else 'Llega en la etapa 2.'),
+           ])]
     if admin:
         inv.append(s('Planificador', '/mercadeo/planificador', 'Solo Administrador.'))
     inv.append(s('Estadísticas de Mercadeo', None, 'Llega en la etapa 8, solo con datos reales.'))
