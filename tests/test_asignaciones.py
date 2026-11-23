@@ -56,15 +56,20 @@ def test_mapeo_estatus():
     assert m('', 'Documento notariado', 'Documento notariado') == 'registrado'
     assert m('', 'Documento registrado', 'Documento registrado') == 'registrado'
     assert m('', 'Inmueble entregado', 'Inmueble entregado') == 'entregado'
-    # Reconocidos sin baldosa: no se inventa un casillero ni se mezclan.
-    assert m('En proceso', 'Esperando', 'Esperando') is None
-    assert m('', 'En espera', 'En espera') is None
-    assert m('En proceso', '', 'En proceso') is None
-    assert m('En proceso', 'Visita realizada', 'Visita realizada') is None
-    assert m('', 'Documento privado', 'Documento privado') is None
-    assert m('Negociación', '', 'Negociación') is None
-    # Perdido tiene su propia fila, aunque la situación sea un estatus mapeado.
+    assert m('En proceso', 'Esperando', 'Esperando') == 'busqueda'
+    assert m('', 'En espera', 'En espera') == 'busqueda'
+    assert m('En proceso', 'Visita realizada', 'Visita realizada') == 'agendado'
+    assert m('', '', 'ASIGNADO') == 'nuevas'
+    assert m('', '', 'asignado') == 'nuevas'
+    assert m('ASIGNADO', '', 'ASIGNADO') == 'nuevas'
+    # Lo que no tiene baldosa propia cae en Otros, nunca se pierde.
+    assert m('En proceso', '', 'En proceso') == 'otros'
+    assert m('', 'Documento privado', 'Documento privado') == 'otros'
+    assert m('Negociación', '', 'Negociación') == 'otros'
+    assert m('', '', 'Estatus inventado XYZ') == 'otros'
+    # Perdido tiene su propia fila y no se duplica en Búsqueda/Esperando.
     assert m('Perdido', 'Buscando', 'Buscando') == 'perdidos'
+    assert m('Perdido', 'Esperando', 'Esperando') == 'perdidos'
     assert m('Perdido', '', 'Perdido') == 'perdidos'
     assert m('', 'descartado', 'descartado') == 'perdidos'
 
@@ -85,6 +90,7 @@ def test_resumen_no_inventa_ceros():
     assert tiles['reserva_firmada']['n'] == 0
     assert tiles['registrado']['n'] == 0
     assert tiles['entregado']['n'] == 0
+    assert tiles['otros']['n'] == 0
     assert tiles['perdidos']['n'] == 0
     assert r['en_embudo'] == 1
     assert r['total'] == 1
@@ -154,8 +160,8 @@ def test_asesora_solo_las_suyas(monkeypatch):
     # Perdida tampoco.
     perd = cliente('ana').get('/mis-asignaciones?e=busqueda').get_data(as_text=True)
     assert 'Busca Ana' in perd
+    assert 'Espera Ana' in perd
     assert 'Perdida Ana' not in perd
-    assert 'Espera Ana' not in perd
 
 
 def test_conteos_por_rol(monkeypatch):
@@ -171,12 +177,12 @@ def test_conteos_por_rol(monkeypatch):
 
     # Orden: nuevas, sin_estatus, contactado, busqueda, agendado, oferta,
     # oferta_aceptada, reserva_agendada, reserva_firmada, registrado, entregado, perdidos
-    # Ana vigentes: Nueva, Busca, Agendada, Oferta, Perdida. Espera/Anterior no.
-    assert nums('ana') == [1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1]
-    # José y Luz ven todas las vigentes del fixture (sin anterior ni espera):
-    # nuevas 1 (Ana), sin_estatus 1 (Luz), contactado 1 (Miriam), busqueda 1, agendado 1, oferta 1, perdidos 1 (Ana)
-    assert nums('jose') == [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1]
-    assert nums('luz') == [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1]
+    # Ana vigentes: Nueva, Busca, Espera, Agendada, Oferta, Perdida. Anterior no.
+    assert nums('ana') == [1, 0, 0, 2, 1, 1, 0, 0, 0, 0, 0, 1]
+    # José y Luz: nuevas 1 (Ana), sin_estatus 1 (Luz), contactado 1 (Miriam),
+    # busqueda 2 (Busca+Espera), agendado 1, oferta 1, perdidos 1 (Ana)
+    assert nums('jose') == [1, 1, 1, 2, 1, 1, 0, 0, 0, 0, 0, 1]
+    assert nums('luz') == [1, 1, 1, 2, 1, 1, 0, 0, 0, 0, 0, 1]
 
 
 def test_mercadeo_no_entra():
@@ -189,7 +195,7 @@ def test_vista_tiene_fases_del_mockup(monkeypatch):
     html = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
     plano = html.replace('\u200b', '')
     for texto in ('1. Nuevas Asignaciones', 'Clientes sin estatus', '2. En Proceso', '3. En Negociación',
-                  '4. Entrega de Inmueble', 'Perdidos', 'Contactado', 'En Búsqueda', 'Agendado',
+                  '4. Entrega de Inmueble', 'Perdidos', 'Contactado', 'En Búsqueda/Esperando', 'Agendado/Visitado',
                   'Oferta enviada/recibida', 'Oferta aceptada', 'Reserva agendada',
                   'Reserva Firmada', 'Inmueble Registrado/Notariado', 'Inmueble Entregado'):
         assert texto in plano, texto
@@ -256,3 +262,60 @@ def test_sin_estatus_y_perdidos_segun_datos(monkeypatch):
     assert 'Perdida Ana' in perd
     assert 'Busca Ana' not in perd
     assert 'Anterior Ana' not in perd
+
+
+def test_cuadre_misasig_igual_mis_clientes(monkeypatch):
+    """La suma de las baldosas de Mis Asignaciones es el total de Mis Clientes."""
+    import re
+    _carga(monkeypatch, extras=[
+        {'id': 'asig1', 'nombre': 'Asignado Luz', 'asesor': 'luz', 'estado': 'ASIGNADO',
+         'situacion': '', 'estatus': 'ASIGNADO', 'asignado_at': '2026-11-14', 'operacion': 'Alquiler'},
+        {'id': 'priv1', 'nombre': 'Privado Ana', 'asesor': 'ana', 'estado': 'Negociación',
+         'situacion': 'Documento privado', 'estatus': 'Documento privado',
+         'asignado_at': '2026-11-14', 'operacion': 'Venta'},
+    ])
+    for slug in ('jose', 'luz', 'ana'):
+        html_cli = cliente(slug).get('/mis-clientes').get_data(as_text=True)
+        html_asig = cliente(slug).get('/mis-asignaciones').get_data(as_text=True)
+        nums = [int(x) for x in re.findall(r'class="embudo-n">(\d+)</span>', html_asig)]
+        m = re.search(r'(\d+) en total', html_cli)
+        assert m, 'no se encontró el total en Mis Clientes'
+        total_cli = int(m.group(1))
+        assert nums and sum(nums) == total_cli, (slug, nums, total_cli)
+        assert 'Anterior Ana' not in html_cli and 'Anterior Ana' not in html_asig
+    # El estatus no mapeado aparece en Otros, visible y tocable.
+    html_jose = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    assert 'href="/mis-asignaciones?e=otros"' in html_jose
+    lista = cliente('jose').get('/mis-asignaciones?e=otros').get_data(as_text=True)
+    assert 'Privado Ana' in lista
+    nuevas = cliente('jose').get('/mis-asignaciones?e=nuevas').get_data(as_text=True)
+    assert 'Asignado Luz' in nuevas
+    assert 'Privado Ana' not in nuevas
+
+
+def test_nada_se_pierde_y_perdidos_no_se_duplican():
+    clientes = [
+        {'estado': 'Nuevo', 'situacion': '', 'estatus': 'Nuevo'},
+        {'estado': 'ASIGNADO', 'situacion': '', 'estatus': 'ASIGNADO'},
+        {'estado': 'Sin estatus', 'situacion': '', 'estatus': 'Sin estatus'},
+        {'estado': 'En proceso', 'situacion': 'Buscando', 'estatus': 'Buscando'},
+        {'estado': 'En proceso', 'situacion': 'Esperando', 'estatus': 'Esperando'},
+        {'estado': 'En proceso', 'situacion': 'Visita realizada', 'estatus': 'Visita realizada'},
+        {'estado': 'Perdido', 'situacion': 'Esperando', 'estatus': 'Esperando'},
+        {'estado': 'Perdido', 'situacion': 'Buscando', 'estatus': 'Buscando'},
+        {'estado': 'Negociación', 'situacion': 'Documento privado', 'estatus': 'Documento privado'},
+        {'estado': 'En proceso', 'situacion': '', 'estatus': 'En proceso'},
+        {'estado': '', 'situacion': '', 'estatus': 'Algo raro'},
+    ]
+    r = portal_lib.resumen_asignaciones(clientes)
+    f = portal_lib.resumen_fases(clientes)
+    assert r['en_embudo'] == r['total'] == f['total'] == len(clientes)
+    assert r['tiles']['nuevas']['n'] == 2  # Nuevo + ASIGNADO
+    assert r['tiles']['sin_estatus']['n'] == 1
+    assert r['tiles']['busqueda']['n'] == 2  # Buscando + Esperando
+    assert r['tiles']['agendado']['n'] == 1  # Visita realizada
+    assert r['tiles']['perdidos']['n'] == 2  # no se suman también a Búsqueda
+    assert r['tiles']['otros']['n'] == 3  # Documento privado, En proceso, Algo raro
+    for c in clientes:
+        assert portal_lib.tile_de_asignacion(
+            c['estado'], c['situacion'], c['estatus']) is not None

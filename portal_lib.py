@@ -117,30 +117,33 @@ def resumen_fases(clientes):
 # Cada baldosa usa solo estatus ya existentes. Si no hay clientes en ese estatus, el conteo es 0.
 # No se inventan números ni se crean estatus nuevos.
 #
-# Mapeo (prioridad: situacion, luego estado, luego estatus):
-#   Nuevas Asignaciones           → Nuevo, No contactado
+# Mapeo (prioridad: situacion, luego estado, luego estatus; es_perdido va primero
+# para no duplicar Perdido·Esperando / Perdido·Buscando en otra baldosa):
+#   Nuevas Asignaciones           → Nuevo, No contactado, ASIGNADO
 #   Clientes sin estatus          → Sin estatus (o estado/situacion/estatus vacíos)
 #   Contactado                    → Contactado
-#   En Búsqueda                   → Buscando
-#   Agendado                      → Visita agendada
+#   En Búsqueda/Esperando         → Buscando, Esperando, En espera
+#   Agendado/Visitado             → Visita agendada, Visita realizada
 #   Oferta enviada/recibida       → Oferta realizada
 #   Oferta aceptada               → Oferta aceptada
 #   Reserva agendada              → Reserva agendada
 #   Reserva Firmada               → Reserva firmada
 #   Inmueble Registrado/Notariado → Documento notariado, Documento registrado
 #   Inmueble Entregado            → Inmueble entregado
+#   Otros                         → cualquier otro estatus no mapeado (nunca se pierde)
 #   Perdidos                      → estado=Perdido o textos ya reconocidos por es_perdido
-#
-# Reconocidos pero sin baldosa en este embudo (no se cuentan aquí):
-#   Esperando, En espera, En proceso, Visita realizada, Documento privado,
-#   Recuperado, Negociación (si no trae una situación más específica).
 ASIGNACIONES_ESTATUS = {
     'Nuevo': 'nuevas',
     'No contactado': 'nuevas',
+    'ASIGNADO': 'nuevas',
+    'Asignado': 'nuevas',
     'Sin estatus': 'sin_estatus',
     'Contactado': 'contactado',
     'Buscando': 'busqueda',
+    'Esperando': 'busqueda',
+    'En espera': 'busqueda',
     'Visita agendada': 'agendado',
+    'Visita realizada': 'agendado',
     'Oferta realizada': 'oferta',
     'Oferta aceptada': 'oferta_aceptada',
     'Reserva agendada': 'reserva_agendada',
@@ -148,6 +151,7 @@ ASIGNACIONES_ESTATUS = {
     'Documento notariado': 'registrado',
     'Documento registrado': 'registrado',
     'Inmueble entregado': 'entregado',
+    'Otros': 'otros',
     'Perdido': 'perdidos',
 }
 ASIGNACIONES_RECONOCIDOS = set(ESTATUS_OPCIONES) | {
@@ -159,7 +163,7 @@ ASIGNACIONES_EMBUDO = (
         'icono': 'userplus', 'simple': True,
         'tiles': (
             {'id': 'nuevas', 'label': 'Nuevas Asignaciones', 'icono': 'userplus',
-             'estatus': ('Nuevo', 'No contactado')},
+             'estatus': ('Nuevo', 'No contactado', 'ASIGNADO', 'Asignado')},
         ),
     },
     {
@@ -176,10 +180,10 @@ ASIGNACIONES_EMBUDO = (
         'tiles': (
             {'id': 'contactado', 'label': 'Contactado', 'icono': 'phone',
              'estatus': ('Contactado',)},
-            {'id': 'busqueda', 'label': 'En Búsqueda', 'icono': 'search',
-             'estatus': ('Buscando',)},
-            {'id': 'agendado', 'label': 'Agendado', 'icono': 'calendar-check',
-             'estatus': ('Visita agendada',)},
+            {'id': 'busqueda', 'label': 'En Búsqueda/Esperando', 'icono': 'search',
+             'estatus': ('Buscando', 'Esperando', 'En espera')},
+            {'id': 'agendado', 'label': 'Agendado/Visitado', 'icono': 'calendar-check',
+             'estatus': ('Visita agendada', 'Visita realizada')},
         ),
     },
     {
@@ -207,6 +211,14 @@ ASIGNACIONES_EMBUDO = (
         ),
     },
     {
+        'id': 'otros', 'n': None, 'titulo': 'Otros', 'tono': 'stone',
+        'icono': 'tag', 'simple': True,
+        'tiles': (
+            {'id': 'otros', 'label': 'Otros', 'icono': 'tag',
+             'estatus': ('Otros',)},
+        ),
+    },
+    {
         'id': 'perdidos', 'n': None, 'titulo': 'Perdidos', 'tono': 'rose',
         'icono': 'x-circle', 'simple': True,
         'tiles': (
@@ -219,8 +231,16 @@ _TILE_DEFS = {t['id']: {**t, 'fase_id': f['id'], 'fase_titulo': f['titulo']}
               for f in ASIGNACIONES_EMBUDO for t in f['tiles']}
 
 
+_ESTATUS_CF = {k.casefold(): k for k in ASIGNACIONES_ESTATUS}
+
+
+def _clave_estatus(v):
+    """Devuelve la clave canónica (respeta mayúsculas del mapa) o None."""
+    return _ESTATUS_CF.get((v or '').strip().casefold())
+
+
 def canon_estatus_asignacion(estado='', situacion='', estatus='', tg=''):
-    """Valor de estatus que alimenta el embudo, o None si no aplica (otro no mapeado)."""
+    """Valor de estatus que alimenta el embudo. Nunca deja un cliente sin baldosa."""
     if es_perdido(estado, situacion, estatus, tg):
         return 'Perdido'
     encontrados = [(raw or '').strip() for raw in (situacion, estado, estatus)]
@@ -229,16 +249,15 @@ def canon_estatus_asignacion(estado='', situacion='', estatus='', tg=''):
     for v in encontrados:
         if not v:
             continue
-        if v in ASIGNACIONES_ESTATUS:
-            return v
-        if v in ASIGNACIONES_RECONOCIDOS:
-            return None
-    return None
+        key = _clave_estatus(v)
+        if key and key not in ('Otros',):
+            return key
+    return 'Otros'
 
 
 def tile_de_asignacion(estado='', situacion='', estatus='', tg=''):
     v = canon_estatus_asignacion(estado, situacion, estatus, tg)
-    return ASIGNACIONES_ESTATUS.get(v) if v else None
+    return ASIGNACIONES_ESTATUS.get(v) or 'otros'
 
 
 def resumen_asignaciones(clientes):

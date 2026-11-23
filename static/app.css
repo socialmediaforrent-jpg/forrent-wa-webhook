@@ -337,6 +337,8 @@ a.embudo-fase.simple:hover,a.embudo-tile:hover{transform:translateY(-1px);transi
 .tono-sand .embudo-fase-ico,.tono-sand .embudo-fase-ico .i{color:#8a7d66}
 .tono-rose{background:#f8eaea}
 .tono-rose .embudo-fase-ico,.tono-rose .embudo-fase-ico .i{color:#c45c5c}
+.tono-stone{background:#eceff3}
+.tono-stone .embudo-fase-ico,.tono-stone .embudo-fase-ico .i{color:#6b7280}
 
 .ico-contactado,.ico-oferta{color:#2aa7a8}
 .ico-busqueda{color:#d4a017}

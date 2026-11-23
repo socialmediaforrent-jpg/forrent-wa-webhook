@@ -2167,11 +2167,11 @@ def _nombre_asesor(slug):
     return (m or {}).get('name') or slug
 
 
-def _asesor_clientes(user):
-    """Lista unificada: propios del asesor (editables) y asignados por For Rent (solo lectura).
+def _clientes_ejercicio(user):
+    """Mismo universo para Mis Clientes y Mis Asignaciones (corte 31-oct-2026).
 
-    Admin (José): todos los asignados del ejercicio vigente (corte 31-oct-2026),
-    con el asesor de cada cliente. Líder y asesora: solo los suyos (filtro en servidor).
+    Admin (José, Luz): todos los asignados del ejercicio vigente, con el asesor
+    de cada cliente. Líder y asesora: sus asignados y sus clientes propios.
     """
     es_admin = user.get('role') == 'admin'
     if es_admin:
@@ -2189,37 +2189,9 @@ def _asesor_clientes(user):
             'origen': 'Propio del asesor',
             'origen_nota': r.get('origen_nota') or '',
             'busca': _busca(r), 'inmueble': '', 'editable': True,
+            'asignado_at': r.get('created_at') or '',
         })
     for r in asignados:
-        rec = {
-            'id': r.get('id'), 'nombre': r.get('nombre') or 'Cliente', 'telefono': '',
-            'estatus': r.get('estatus') or 'Sin estatus',
-            'estado': r.get('estado') or '', 'situacion': r.get('situacion') or '',
-            'origen': 'Asignado por For Rent',
-            'origen_nota': '', 'busca': r.get('operacion') or '',
-            'inmueble': r.get('inmueble') or '', 'editable': False,
-        }
-        if es_admin:
-            slug = (r.get('asesor') or '').strip()
-            rec['asesor'] = slug
-            rec['asesor_nombre'] = _nombre_asesor(slug) if slug else ''
-        out.append(rec)
-    return out, actualizado
-
-
-
-def _clientes_asignaciones(user):
-    """Solo asignados del ejercicio vigente (corte 31-oct-2026). Sin propios.
-
-    Admin (José, Luz): todos. Asesora y líder: solo los suyos. Filtro en servidor.
-    """
-    es_admin = user.get('role') == 'admin'
-    if es_admin:
-        items, actualizado, _fuente = portal_lib.load_asignados()
-    else:
-        items, actualizado, _fuente = portal_lib.load_asignados(slug=user['user'])
-    out = []
-    for r in items:
         rec = {
             'id': r.get('id'), 'nombre': r.get('nombre') or 'Cliente', 'telefono': '',
             'estatus': r.get('estatus') or 'Sin estatus',
@@ -2235,6 +2207,16 @@ def _clientes_asignaciones(user):
             rec['asesor_nombre'] = _nombre_asesor(slug) if slug else ''
         out.append(rec)
     return out, actualizado
+
+
+def _asesor_clientes(user):
+    """Lista unificada de Mis Clientes: misma fuente que Mis Asignaciones."""
+    return _clientes_ejercicio(user)
+
+
+def _clientes_asignaciones(user):
+    """Embudo de Mis Asignaciones: misma fuente que Mis Clientes."""
+    return _clientes_ejercicio(user)
 
 
 def _cierres_vista(user, *, full):
