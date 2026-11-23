@@ -9,13 +9,20 @@
 {% include '_brand.css.html' %}
 </head>
 <body>
-{% from '_fases.html' import fase_cards, cli_por_fase %}
+{% from '_icons.html' import icon %}
+{% from '_fases.html' import cli_por_fase %}
 {% set nav='clientes' %}
 {% include '_top.html' %}
 <main class="wrap-page">
-  <h1 class="page">Mis Clientes</h1>
-  {{ fase_cards(fases, '/mis-clientes') }}
-  <p class="lead">{{ n_clientes }} en total. Actualizado: {{ cli_fecha }}. Los asignados vienen del Sistema de Clientes y su estatus se cambia allí. Los «Propio del asesor» se editan aquí.</p>
+  <div class="page-row asig-titulo">
+    <h1 class="page">Mis Clientes</h1>
+    <button type="button" class="asig-info-btn" popovertarget="cli-info" aria-label="Información de Mis Clientes">
+      {{ icon('info', 'asig-info-ico') }}
+    </button>
+  </div>
+  <div id="cli-info" class="asig-info-pop" popover>
+    {{ n_clientes }} en total. Actualizado: {{ cli_fecha }}. Los asignados vienen del Sistema de Clientes y su estatus se cambia allí. Los «Propio del asesor» se editan aquí. Solo clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí.
+  </div>
   {% if flash_ok %}<div class="alert ok">{{ flash_ok }}</div>{% endif %}
   {% if flash_err %}<div class="alert err">{{ flash_err }}</div>{% endif %}
   {% if puede_agregar %}
@@ -43,5 +50,20 @@
   {% endif %}
   {{ cli_por_fase(fases.grupos, csrf, estatus_opciones, 'No tienes clientes en esta lista todavía.', mostrar_asesor=mostrar_asesor|default(false)) }}
 </main>
+<script>
+(function(){
+  var btn = document.querySelector(".asig-info-btn");
+  var pop = document.getElementById("cli-info");
+  if (!btn || !pop) return;
+  pop.addEventListener("toggle", function(){
+    if (!pop.matches(":popover-open")) return;
+    var r = btn.getBoundingClientRect();
+    var w = pop.offsetWidth || 280;
+    var left = Math.min(Math.max(16, r.left), Math.max(16, window.innerWidth - w - 16));
+    pop.style.top = (r.bottom + 6) + "px";
+    pop.style.left = left + "px";
+  });
+})();
+</script>
 </body>
 </html>

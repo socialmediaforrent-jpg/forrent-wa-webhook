@@ -281,8 +281,9 @@ def test_sin_estatus_y_perdidos_segun_datos(monkeypatch):
 
 
 def test_cuadre_misasig_igual_mis_clientes(monkeypatch):
-    """La suma de las baldosas de Mis Asignaciones es el total de Mis Clientes."""
+    """El total de Mis Asignaciones y el de Mis Clientes coinciden a nivel de datos."""
     import re
+    import app as appmod
     _carga(monkeypatch, extras=[
         {'id': 'asig1', 'nombre': 'Asignado Luz', 'asesor': 'luz', 'estado': 'ASIGNADO',
          'situacion': '', 'estatus': 'ASIGNADO', 'asignado_at': '2026-11-14', 'operacion': 'Alquiler'},
@@ -291,13 +292,16 @@ def test_cuadre_misasig_igual_mis_clientes(monkeypatch):
          'asignado_at': '2026-11-14', 'operacion': 'Venta'},
     ])
     for slug in ('jose', 'luz', 'ana'):
+        user = portal_lib.user_by_username(slug)
+        clientes, _ = appmod._clientes_ejercicio(user)
+        r = portal_lib.resumen_asignaciones(clientes)
+        f = portal_lib.resumen_fases(clientes)
+        assert r['en_embudo'] == r['total'] == f['total'] == len(clientes), (slug, r, f['total'], len(clientes))
         html_cli = cliente(slug).get('/mis-clientes').get_data(as_text=True)
         html_asig = cliente(slug).get('/mis-asignaciones').get_data(as_text=True)
         nums = [int(x) for x in re.findall(r'class="embudo-n">(\d+)</span>', html_asig)]
-        m = re.search(r'(\d+) en total', html_cli)
-        assert m, 'no se encontró el total en Mis Clientes'
-        total_cli = int(m.group(1))
-        assert nums and sum(nums) == total_cli, (slug, nums, total_cli)
+        assert nums and sum(nums) == r['total'], (slug, nums, r['total'])
+        assert html_cli.count('class="cli-row"') == r['total'], (slug, html_cli.count('class="cli-row"'), r['total'])
         assert 'Anterior Ana' not in html_cli and 'Anterior Ana' not in html_asig
     # El estatus no mapeado aparece en Otros, visible y tocable.
     html_jose = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
@@ -310,7 +314,37 @@ def test_cuadre_misasig_igual_mis_clientes(monkeypatch):
     assert 'Privado Ana' not in nuevas
     sin_e = cliente('jose').get('/mis-asignaciones?e=sin_estatus').get_data(as_text=True)
     assert 'Asignado Luz' in sin_e
-    assert 'Clientes sin estatus' in html_cli or 'Clientes sin estatus' in cliente('jose').get('/mis-clientes').get_data(as_text=True)
+    assert 'Asignado Luz' in cliente('jose').get('/mis-clientes').get_data(as_text=True)
+
+
+def test_mis_clientes_sin_tableros_y_con_info(monkeypatch):
+    """Mis Clientes ya no muestra las tarjetas de resumen; el texto va en la i."""
+    _carga(monkeypatch)
+    html = cliente('jose').get('/mis-clientes').get_data(as_text=True)
+    assert 'fase-kpis' not in html
+    assert 'kpi fase-pct' not in html
+    assert 'Con estatus' not in html
+    assert 'fase-corte' not in html
+    assert 'class="asig-info-btn"' in html
+    assert 'popovertarget="cli-info"' in html
+    assert 'id="cli-info"' in html
+    assert 'Información de Mis Clientes' in html
+    pop = html[html.find('id="cli-info"'):]
+    assert 'en total' in pop
+    assert 'Actualizado:' in pop
+    assert 'Sistema de Clientes' in pop
+    assert '31 oct 2026' in pop
+    assert 'class="cli-row"' in html
+    assert 'Nueva Ana' in html
+    # El ícono va junto al título.
+    tit = html.find('class="page-row asig-titulo"')
+    info = html.find('class="asig-info-btn"')
+    h1 = html.find('>Mis Clientes</h1>')
+    assert tit != -1 and info != -1 and h1 != -1
+    assert tit < h1 < info
+    # Mis Asignaciones no se toca.
+    asig = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    assert 'class="embudo"' in asig and '1. Nuevas Asignaciones' in asig
 
 
 def test_nada_se_pierde_y_perdidos_no_se_duplican():
