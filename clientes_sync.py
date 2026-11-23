@@ -31,6 +31,7 @@ _parar = threading.Event()
 _pedir = threading.Event()
 _ultima = 0.0
 _ultimo = {}
+SELLO_NOMBRE = 'clientes_sync_ok'
 
 
 def en_pruebas():
@@ -82,6 +83,63 @@ def intervalo():
 
 def ahora_iso():
     return datetime.now(TZ).isoformat(timespec='seconds')
+
+
+def reset_memoria():
+    """Solo para pruebas: olvida el sello en memoria."""
+    global _ultima, _ultimo
+    _ultima = 0.0
+    _ultimo = {}
+
+
+def _guardar_sello(q, is_pg, resumen):
+    """Guarda la hora de una sincronización exitosa, haya o no cambios."""
+    datos = {
+        'ok': True,
+        'actualizado': resumen.get('actualizado') or ahora_iso(),
+        'n': resumen.get('n') or 0,
+        'cambiados': resumen.get('cambiados') or 0,
+    }
+    try:
+        _guardar_portal(q, is_pg, SELLO_NOMBRE, datos)
+    except Exception:
+        log.exception('clientes_sync sello portal')
+    try:
+        import crm as _crm
+        if _crm.crm_listo(q):
+            _crm.set_meta(q, 'clientes_sync_ok', datos)
+    except Exception:
+        pass
+
+
+def _leer_sello_guardado(q):
+    if not q:
+        return ''
+    try:
+        rows = q("SELECT datos FROM portal_datos WHERE nombre=%s", (SELLO_NOMBRE,), fetch=True) or []
+        if rows:
+            d = rows[0]['datos']
+            if isinstance(d, str):
+                d = json.loads(d)
+            if isinstance(d, dict) and d.get('ok') and d.get('actualizado'):
+                return d['actualizado']
+    except Exception:
+        pass
+    try:
+        import crm as _crm
+        m = _crm._meta(q, 'clientes_sync_ok', {}) or {}
+        if isinstance(m, dict) and m.get('actualizado') and m.get('ok', True):
+            return m['actualizado']
+    except Exception:
+        pass
+    return ''
+
+
+def sello_actualizado(q=None):
+    """ISO de la última sincronización exitosa. Vacío si todavía no hubo una."""
+    if (_ultimo or {}).get('ok') and (_ultimo or {}).get('actualizado'):
+        return _ultimo['actualizado']
+    return _leer_sello_guardado(q)
 
 
 def _guardar_portal(q, is_pg, nombre, datos):
@@ -189,6 +247,9 @@ def pasada(q, *, is_pg=False, opener=None, also_crm=True):
             log.exception('clientes_sync crm estatus')
     resumen.update(ok=True, cambiados=n_cam, n=len(nuevo.get('clientes') or []),
                    actualizado=nuevo.get('actualizado') or '')
+    global _ultimo
+    _ultimo = dict(resumen)
+    _guardar_sello(q, is_pg, resumen)
     log.info('clientes_sync ok n=%s cambiados=%s actualizado=%s',
              resumen['n'], resumen['cambiados'], resumen['actualizado'])
     return resumen

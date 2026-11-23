@@ -29,6 +29,8 @@ CLIENTES_FIXTURE = [
 
 
 def _carga(monkeypatch, extras=None):
+    import clientes_sync
+    clientes_sync.reset_memoria()
     data = {'clientes': list(CLIENTES_FIXTURE) + list(extras or []), 'actualizado': '2026-11-16T12:00:00-04:00'}
 
     def loader(name):
@@ -366,6 +368,10 @@ def test_mis_clientes_listas_contraidas_y_nuevas(monkeypatch):
     esperados = ['nuevas', 'sin_estatus', 'contactado', 'f2', 'f3', 'f4', 'f5', 'perdidos']
     assert [i for i in ids if i in esperados] == esperados
     assert 'Fase 1 · Asignación y contacto' not in html
+    # Los encabezados ya no llevan el prefijo «Fase N ·».
+    import re as _re
+    visibles = ' '.join(_re.findall(r'<summary>(.*?)</summary>', html, flags=_re.S))
+    assert 'Fase' not in visibles
     assert 'Nuevas Asignaciones' in html
     assert 'Clientes sin estatus' in html
     assert 'Contactado' in html
@@ -380,10 +386,10 @@ def test_mis_clientes_listas_contraidas_y_nuevas(monkeypatch):
     assert n_grupo('nuevas', 'Nuevas Asignaciones') == tiles[0]
     assert n_grupo('sin_estatus', 'Clientes sin estatus') == tiles[1]
     assert n_grupo('contactado', 'Contactado') == tiles[2]
-    assert n_grupo('f2', 'Fase 2 · Búsqueda / En proceso') == tiles[3]
-    assert n_grupo('f3', 'Fase 3 · Visitas') == tiles[4]
-    assert n_grupo('f4', 'Fase 4 · Negociación') == tiles[5] + tiles[6] + tiles[7]
-    assert n_grupo('f5', 'Fase 5 · Entrega') == tiles[8] + tiles[9] + tiles[10]
+    assert n_grupo('f2', 'Búsqueda / En proceso') == tiles[3]
+    assert n_grupo('f3', 'Visitas') == tiles[4]
+    assert n_grupo('f4', 'Negociación') == tiles[5] + tiles[6] + tiles[7]
+    assert n_grupo('f5', 'Entrega') == tiles[8] + tiles[9] + tiles[10]
     assert n_grupo('perdidos', 'Perdidos') == tiles[11]
     suma = (tiles[0] + tiles[1] + tiles[2] + tiles[3] + tiles[4]
             + tiles[5] + tiles[6] + tiles[7] + tiles[8] + tiles[9] + tiles[10] + tiles[11])
@@ -472,6 +478,23 @@ def test_sello_actualizado_en_vivo_no_dice_copia(monkeypatch):
     assert 'Actualizado: ' + sello in html_a
     assert 'Copia del' not in html_c
     assert 'Actualizado: ' + sello in html_c
+
+
+def test_sello_usa_hora_de_sync_aunque_no_haya_cambios(monkeypatch):
+    """El sello muestra la última sincronización exitosa, aunque no haya habido cambios."""
+    import clientes_sync
+    _carga(monkeypatch)
+    iso = '2026-11-22T22:43:09-04:00'
+    clientes_sync._ultimo = {'ok': True, 'actualizado': iso, 'n': 209, 'cambiados': 0}
+    sello = portal_lib.fmt_fecha_hora(iso)
+    html_a = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    html_c = cliente('jose').get('/mis-clientes').get_data(as_text=True)
+    assert 'Actualizado: ' + sello in html_a
+    assert 'Actualizado: ' + sello in html_c
+    viejo = portal_lib.fmt_fecha_hora('2026-11-16T12:00:00-04:00')
+    assert 'Actualizado: ' + viejo not in html_a
+    assert 'Actualizado: ' + viejo not in html_c
+    clientes_sync.reset_memoria()
 
 
 def test_fmt_fecha_hora_caracas():

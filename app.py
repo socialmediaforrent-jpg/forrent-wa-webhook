@@ -2207,6 +2207,9 @@ def _clientes_ejercicio(user):
             rec['asesor'] = slug
             rec['asesor_nombre'] = _nombre_asesor(slug) if slug else ''
         out.append(rec)
+    sello = clientes_sync.sello_actualizado(q)
+    if sello:
+        actualizado = sello
     return out, actualizado
 
 

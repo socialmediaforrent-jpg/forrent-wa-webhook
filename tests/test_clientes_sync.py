@@ -63,3 +63,48 @@ def test_pasada_guarda_en_portal_datos(tmp_path, monkeypatch):
     guardado = store['clientes_asignados.json']
     assert guardado['clientes'][0]['estatus'] == 'Contactado'
     assert guardado['actualizado'] != '2026-11-15T20:52:52-04:00'
+
+
+
+def test_pasada_sin_cambios_actualiza_sello(monkeypatch):
+    """Aunque no cambie ningún estatus, el sello queda con la hora de esa pasada."""
+    store = {}
+
+    def q(sql, args=(), fetch=False):
+        if fetch and 'SELECT datos' in sql:
+            d = store.get(args[0]) if args else None
+            return [{'datos': d}] if d is not None else []
+        if 'INSERT' in sql or 'OR REPLACE' in sql:
+            store[args[0]] = args[1]
+            return None
+        return []
+
+    store['clientes_asignados.json'] = {
+        'clientes': [{'id': 'a1', 'nombre': 'Laura Sánchez', 'estatus': 'Contactado',
+                      'estado': 'En proceso', 'situacion': 'Contactado',
+                      'asignado_at': '2026-11-22T17:38:23'}],
+        'actualizado': '2026-11-22T22:22:00-04:00',
+    }
+
+    def fake_urlopen(req, timeout=45):
+        class R:
+            def read(self):
+                return json.dumps({'a1': {'estado': 'En proceso', 'situacion': 'Contactado'}}).encode()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+        return R()
+
+    monkeypatch.setenv('CLIENTES_ESTATUS_SYNC_URL', 'https://estatus.example.test')
+    monkeypatch.setenv('CLIENTES_ESTATUS_SYNC_KEY', 'k')
+    clientes_sync.reset_memoria()
+    res = clientes_sync.pasada(q, is_pg=False, opener=fake_urlopen, also_crm=False)
+    assert res['ok'] and res['cambiados'] == 0 and res['n'] == 1
+    assert res['actualizado'] != '2026-11-22T22:22:00-04:00'
+    assert store['clientes_sync_ok']['actualizado'] == res['actualizado']
+    clientes_sync.reset_memoria()
+    assert clientes_sync.sello_actualizado(q) == res['actualizado']
+    clientes_sync.reset_memoria()
