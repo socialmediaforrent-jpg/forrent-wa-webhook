@@ -338,8 +338,10 @@ details.mod{background:var(--card);border-radius:var(--r);box-shadow:var(--sombr
 .mod-sum .i{color:var(--naranja)}
 .mod-sum .chev{margin-left:auto;color:#8a93a3;transition:transform .15s}
 details.mod[open] .mod-sum .chev{transform:rotate(180deg)}
-.mod-cards{padding:0 0 12px}
-.mod-cards .card{box-shadow:none;border:1px solid #eceef2}
+.mod-cards{padding:0 0 8px;gap:6px}
+.mod-cards .card{box-shadow:none;border:1px solid #eceef2;padding:10px 12px;min-height:44px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box}
+.mod-cards .card h2{margin:0;font-size:16px;line-height:1.25;font-weight:700}
+.mod-cards .card p{margin:2px 0 0;font-size:13px;line-height:1.3;color:#4b5263}
 .mod-prox{opacity:.75;background:#f7f8fa}
 .mod-prox h2{color:#5b6275}
 
