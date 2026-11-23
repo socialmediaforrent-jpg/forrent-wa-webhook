@@ -22,13 +22,51 @@ def test_barra_cuatro_botones():
         assert _botones(_bottomnav(r.get_data(as_text=True))) == ['Inicio', 'Módulos', 'Mensajes', 'Más'], slug
 
 
-def test_nada_se_pierde_en_mas():
-    nav = _bottomnav(cliente('ana').get('/modulos').get_data(as_text=True))
-    for href in ('/mis-clientes', '/visitas', '/inventario', '/mis-captaciones', '/perfil', '/ofertas', '/cierres', '/actividades'):
-        assert f'href="{href}"' in nav, href
-    nav = _bottomnav(cliente('jose').get('/modulos').get_data(as_text=True))
-    for href in ('/mis-clientes', '/inventario', '/mercadeo/planificador', '/admin/actividades', '/aprobaciones'):
-        assert f'href="{href}"' in nav, href
+def _sheet(html):
+    nav = _bottomnav(html)
+    m = re.search(r'<div class="sheet".*?</div>', nav, re.S)
+    assert m, 'falta la hoja de Más'
+    return m.group(0)
+
+
+def test_mas_sin_redundancia_con_modulos():
+    """Más no repite lo que ya está en Módulos. El perfil y Cerrar sesión se quedan."""
+    # Presidencia: lo que ya vive en Módulos sale de Más.
+    nav_j = _bottomnav(cliente('jose').get('/modulos').get_data(as_text=True))
+    sheet_j = _sheet(cliente('jose').get('/modulos').get_data(as_text=True))
+    for href in ('/mis-clientes', '/inventario', '/mis-inmuebles', '/inventario/cola',
+                 '/mi-equipo', '/mis-captaciones', '/mercadeo', '/mercadeo/planificador',
+                 '/ofertas', '/cierres', '/admin/actividades', '/clientes-propios', '/visitas'):
+        assert f'href="{href}"' not in nav_j, href
+    assert 'href="/aprobaciones"' in sheet_j
+    assert 'href="/admin/correos"' in sheet_j
+    assert 'Cerrar sesión' in sheet_j
+    # Si hay URL de los sistemas externos, siguen en Más (no están en Módulos).
+    # Si no hay URL, simplemente no aparecen.
+    # Líder: perfil y aprobaciones se quedan; lo demás de Módulos, no.
+    nav_a = _bottomnav(cliente('ana').get('/modulos').get_data(as_text=True))
+    sheet_a = _sheet(cliente('ana').get('/modulos').get_data(as_text=True))
+    for href in ('/mis-clientes', '/visitas', '/inventario', '/mis-captaciones',
+                 '/mis-inmuebles', '/ofertas', '/cierres', '/actividades',
+                 '/mi-equipo', '/clientes-propios', '/mercadeo'):
+        assert f'href="{href}"' not in nav_a, href
+    assert 'href="/perfil"' in sheet_a
+    assert 'href="/aprobaciones"' in sheet_a
+    assert 'Cerrar sesión' in sheet_a
+    # Asesora: solo perfil (y Cerrar sesión).
+    nav_h = _bottomnav(cliente('herlinda').get('/modulos').get_data(as_text=True))
+    sheet_h = _sheet(cliente('herlinda').get('/modulos').get_data(as_text=True))
+    for href in ('/mis-clientes', '/visitas', '/inventario', '/mis-captaciones',
+                 '/mis-inmuebles', '/ofertas', '/cierres', '/actividades', '/mercadeo'):
+        assert f'href="{href}"' not in nav_h, href
+    assert 'href="/perfil"' in sheet_h
+    assert 'href="/aprobaciones"' not in sheet_h
+    assert 'Cerrar sesión' in sheet_h
+    # Las rutas siguen existiendo; solo se quitó la entrada duplicada del menú.
+    assert cliente('jose').get('/mis-clientes').status_code == 200
+    assert cliente('jose').get('/aprobaciones').status_code == 200
+    assert cliente('ana').get('/mis-captaciones').status_code == 200
+    assert cliente('herlinda').get('/perfil').status_code == 200
 
 
 def test_cinco_modulos_sin_numeros():

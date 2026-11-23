@@ -811,7 +811,7 @@ def _portal_nav():
         return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['inventario']}
     links = _portal_links()
     # Etapa 1 (Prompt Maestro, José 17-nov): la barra de abajo queda con 4 botones: Inicio, Módulos, Mensajes y Más.
-    # Los 5 módulos viven en /modulos. Todo lo que antes estaba en la barra sigue en «Más» (no se pierde nada).
+    # Los 5 módulos viven en /modulos. «Más» solo trae lo que no está ya en Módulos (José, 22-nov).
     main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'},
             {'href': '/modulos', 'label': 'Módulos', 'key': 'modulos', 'icon': 'chart'},
             {'href': '/panel', 'label': 'Mensajes', 'key': 'mensajes', 'icon': 'chat'}]
@@ -850,6 +850,7 @@ def _portal_nav():
     if role in ('admin', 'lider'):
         more.append({'href': '/clientes-propios', 'label': 'Clientes propios' if role == 'admin' else 'Clientes del equipo',
                      'key': 'propios_more', 'icon': 'users'})
+    more = _mas_sin_redundancia(more, role)
     return {'nav_main': main, 'nav_more': more, 'nav_more_keys': [m['key'] for m in more],
             'viewer': u, 'role_label': ROLE_LABEL.get(role, role)}
 
@@ -918,6 +919,49 @@ def _portal_atras():
         return {'show_back': False, 'back_fallback': _atras_fallback(path, role)}
     return {'show_back': True, 'back_fallback': _atras_fallback(path, role)}
 
+
+
+# Rutas de «Más» que no aparecen como href en Módulos, pero se abren desde una sección
+# que sí está ahí (misma función). «Cargar inmueble» vive en Mis Captaciones › Inmuebles.
+_MAS_CUBIERTO_POR = {
+    '/mis-inmuebles': '/mis-captaciones',
+}
+
+# El perfil no se quita de «Más», aunque algún día tuviera eco en Módulos.
+_MAS_SIEMPRE = frozenset({'perfil'})
+
+
+def _hrefs_en_modulos(role):
+    hrefs = set()
+
+    def walk(items):
+        for it in items or []:
+            href = (it.get('href') or '').strip()
+            if href:
+                hrefs.add(href)
+            walk(it.get('hijos'))
+
+    for mod in _modulos_para(role):
+        walk(mod.get('secciones'))
+    return hrefs
+
+
+def _mas_sin_redundancia(more, role):
+    """Quita de Más lo que ya se abre desde Módulos para ese rol. No toca rutas ni pantallas."""
+    hrefs = _hrefs_en_modulos(role)
+    out = []
+    for it in more:
+        if it.get('key') in _MAS_SIEMPRE:
+            out.append(it)
+            continue
+        href = (it.get('href') or '').strip()
+        if href in hrefs:
+            continue
+        cubre = _MAS_CUBIERTO_POR.get(href)
+        if cubre and cubre in hrefs:
+            continue
+        out.append(it)
+    return out
 
 
 def _modulos_para(role):
