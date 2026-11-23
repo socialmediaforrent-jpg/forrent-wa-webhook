@@ -356,6 +356,36 @@ def resumen_asignaciones(clientes, *, now=None):
     }
 
 
+# Listas de Mis Clientes: mismo criterio que el embudo, agrupadas por fase a partir de Contactado.
+# Nuevas / Sin estatus / Contactado conservan el nombre de Mis Asignaciones.
+_LISTA_CLIENTES_GRUPOS = (
+    ('nuevas', 'Nuevas Asignaciones', ('nuevas',)),
+    ('sin_estatus', 'Clientes sin estatus', ('sin_estatus',)),
+    ('contactado', 'Contactado', ('contactado',)),
+    ('f2', 'Fase 2 · Búsqueda / En proceso', ('busqueda',)),
+    ('f3', 'Fase 3 · Visitas', ('agendado',)),
+    ('f4', 'Fase 4 · Negociación', ('oferta', 'oferta_aceptada', 'reserva_agendada')),
+    ('f5', 'Fase 5 · Entrega', ('reserva_firmada', 'registrado', 'entregado')),
+    ('otros', 'Otros', ('otros',)),
+    ('perdidos', 'Perdidos', ('perdidos',)),
+)
+
+
+def grupos_lista_clientes(clientes, *, now=None):
+    'Listas de Mis Clientes, en el orden del embudo y con los mismos conteos que Mis Asignaciones.'
+    r = resumen_asignaciones(clientes, now=now)
+    tiles = r['tiles']
+    grupos = []
+    for gid, titulo, tids in _LISTA_CLIENTES_GRUPOS:
+        lista = []
+        for tid in tids:
+            lista.extend(tiles[tid]['clientes'])
+        if gid == 'otros' and not lista:
+            continue
+        grupos.append({'id': gid, 'titulo': titulo, 'total': len(lista), 'clientes': lista})
+    return grupos
+
+
 # Campos de comisión que un asesor SÍ puede ver. Nada de líder ni totales que permitan inferirlo.
 ASESOR_CALC_KEYS = ('asesor', 'forrent', 'inmobiliaria')
 LIDER_KEY_RE = re.compile(r'lider|líder|leader', re.I)

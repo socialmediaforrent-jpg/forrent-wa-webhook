@@ -189,6 +189,10 @@ button[aria-busy="true"]{opacity:.65;cursor:progress}
 .fase-f5{--fase:#1F8A4C;--fase-bg:#E7F6EE;--fase-ink:#145C33}
 .fase-perdidos{--fase:#B42318;--fase-bg:#F4EEEE;--fase-ink:#6B1E1A}
 .fase-otros{--fase:#6B7280;--fase-bg:#F3F4F6;--fase-ink:#374151}
+.fase-nuevas{--fase:#E07A3A;--fase-bg:#FDEEE4;--fase-ink:#8A3D12}
+.fase-sin_estatus{--fase:#8A7D66;--fase-bg:#F3F0E8;--fase-ink:#5C5346}
+.fase-contactado{--fase:#2F6FED;--fase-bg:#E8F2FC;--fase-ink:#163A7A}
+details.fase-sec:not([open]){padding-bottom:0}
 .kpi.fase-card{border-top:4px solid var(--fase,var(--naranja));background:var(--fase-bg,#fff)}
 .kpi.fase-card .lbl{color:var(--fase-ink,#343a46)}
 .kpi.fase-card .val{color:var(--texto)}

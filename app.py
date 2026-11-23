@@ -2244,9 +2244,12 @@ def _render_asesor(user, flash_ok='', flash_err='', form=None):
 def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200):
     clientes_sync.maybe_refresh(q, is_pg=IS_PG, invalidate=lambda: _live_cache.__setitem__('t', 0.0))
     clientes, cli_fecha = _asesor_clientes(user)
+    fases = _fases_de(clientes)
+    fases = dict(fases)
+    fases['grupos'] = portal_lib.grupos_lista_clientes(clientes)
     resp = _panel_headers(render_template(
         'clientes.html',
-        clientes=clientes, n_clientes=len(clientes), fases=_fases_de(clientes),
+        clientes=clientes, n_clientes=len(clientes), fases=fases,
         cli_fecha=portal_lib.fmt_fecha_hora(cli_fecha) if cli_fecha else 'fecha no disponible',
         estatus_opciones=portal_lib.ESTATUS_OPCIONES,
         csrf=portal_lib.csrf_token(user), puede_agregar=user['role'] != 'admin',

@@ -347,6 +347,57 @@ def test_mis_clientes_sin_tableros_y_con_info(monkeypatch):
     assert 'class="embudo"' in asig and '1. Nuevas Asignaciones' in asig
 
 
+
+def test_mis_clientes_listas_contraidas_y_nuevas(monkeypatch):
+    """Mis Clientes arranca con las listas cerradas, en el orden del embudo, e incluye Nuevas."""
+    import re
+    _carga(monkeypatch, extras=[
+        {'id': 'nueva1', 'nombre': 'Reciente Luz', 'asesor': 'luz', 'estado': 'ASIGNADO',
+         'situacion': '', 'estatus': 'ASIGNADO', 'asignado_at': '2099-01-01T12:00:00', 'operacion': 'Alquiler'},
+    ])
+    html = cliente('jose').get('/mis-clientes').get_data(as_text=True)
+    asig = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    # Todas las listas salen cerradas.
+    for m in re.finditer(r'<details\b[^>]*class="[^"]*fase-sec[^"]*"[^>]*>', html):
+        tag = m.group(0)
+        assert ' open' not in tag, tag
+    # Orden y nombres.
+    ids = re.findall(r'id="fase-([a-z0-9_]+)"', html)
+    esperados = ['nuevas', 'sin_estatus', 'contactado', 'f2', 'f3', 'f4', 'f5', 'perdidos']
+    assert [i for i in ids if i in esperados] == esperados
+    assert 'Fase 1 · Asignación y contacto' not in html
+    assert 'Nuevas Asignaciones' in html
+    assert 'Clientes sin estatus' in html
+    assert 'Contactado' in html
+    # Conteos iguales a los del embudo (Fase 4 y 5 suman sus baldosas).
+    def n_grupo(hid, titulo):
+        m = re.search(r'id="fase-%s"[^>]*>\s*<summary>\s*%s\s*<span class="muted">\((\d+)\)</span>' % (hid, re.escape(titulo)), html)
+        assert m, (hid, titulo)
+        return int(m.group(1))
+    tiles = [int(x) for x in re.findall(r'class="embudo-n">(\d+)</span>', asig)]
+    # nuevas, sin_estatus, contactado, busqueda, agendado, oferta, oferta_aceptada,
+    # reserva_agendada, reserva_firmada, registrado, entregado, perdidos
+    assert n_grupo('nuevas', 'Nuevas Asignaciones') == tiles[0]
+    assert n_grupo('sin_estatus', 'Clientes sin estatus') == tiles[1]
+    assert n_grupo('contactado', 'Contactado') == tiles[2]
+    assert n_grupo('f2', 'Fase 2 · Búsqueda / En proceso') == tiles[3]
+    assert n_grupo('f3', 'Fase 3 · Visitas') == tiles[4]
+    assert n_grupo('f4', 'Fase 4 · Negociación') == tiles[5] + tiles[6] + tiles[7]
+    assert n_grupo('f5', 'Fase 5 · Entrega') == tiles[8] + tiles[9] + tiles[10]
+    assert n_grupo('perdidos', 'Perdidos') == tiles[11]
+    suma = (tiles[0] + tiles[1] + tiles[2] + tiles[3] + tiles[4]
+            + tiles[5] + tiles[6] + tiles[7] + tiles[8] + tiles[9] + tiles[10] + tiles[11])
+    # Si aparece Otros, también suma.
+    m_otros = re.search(r'id="fase-otros"[^>]*>\s*<summary>\s*Otros\s*<span class="muted">\((\d+)\)</span>', html)
+    if m_otros:
+        suma += int(m_otros.group(1))
+    assert html.count('class="cli-row"') == suma
+    assert 'Reciente Luz' in html
+    # La fila de nuevas está dentro de su lista, no en Sin estatus.
+    bloque_n = html[html.find('id="fase-nuevas"'):html.find('id="fase-sin_estatus"')]
+    assert 'Reciente Luz' in bloque_n
+
+
 def test_nada_se_pierde_y_perdidos_no_se_duplican():
     clientes = [
         {'estado': 'Nuevo', 'situacion': '', 'estatus': 'Nuevo'},
