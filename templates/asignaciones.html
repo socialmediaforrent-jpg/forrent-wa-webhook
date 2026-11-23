@@ -13,14 +13,20 @@
 {% from '_cli_table.html' import cli_table, cli_js %}
 {% set nav='portal' %}
 {% include '_top.html' %}
-<main class="wrap-page">
+<main class="wrap-page wrap-asig">
   <p class="kicker">{{ role_label }}</p>
-  <h1 class="page">Mis Asignaciones</h1>
-  <p class="lead">Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí.{% if cli_fecha %} Copia del {{ cli_fecha }}.{% endif %}</p>
+  <div class="page-row asig-titulo">
+    <h1 class="page">Mis Asignaciones</h1>
+    <button type="button" class="asig-info-btn" popovertarget="asig-info" aria-label="Información de Mis Asignaciones">
+      {{ icon('info', 'asig-info-ico') }}
+    </button>
+  </div>
+  <div id="asig-info" class="asig-info-pop" popover>
+    Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí.{% if cli_fecha %} Copia del {{ cli_fecha }}.{% endif %}
+  </div>
 
   <div class="embudo" aria-label="Embudo comercial">
     {% for f in embudo.fases %}
-    {% if not loop.first %}<div class="embudo-flecha" aria-hidden="true">{{ icon('chev', 'embudo-flecha-ico') }}</div>{% endif %}
     {% if f.simple %}
       {% set t = f.tiles[0] %}
       <a class="embudo-fase tono-{{ f.tono }} simple{% if tile and tile.id==t.id %} on{% endif %}" href="/mis-asignaciones?e={{ t.id }}">
@@ -57,6 +63,21 @@
   </section>
   {% endif %}
 {% if tile %}<script>document.getElementById("lista")&&document.getElementById("lista").scrollIntoView({block:"start"});</script>{% endif %}
+<script>
+(function(){
+  var btn = document.querySelector(".asig-info-btn");
+  var pop = document.getElementById("asig-info");
+  if (!btn || !pop) return;
+  pop.addEventListener("toggle", function(){
+    if (!pop.matches(":popover-open")) return;
+    var r = btn.getBoundingClientRect();
+    var w = pop.offsetWidth || 280;
+    var left = Math.min(Math.max(16, r.left), Math.max(16, window.innerWidth - w - 16));
+    pop.style.top = (r.bottom + 6) + "px";
+    pop.style.left = left + "px";
+  });
+})();
+</script>
 </main>
 </body>
 </html>

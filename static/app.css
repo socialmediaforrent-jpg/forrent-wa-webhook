@@ -294,25 +294,34 @@ form.grid button:active,button.btn:active,.login-form button:active,.btn-sum:act
 a.card:active,a.card.is-pressed,a.kpi:active,a.kpi.is-pressed{border-color:#f6b98a;transform:scale(.985)}
 button[aria-disabled="true"]{pointer-events:none}
 
-/* Mis Asignaciones: embudo comercial (no altera las tarjetas de fase existentes). */
+/* Mis Asignaciones: embudo compacto para caber en una vista de 412×915. */
 .cards-inicio{margin:0 0 18px}
-.embudo{max-width:560px;margin:0 auto 8px;display:flex;flex-direction:column;align-items:stretch}
-.embudo-fase{display:block;border-radius:28px;padding:16px 16px 18px;text-decoration:none;color:inherit;box-shadow:var(--sombra)}
-.embudo-fase.simple{display:flex;align-items:center;gap:12px;padding:18px 20px;min-height:76px;border:2px solid transparent}
-.embudo-fase-cab{display:flex;align-items:center;gap:10px;padding:2px 6px 14px}
-.embudo-fase-tit{font-size:17px;letter-spacing:-.02em;color:#1a1c21;line-height:1.2}
+.wrap-asig{padding:8px 14px 12px}
+@media (min-width:960px){.wrap-asig{padding:18px 28px 36px}}
+.wrap-asig .kicker{margin:0}
+.asig-titulo{justify-content:flex-start;align-items:center;gap:2px;margin:0 0 8px}
+.asig-titulo h1.page{margin:0;font-size:20px}
+.asig-info-btn{flex:none;box-sizing:border-box;width:44px;height:44px;margin:-6px 0;padding:0;border:0;border-radius:50%;background:transparent;color:#6b7280;display:inline-grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.asig-info-btn:hover,.asig-info-btn:focus-visible{color:var(--naranja);background:var(--naranja-suave);outline:none}
+.asig-info-btn:active{background:var(--naranja-suave)}
+.asig-info-ico{width:18px;height:18px;display:block}
+.asig-info-pop{inset:unset;margin:0;border:0;padding:10px 12px;width:min(340px,calc(100vw - 32px));border-radius:12px;background:#fff;color:#30343d;font-size:13px;line-height:1.45;box-shadow:0 8px 28px rgba(17,17,17,.16);border:1px solid #eceef2}
+.embudo{max-width:560px;margin:0 auto;display:flex;flex-direction:column;align-items:stretch;gap:6px}
+.embudo-fase{display:block;border-radius:16px;padding:8px;text-decoration:none;color:inherit;box-shadow:var(--sombra)}
+.embudo-fase.simple{display:flex;align-items:center;gap:8px;padding:8px 12px;min-height:44px;border:2px solid transparent;box-sizing:border-box}
+.embudo-fase-cab{display:flex;align-items:center;gap:8px;padding:0 4px 6px}
+.embudo-fase-tit{font-size:14px;letter-spacing:-.02em;color:#1a1c21;line-height:1.2}
 .embudo-fase-tit b{font-weight:800}
-.embudo-fase-ico{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.7)}
-.embudo-fase-ico .i{width:22px;height:22px}
-.embudo-fase.simple .embudo-n{margin-left:auto;font-size:22px;font-weight:800;letter-spacing:-.03em}
-.embudo-flecha{display:grid;place-items:center;height:28px;color:#c0c4cc}
-.embudo-flecha-ico{width:22px;height:22px}
-.embudo-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.embudo-tile{background:#fff;border-radius:20px;padding:16px 8px 14px;text-decoration:none;color:inherit;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;box-shadow:0 1px 2px rgba(17,17,17,.04),0 8px 18px rgba(17,17,17,.04);border:2px solid transparent;min-height:132px}
-.embudo-tile-ico{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:#f6f7f9}
-.embudo-tile-ico .i{width:26px;height:26px}
-.embudo-tile .embudo-n{font-size:20px;font-weight:800;letter-spacing:-.03em;line-height:1}
-.embudo-tile-lab{font-size:12px;font-weight:700;color:#2a2e36;line-height:1.25;max-width:100%;overflow-wrap:break-word;padding:0 2px}
+.embudo-fase-ico{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.7)}
+.embudo-fase-ico .i{width:14px;height:14px}
+.embudo-fase.simple .embudo-n{margin-left:auto;font-size:18px;font-weight:800;letter-spacing:-.03em}
+.embudo-flecha{display:none}
+.embudo-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.embudo-tile{background:#fff;border-radius:12px;padding:6px 4px;text-decoration:none;color:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2px;box-shadow:0 1px 2px rgba(17,17,17,.05);border:2px solid transparent;min-height:44px;box-sizing:border-box}
+.embudo-tile-ico{width:22px;height:22px;border-radius:8px;display:grid;place-items:center;background:#f6f7f9}
+.embudo-tile-ico .i{width:14px;height:14px}
+.embudo-tile .embudo-n{font-size:17px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.embudo-tile-lab{font-size:11px;font-weight:700;color:#2a2e36;line-height:1.2;max-width:100%;overflow-wrap:break-word;padding:0 1px}
 .embudo-fase.simple.on,.embudo-tile.on{border-color:var(--naranja)}
 a.embudo-fase.simple:hover,a.embudo-tile:hover{transform:translateY(-1px);transition:transform .15s,border-color .15s}
 

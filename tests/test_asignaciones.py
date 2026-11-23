@@ -200,3 +200,33 @@ def test_no_rompe_mis_clientes(monkeypatch):
     assert r.status_code == 200
     html = r.get_data(as_text=True)
     assert 'Mis Clientes' in html
+
+def test_texto_corte_vive_en_info(monkeypatch):
+    """El párrafo del corte 31-oct no va suelto bajo el título: queda en el popover de info."""
+    _carga(monkeypatch)
+    texto = 'Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí.'
+    for slug in ('jose', 'ana', 'luz'):
+        html = cliente(slug).get('/mis-asignaciones').get_data(as_text=True)
+        assert texto in html
+        assert '<p class="lead">Embudo comercial' not in html
+        assert 'class="asig-info-btn"' in html
+        assert 'popovertarget="asig-info"' in html
+        assert 'id="asig-info"' in html
+        assert 'Información de Mis Asignaciones' in html
+        # El ícono va junto al título, no suelto en otra sección.
+        tit = html.find('class="page-row asig-titulo"')
+        info = html.find('class="asig-info-btn"')
+        h1 = html.find('>Mis Asignaciones</h1>')
+        assert tit != -1 and info != -1 and h1 != -1
+        assert tit < h1 < info
+
+
+def test_embudo_sin_flechas_y_tarjetas_compactas(monkeypatch):
+    _carga(monkeypatch)
+    html = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    assert 'embudo-flecha' not in html
+    # Las 10 baldosas siguen siendo enlaces tocables.
+    for tid in ('nuevas', 'contactado', 'busqueda', 'agendado', 'oferta',
+                'oferta_aceptada', 'reserva_agendada', 'reserva_firmada',
+                'registrado', 'entregado'):
+        assert f'href="/mis-asignaciones?e={tid}"' in html
