@@ -30,7 +30,7 @@
     {% if f.id == 'otros' and f.n_total == 0 %}
     {% elif f.simple %}
       {% set t = f.tiles[0] %}
-      <a class="embudo-fase tono-{{ f.tono }} simple{% if tile and tile.id==t.id %} on{% endif %}" href="/mis-asignaciones?e={{ t.id }}">
+      <a class="embudo-fase tono-{{ f.tono }} simple{% if tile and tile.id==t.id %} on{% endif %}" href="/mis-asignaciones?e={{ t.id }}" data-embudo-tile="{{ t.id }}" aria-controls="lista-{{ t.id }}" aria-expanded="{{ 'true' if tile and tile.id==t.id else 'false' }}">
         <span class="embudo-fase-ico" aria-hidden="true">{{ icon(f.icono) }}</span>
         <span class="embudo-fase-tit"><b>{% if f.n %}{{ f.n }}. {% endif %}{{ f.titulo }}</b></span>
         <span class="embudo-n">{{ t.n }}</span>
@@ -43,7 +43,7 @@
       </header>
       <div class="embudo-tiles">
         {% for t in f.tiles %}
-        <a class="embudo-tile{% if tile and tile.id==t.id %} on{% endif %}" href="/mis-asignaciones?e={{ t.id }}">
+        <a class="embudo-tile{% if tile and tile.id==t.id %} on{% endif %}" href="/mis-asignaciones?e={{ t.id }}" data-embudo-tile="{{ t.id }}" aria-controls="lista-{{ t.id }}" aria-expanded="{{ 'true' if tile and tile.id==t.id else 'false' }}">
           <span class="embudo-tile-ico ico-{{ t.id }}" aria-hidden="true">{{ icon(t.icono) }}</span>
           <span class="embudo-n">{{ t.n }}</span>
           <span class="embudo-tile-lab">{{ t.label|replace("/", "/​") }}</span>
@@ -55,28 +55,78 @@
     {% endfor %}
   </div>
 
-  {% if tile %}
-  <section class="dash-sec embudo-lista" id="lista">
-    <h2>{{ tile.label }} <span class="muted">({{ tile.n }})</span></h2>
-    <p class="lead" style="margin-bottom:10px"><a href="/mis-asignaciones">Volver al embudo</a></p>
-    {{ cli_table(listados, csrf, estatus_opciones, 'No hay clientes en este estatus.', mostrar_asesor=mostrar_asesor, sid='asig') }}
-    {{ cli_js() }}
+  {% for f in embudo.fases %}
+  {% if f.id == 'otros' and f.n_total == 0 %}
+  {% else %}
+  {% for t in f.tiles %}
+  <section class="dash-sec embudo-lista" id="lista-{{ t.id }}" data-embudo-lista="{{ t.id }}" {% if not tile or tile.id != t.id %}hidden{% endif %}>
+    <h2>{{ t.label }} <span class="muted">({{ t.n }})</span></h2>
+    <p class="lead" style="margin-bottom:10px"><a href="/mis-asignaciones" data-embudo-volver>Volver al embudo</a></p>
+    {{ cli_table(t.clientes, csrf, estatus_opciones, 'No hay clientes en este estatus.', mostrar_asesor=mostrar_asesor, sid='asig-' ~ t.id) }}
   </section>
+  {% endfor %}
   {% endif %}
-{% if tile %}<script>document.getElementById("lista")&&document.getElementById("lista").scrollIntoView({block:"start"});</script>{% endif %}
+  {% endfor %}
+  {{ cli_js() }}
 <script>
 (function(){
   var btn = document.querySelector(".asig-info-btn");
   var pop = document.getElementById("asig-info");
-  if (!btn || !pop) return;
-  pop.addEventListener("toggle", function(){
-    if (!pop.matches(":popover-open")) return;
-    var r = btn.getBoundingClientRect();
-    var w = pop.offsetWidth || 280;
-    var left = Math.min(Math.max(16, r.left), Math.max(16, window.innerWidth - w - 16));
-    pop.style.top = (r.bottom + 6) + "px";
-    pop.style.left = left + "px";
+  if (btn && pop) {
+    pop.addEventListener("toggle", function(){
+      if (!pop.matches(":popover-open")) return;
+      var r = btn.getBoundingClientRect();
+      var w = pop.offsetWidth || 280;
+      var left = Math.min(Math.max(16, r.left), Math.max(16, window.innerWidth - w - 16));
+      pop.style.top = (r.bottom + 6) + "px";
+      pop.style.left = left + "px";
+    });
+  }
+
+  var root = document.querySelector(".embudo");
+  if (!root) return;
+  var tiles = document.querySelectorAll("[data-embudo-tile]");
+  var listas = document.querySelectorAll("[data-embudo-lista]");
+
+  function abierto(){
+    var on = document.querySelector("[data-embudo-tile].on");
+    return on ? on.getAttribute("data-embudo-tile") : "";
+  }
+  function mostrar(id){
+    tiles.forEach(function(a){
+      var on = a.getAttribute("data-embudo-tile") === id;
+      a.classList.toggle("on", on);
+      a.setAttribute("aria-expanded", on ? "true" : "false");
+    });
+    var shown = null;
+    listas.forEach(function(s){
+      var match = !!id && s.getAttribute("data-embudo-lista") === id;
+      s.hidden = !match;
+      if (match) shown = s;
+    });
+    var url = id ? ("/mis-asignaciones?e=" + encodeURIComponent(id)) : "/mis-asignaciones";
+    if (history.replaceState) history.replaceState(null, "", url);
+    if (shown) shown.scrollIntoView({block: "start"});
+  }
+  root.addEventListener("click", function(ev){
+    var a = ev.target.closest("[data-embudo-tile]");
+    if (!a || !root.contains(a)) return;
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+    ev.preventDefault();
+    var id = a.getAttribute("data-embudo-tile");
+    if (abierto() === id) mostrar("");
+    else mostrar(id);
   });
+  document.querySelectorAll("[data-embudo-volver]").forEach(function(a){
+    a.addEventListener("click", function(ev){
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+      ev.preventDefault();
+      mostrar("");
+      root.scrollIntoView({block: "start"});
+    });
+  });
+  var inicial = document.querySelector("[data-embudo-lista]:not([hidden])");
+  if (inicial) inicial.scrollIntoView({block: "start"});
 })();
 </script>
 </main>

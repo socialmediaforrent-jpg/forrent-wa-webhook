@@ -42,6 +42,19 @@ def _carga(monkeypatch, extras=None):
     return data
 
 
+
+def _lista_visible(html):
+    """Cuerpo de la lista del embudo que está visible (sin atributo hidden)."""
+    import re
+    partes = re.findall(r'<section\b([^>]*\bembudo-lista\b[^>]*)>(.*?)</section>', html, re.S)
+    vis = []
+    for attrs, body in partes:
+        if re.search(r'(?:^|\s)hidden(?:\s|=|/|>|$)', attrs):
+            continue
+        vis.append(body)
+    return '\n'.join(vis)
+
+
 def test_mapeo_estatus():
     from datetime import datetime
     from zoneinfo import ZoneInfo
@@ -149,9 +162,9 @@ def test_luz_es_admin_y_ve_todas(monkeypatch):
     assert portal_lib.user_by_username('luz')['role'] == 'admin'
     _carga(monkeypatch)
     html = cliente('luz').get('/mis-asignaciones').get_data(as_text=True)
-    assert 'Nueva Ana' not in html  # la lista aparece al hacer clic
+    assert 'Nueva Ana' not in _lista_visible(html)  # la lista aparece al hacer clic
     # Las del fixture tienen más de 24 h: Nueva Ana y Luz van a Clientes sin estatus.
-    lista = cliente('luz').get('/mis-asignaciones?e=nuevas').get_data(as_text=True)
+    lista = _lista_visible(cliente('luz').get('/mis-asignaciones?e=nuevas').get_data(as_text=True))
     assert 'Nueva Ana' not in lista
     assert 'Sin estatus Luz' not in lista
     assert 'Contactada Miriam' not in lista
@@ -172,7 +185,7 @@ def test_asesora_solo_las_suyas(monkeypatch):
     # Corte: la asignación del 30 oct no aparece.
     assert 'Anterior Ana' not in html
     # Perdida tampoco.
-    perd = cliente('ana').get('/mis-asignaciones?e=busqueda').get_data(as_text=True)
+    perd = _lista_visible(cliente('ana').get('/mis-asignaciones?e=busqueda').get_data(as_text=True))
     assert 'Busca Ana' in perd
     assert 'Espera Ana' in perd
     assert 'Perdida Ana' not in perd
@@ -263,6 +276,29 @@ def test_embudo_sin_flechas_y_tarjetas_compactas(monkeypatch):
         assert f'href="/mis-asignaciones?e={tid}"' in html
 
 
+def test_embudo_listas_vienen_ocultas_para_alternar(monkeypatch):
+    """Todas las listas viajan en la página, ocultas, para abrir y cerrar sin recargar."""
+    import re
+    _carga(monkeypatch)
+    html = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    assert _lista_visible(html) == ''
+    assert 'data-embudo-tile="oferta_aceptada"' in html
+    assert 'data-embudo-tile="nuevas"' in html
+    assert 'data-embudo-tile="sin_estatus"' in html
+    assert 'data-embudo-tile="perdidos"' in html
+    assert 'data-embudo-volver' in html
+    # Al entrar con ?e=, solo esa lista está visible y su baldosa resaltada.
+    html_a = cliente('jose').get('/mis-asignaciones?e=oferta_aceptada').get_data(as_text=True)
+    vis = _lista_visible(html_a)
+    assert vis and 'Oferta aceptada' in vis
+    tag = re.search(r'<a class="embudo-tile on"[^>]*data-embudo-tile="oferta_aceptada"', html_a)
+    assert tag
+    # Un e inválido no deja ninguna lista abierta ni baldosa resaltada.
+    html_x = cliente('jose').get('/mis-asignaciones?e=no-existe').get_data(as_text=True)
+    assert _lista_visible(html_x) == ''
+    assert 'embudo-tile on' not in html_x and 'simple on' not in html_x
+
+
 def test_sin_estatus_y_perdidos_segun_datos(monkeypatch):
     """Las filas nuevas usan nociones ya existentes y no alteran las otras baldosas."""
     _carga(monkeypatch)
@@ -276,7 +312,7 @@ def test_sin_estatus_y_perdidos_segun_datos(monkeypatch):
     bloque = html[html.find('class="embudo"'):]
     assert bloque.find('1. Nuevas Asignaciones') < bloque.find('Clientes sin estatus') < bloque.find('2. En Proceso')
     assert bloque.find('4. Entrega de Inmueble') < bloque.find('Perdidos')
-    perd = cliente('jose').get('/mis-asignaciones?e=perdidos').get_data(as_text=True)
+    perd = _lista_visible(cliente('jose').get('/mis-asignaciones?e=perdidos').get_data(as_text=True))
     assert 'Perdida Ana' in perd
     assert 'Busca Ana' not in perd
     assert 'Anterior Ana' not in perd
@@ -308,13 +344,13 @@ def test_cuadre_misasig_igual_mis_clientes(monkeypatch):
     # El estatus no mapeado aparece en Otros, visible y tocable.
     html_jose = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
     assert 'href="/mis-asignaciones?e=otros"' in html_jose
-    lista = cliente('jose').get('/mis-asignaciones?e=otros').get_data(as_text=True)
+    lista = _lista_visible(cliente('jose').get('/mis-asignaciones?e=otros').get_data(as_text=True))
     assert 'Privado Ana' in lista
     # ASIGNADO del 14 nov ya superó las 24 h: va a Sin estatus, no a Nuevas.
-    nuevas = cliente('jose').get('/mis-asignaciones?e=nuevas').get_data(as_text=True)
+    nuevas = _lista_visible(cliente('jose').get('/mis-asignaciones?e=nuevas').get_data(as_text=True))
     assert 'Asignado Luz' not in nuevas
     assert 'Privado Ana' not in nuevas
-    sin_e = cliente('jose').get('/mis-asignaciones?e=sin_estatus').get_data(as_text=True)
+    sin_e = _lista_visible(cliente('jose').get('/mis-asignaciones?e=sin_estatus').get_data(as_text=True))
     assert 'Asignado Luz' in sin_e
     assert 'Asignado Luz' in cliente('jose').get('/mis-clientes').get_data(as_text=True)
 
