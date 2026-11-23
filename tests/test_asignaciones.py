@@ -43,8 +43,8 @@ def _carga(monkeypatch, extras=None):
 def test_mapeo_estatus():
     m = portal_lib.tile_de_asignacion
     assert m('Nuevo', '', 'Nuevo') == 'nuevas'
-    assert m('Sin estatus', '', 'Sin estatus') == 'nuevas'
-    assert m('', '', '') == 'nuevas'
+    assert m('Sin estatus', '', 'Sin estatus') == 'sin_estatus'
+    assert m('', '', '') == 'sin_estatus'
     assert m('Nuevo', 'No contactado', 'No contactado') == 'nuevas'
     assert m('Nuevo', 'Contactado', 'Contactado') == 'contactado'
     assert m('En proceso', 'Buscando', 'Buscando') == 'busqueda'
@@ -63,9 +63,10 @@ def test_mapeo_estatus():
     assert m('En proceso', 'Visita realizada', 'Visita realizada') is None
     assert m('', 'Documento privado', 'Documento privado') is None
     assert m('Negociación', '', 'Negociación') is None
-    # Perdido no entra al embudo, aunque la situación sea un estatus mapeado.
-    assert m('Perdido', 'Buscando', 'Buscando') is None
-    assert m('Perdido', '', 'Perdido') is None
+    # Perdido tiene su propia fila, aunque la situación sea un estatus mapeado.
+    assert m('Perdido', 'Buscando', 'Buscando') == 'perdidos'
+    assert m('Perdido', '', 'Perdido') == 'perdidos'
+    assert m('', 'descartado', 'descartado') == 'perdidos'
 
 
 def test_resumen_no_inventa_ceros():
@@ -74,6 +75,7 @@ def test_resumen_no_inventa_ceros():
     ])
     tiles = r['tiles']
     assert tiles['nuevas']['n'] == 1
+    assert tiles['sin_estatus']['n'] == 0
     assert tiles['contactado']['n'] == 0
     assert tiles['busqueda']['n'] == 0
     assert tiles['agendado']['n'] == 0
@@ -83,6 +85,7 @@ def test_resumen_no_inventa_ceros():
     assert tiles['reserva_firmada']['n'] == 0
     assert tiles['registrado']['n'] == 0
     assert tiles['entregado']['n'] == 0
+    assert tiles['perdidos']['n'] == 0
     assert r['en_embudo'] == 1
     assert r['total'] == 1
     assert tiles['oferta']['clientes'] == []
@@ -126,12 +129,15 @@ def test_luz_es_admin_y_ve_todas(monkeypatch):
     _carga(monkeypatch)
     html = cliente('luz').get('/mis-asignaciones').get_data(as_text=True)
     assert 'Nueva Ana' not in html  # la lista aparece al hacer clic
-    # Conteos: nuevas = Ana + Luz (2). El de Miriam es Contactado.
-    # Ana también tiene buscando, agendada, oferta; perdida y anterior no cuentan.
-    assert '>2</span>' in html or '>2</' in html
+    # Conteos: nuevas = solo Ana (Nuevo). Luz va a Clientes sin estatus.
+    # Ana también tiene buscando, agendada, oferta; perdida y anterior no cuentan en esas baldosas.
     lista = cliente('luz').get('/mis-asignaciones?e=nuevas').get_data(as_text=True)
-    assert 'Nueva Ana' in lista and 'Sin estatus Luz' in lista
+    assert 'Nueva Ana' in lista
+    assert 'Sin estatus Luz' not in lista
     assert 'Contactada Miriam' not in lista
+    sin_e = cliente('luz').get('/mis-asignaciones?e=sin_estatus').get_data(as_text=True)
+    assert 'Sin estatus Luz' in sin_e
+    assert 'Nueva Ana' not in sin_e
     # Luz ve asignados de otras asesoras en el listado (admin).
     todos = cliente('jose').get('/mis-asignaciones?e=contactado').get_data(as_text=True)
     assert 'Contactada Miriam' in todos
@@ -163,14 +169,14 @@ def test_conteos_por_rol(monkeypatch):
         # las baldosas y la simple tienen <span class="embudo-n">N</span>
         return [int(x) for x in re.findall(r'class="embudo-n">(\d+)</span>', html)]
 
-    # Orden: nuevas, contactado, busqueda, agendado, oferta, oferta_aceptada,
-    # reserva_agendada, reserva_firmada, registrado, entregado
-    # Ana vigentes en embudo: Nueva, Busca, Agendada, Oferta (4). Espera/Perdida/Anterior no.
-    assert nums('ana') == [1, 0, 1, 1, 1, 0, 0, 0, 0, 0]
-    # José y Luz ven todas las vigentes del fixture (sin anterior ni perdida ni espera):
-    # nuevas 2 (Ana+Luz), contactado 1 (Miriam), busqueda 1, agendado 1, oferta 1
-    assert nums('jose') == [2, 1, 1, 1, 1, 0, 0, 0, 0, 0]
-    assert nums('luz') == [2, 1, 1, 1, 1, 0, 0, 0, 0, 0]
+    # Orden: nuevas, sin_estatus, contactado, busqueda, agendado, oferta,
+    # oferta_aceptada, reserva_agendada, reserva_firmada, registrado, entregado, perdidos
+    # Ana vigentes: Nueva, Busca, Agendada, Oferta, Perdida. Espera/Anterior no.
+    assert nums('ana') == [1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1]
+    # José y Luz ven todas las vigentes del fixture (sin anterior ni espera):
+    # nuevas 1 (Ana), sin_estatus 1 (Luz), contactado 1 (Miriam), busqueda 1, agendado 1, oferta 1, perdidos 1 (Ana)
+    assert nums('jose') == [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1]
+    assert nums('luz') == [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1]
 
 
 def test_mercadeo_no_entra():
@@ -182,13 +188,15 @@ def test_vista_tiene_fases_del_mockup(monkeypatch):
     _carga(monkeypatch)
     html = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
     plano = html.replace('\u200b', '')
-    for texto in ('1. Nuevas Asignaciones', '2. En Proceso', '3. En Negociación',
-                  '4. Entrega de Inmueble', 'Contactado', 'En Búsqueda', 'Agendado',
+    for texto in ('1. Nuevas Asignaciones', 'Clientes sin estatus', '2. En Proceso', '3. En Negociación',
+                  '4. Entrega de Inmueble', 'Perdidos', 'Contactado', 'En Búsqueda', 'Agendado',
                   'Oferta enviada/recibida', 'Oferta aceptada', 'Reserva agendada',
                   'Reserva Firmada', 'Inmueble Registrado/Notariado', 'Inmueble Entregado'):
         assert texto in plano, texto
     # Baldosa vacía sigue visible con 0 y es clicable.
     assert 'href="/mis-asignaciones?e=entregado"' in html
+    assert 'href="/mis-asignaciones?e=sin_estatus"' in html
+    assert 'href="/mis-asignaciones?e=perdidos"' in html
     vacia = cliente('jose').get('/mis-asignaciones?e=entregado').get_data(as_text=True)
     assert 'No hay clientes en este estatus.' in vacia
     assert cliente('jose').get('/mis-asignaciones?e=no-existe').status_code == 200
@@ -226,7 +234,25 @@ def test_embudo_sin_flechas_y_tarjetas_compactas(monkeypatch):
     html = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
     assert 'embudo-flecha' not in html
     # Las 10 baldosas siguen siendo enlaces tocables.
-    for tid in ('nuevas', 'contactado', 'busqueda', 'agendado', 'oferta',
+    for tid in ('nuevas', 'sin_estatus', 'contactado', 'busqueda', 'agendado', 'oferta',
                 'oferta_aceptada', 'reserva_agendada', 'reserva_firmada',
-                'registrado', 'entregado'):
+                'registrado', 'entregado', 'perdidos'):
         assert f'href="/mis-asignaciones?e={tid}"' in html
+
+
+def test_sin_estatus_y_perdidos_segun_datos(monkeypatch):
+    """Las filas nuevas usan nociones ya existentes y no alteran las otras baldosas."""
+    _carga(monkeypatch)
+    # Sin estatus (ya definido por tiene_estatus / valor «Sin estatus») no se mezcla con Nuevo.
+    assert portal_lib.tile_de_asignacion('Sin estatus', '', 'Sin estatus') == 'sin_estatus'
+    assert portal_lib.tile_de_asignacion('Nuevo', '', 'Nuevo') == 'nuevas'
+    # Perdido (es_perdido / estado=Perdido) no se cuela en En Búsqueda.
+    assert portal_lib.tile_de_asignacion('Perdido', 'Buscando', 'Buscando') == 'perdidos'
+    assert portal_lib.tile_de_asignacion('En proceso', 'Buscando', 'Buscando') == 'busqueda'
+    html = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    assert html.find('1. Nuevas Asignaciones') < html.find('Clientes sin estatus') < html.find('2. En Proceso')
+    assert html.find('4. Entrega de Inmueble') < html.find('Perdidos')
+    perd = cliente('jose').get('/mis-asignaciones?e=perdidos').get_data(as_text=True)
+    assert 'Perdida Ana' in perd
+    assert 'Busca Ana' not in perd
+    assert 'Anterior Ana' not in perd

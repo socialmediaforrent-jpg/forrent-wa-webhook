@@ -117,8 +117,9 @@ def resumen_fases(clientes):
 # Cada baldosa usa solo estatus ya existentes. Si no hay clientes en ese estatus, el conteo es 0.
 # No se inventan números ni se crean estatus nuevos.
 #
-# Mapeo (prioridad: situacion, luego estado, luego estatus; Perdido queda fuera del embudo):
-#   Nuevas Asignaciones           → Sin estatus, Nuevo, No contactado
+# Mapeo (prioridad: situacion, luego estado, luego estatus):
+#   Nuevas Asignaciones           → Nuevo, No contactado
+#   Clientes sin estatus          → Sin estatus (o estado/situacion/estatus vacíos)
 #   Contactado                    → Contactado
 #   En Búsqueda                   → Buscando
 #   Agendado                      → Visita agendada
@@ -128,14 +129,15 @@ def resumen_fases(clientes):
 #   Reserva Firmada               → Reserva firmada
 #   Inmueble Registrado/Notariado → Documento notariado, Documento registrado
 #   Inmueble Entregado            → Inmueble entregado
+#   Perdidos                      → estado=Perdido o textos ya reconocidos por es_perdido
 #
 # Reconocidos pero sin baldosa en este embudo (no se cuentan aquí):
 #   Esperando, En espera, En proceso, Visita realizada, Documento privado,
 #   Recuperado, Negociación (si no trae una situación más específica).
 ASIGNACIONES_ESTATUS = {
-    'Sin estatus': 'nuevas',
     'Nuevo': 'nuevas',
     'No contactado': 'nuevas',
+    'Sin estatus': 'sin_estatus',
     'Contactado': 'contactado',
     'Buscando': 'busqueda',
     'Visita agendada': 'agendado',
@@ -146,6 +148,7 @@ ASIGNACIONES_ESTATUS = {
     'Documento notariado': 'registrado',
     'Documento registrado': 'registrado',
     'Inmueble entregado': 'entregado',
+    'Perdido': 'perdidos',
 }
 ASIGNACIONES_RECONOCIDOS = set(ESTATUS_OPCIONES) | {
     'En proceso', 'Negociación', 'En espera', 'Esperando',
@@ -156,7 +159,15 @@ ASIGNACIONES_EMBUDO = (
         'icono': 'userplus', 'simple': True,
         'tiles': (
             {'id': 'nuevas', 'label': 'Nuevas Asignaciones', 'icono': 'userplus',
-             'estatus': ('Sin estatus', 'Nuevo', 'No contactado')},
+             'estatus': ('Nuevo', 'No contactado')},
+        ),
+    },
+    {
+        'id': 'sin_estatus', 'n': None, 'titulo': 'Clientes sin estatus', 'tono': 'sand',
+        'icono': 'clipboard', 'simple': True,
+        'tiles': (
+            {'id': 'sin_estatus', 'label': 'Clientes sin estatus', 'icono': 'clipboard',
+             'estatus': ('Sin estatus',)},
         ),
     },
     {
@@ -195,15 +206,23 @@ ASIGNACIONES_EMBUDO = (
              'estatus': ('Inmueble entregado',)},
         ),
     },
+    {
+        'id': 'perdidos', 'n': None, 'titulo': 'Perdidos', 'tono': 'rose',
+        'icono': 'x-circle', 'simple': True,
+        'tiles': (
+            {'id': 'perdidos', 'label': 'Perdidos', 'icono': 'x-circle',
+             'estatus': ('Perdido',)},
+        ),
+    },
 )
 _TILE_DEFS = {t['id']: {**t, 'fase_id': f['id'], 'fase_titulo': f['titulo']}
               for f in ASIGNACIONES_EMBUDO for t in f['tiles']}
 
 
 def canon_estatus_asignacion(estado='', situacion='', estatus='', tg=''):
-    """Valor de estatus que alimenta el embudo, o None si no aplica (perdido u otro no mapeado)."""
+    """Valor de estatus que alimenta el embudo, o None si no aplica (otro no mapeado)."""
     if es_perdido(estado, situacion, estatus, tg):
-        return None
+        return 'Perdido'
     encontrados = [(raw or '').strip() for raw in (situacion, estado, estatus)]
     if not any(encontrados):
         return 'Sin estatus'

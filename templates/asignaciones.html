@@ -31,14 +31,14 @@
       {% set t = f.tiles[0] %}
       <a class="embudo-fase tono-{{ f.tono }} simple{% if tile and tile.id==t.id %} on{% endif %}" href="/mis-asignaciones?e={{ t.id }}">
         <span class="embudo-fase-ico" aria-hidden="true">{{ icon(f.icono) }}</span>
-        <span class="embudo-fase-tit"><b>{{ f.n }}. {{ f.titulo }}</b></span>
+        <span class="embudo-fase-tit"><b>{% if f.n %}{{ f.n }}. {% endif %}{{ f.titulo }}</b></span>
         <span class="embudo-n">{{ t.n }}</span>
       </a>
     {% else %}
     <section class="embudo-fase tono-{{ f.tono }}">
       <header class="embudo-fase-cab">
         <span class="embudo-fase-ico" aria-hidden="true">{{ icon(f.icono) }}</span>
-        <span class="embudo-fase-tit"><b>{{ f.n }}. {{ f.titulo }}</b></span>
+        <span class="embudo-fase-tit"><b>{% if f.n %}{{ f.n }}. {% endif %}{{ f.titulo }}</b></span>
       </header>
       <div class="embudo-tiles">
         {% for t in f.tiles %}

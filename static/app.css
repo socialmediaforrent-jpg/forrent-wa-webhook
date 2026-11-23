@@ -333,6 +333,10 @@ a.embudo-fase.simple:hover,a.embudo-tile:hover{transform:translateY(-1px);transi
 .tono-lavender .embudo-fase-ico,.tono-lavender .embudo-fase-ico .i{color:#7b5ea7}
 .tono-green{background:#e7f6ec}
 .tono-green .embudo-fase-ico,.tono-green .embudo-fase-ico .i{color:#3a9a5c}
+.tono-sand{background:#f3f0e8}
+.tono-sand .embudo-fase-ico,.tono-sand .embudo-fase-ico .i{color:#8a7d66}
+.tono-rose{background:#f8eaea}
+.tono-rose .embudo-fase-ico,.tono-rose .embudo-fase-ico .i{color:#c45c5c}
 
 .ico-contactado,.ico-oferta{color:#2aa7a8}
 .ico-busqueda{color:#d4a017}
