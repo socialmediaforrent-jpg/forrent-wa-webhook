@@ -95,7 +95,7 @@ def test_sin_enlaces_de_portales_ni_ajenos():
     ('f=propias', ['Av. Urdaneta 7', 'El Cafetal'], ['El Rosal']),
     ('hab=2', ['El Cafetal'], ['El Rosal']),
     ('amin=50', ['El Cafetal'], ['Av. Urdaneta 7']),
-    ('fotos=1', ['Av. Urdaneta 7'], ['El Rosal']),
+    ('fotos=1', ['Av. Urdaneta 7', 'El Rosal'], []),
     ('q=10542820', ['Av. Urdaneta 7'], ['El Cafetal']),
     ('estado=Destacado', ['El Cafetal'], ['Av. Urdaneta 7']),
     ('lista=mias', ['Av. Urdaneta 7'], ['El Cafetal', 'El Rosal']),
@@ -142,6 +142,25 @@ def test_compartir_sin_enlaces():
 
 def test_texto_plano():
     assert inmuebles.texto_plano('<p>Hola&nbsp;<b>mundo</b></p><script>x</script>') == 'Hola\xa0mundo'
+
+
+
+def test_alianza_usa_fotos_oficiales_de_mercadolibre():
+    """Si el inventario llega sin fotos, se muestran las de la publicación oficial (mlstatic)."""
+    h = html(cliente('ana').get('/inventario?lista=aliados'))
+    lista = h.split('id="wz-lista"')[1].split('id="wz-mapa"')[0]
+    assert 'Cubículo en El Rosal' in lista
+    assert 'http2.mlstatic.com' in lista
+    assert 'wz-minithumb' in lista
+    assert 'mercadolibre.com.ve' not in h and 'rexup.net' not in h
+    f = appmod._ficha_publica(INV['grupos']['alianza'][0])
+    assert f['fotos'] and all(u['full'].startswith('https://http2.mlstatic.com/') for u in f['fotos'])
+
+
+def test_sin_fotos_oficiales_sigue_vacio():
+    it = {'titulo': 'Casa inventada', 'zona': 'Narnia', 'precio': 'US$ 1', 'codigo': 'NO-EXISTE',
+          'tipo': 'Casa', 'operacion': 'Venta', 'fotos': []}
+    assert appmod._ficha_publica(it)['fotos'] == []
 
 
 # ------------------------------------------------------------ Rol Inventario (solo lectura de Inmuebles)

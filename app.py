@@ -2074,6 +2074,7 @@ def panel_import_ghl():
 
 
 INV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'inventario.json')
+FOTOS_OFICIALES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'fotos_oficiales.json')
 
 
 def _inventario():
@@ -2121,8 +2122,62 @@ def _fotos_limpias(fotos):
     return out
 
 
+def _norm_foto_txt(s):
+    return ' '.join(str(s or '').strip().lower().split())
+
+
+def _norm_foto_precio(s):
+    d = re.sub(r'\D', '', str(s or ''))
+    return d.lstrip('0') or '0'
+
+
+def _clave_fotos(it):
+    return (
+        _norm_foto_txt(it.get('titulo')),
+        _norm_foto_txt(it.get('zona')),
+        _norm_foto_precio(it.get('precio')),
+    )
+
+
+def _clave_fotos_tipo(it):
+    return (
+        _norm_foto_txt(it.get('tipo')),
+        _norm_foto_txt(it.get('zona')),
+        _norm_foto_precio(it.get('precio')),
+        _norm_foto_txt(it.get('operacion')),
+    )
+
+
+_FOTOS_OFICIALES_CACHE = None
+
+
+def _fotos_oficiales_indice():
+    """Índice de fotos oficiales ya comprobadas (publicaciones de Mercado Libre, etc.)."""
+    global _FOTOS_OFICIALES_CACHE
+    if _FOTOS_OFICIALES_CACHE is not None:
+        return _FOTOS_OFICIALES_CACHE
+    by_code, by_key, by_tipo = {}, {}, {}
+    try:
+        with open(FOTOS_OFICIALES_PATH, encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception:
+        _FOTOS_OFICIALES_CACHE = (by_code, by_key, by_tipo)
+        return _FOTOS_OFICIALES_CACHE
+    for it in data.get('items') or []:
+        fotos = _fotos_limpias(it.get('fotos'))
+        if not fotos:
+            continue
+        code = str(it.get('codigo') or '').strip()
+        if code and code != '—':
+            by_code[code] = fotos
+        by_key[_clave_fotos(it)] = fotos
+        by_tipo[_clave_fotos_tipo(it)] = fotos
+    _FOTOS_OFICIALES_CACHE = (by_code, by_key, by_tipo)
+    return _FOTOS_OFICIALES_CACHE
+
+
 def _fotos_indice(data=None):
-    """codigo / título+zona+precio -> fotos. Solo Propias y Aliados."""
+    """codigo / título+zona+precio -> fotos. Solo Propias y Aliados; completa con fotos oficiales."""
     data = data or _inventario()
     by_code, by_key = {}, {}
     for g in ('propio', 'alianza'):
@@ -2133,29 +2188,41 @@ def _fotos_indice(data=None):
             code = str(it.get('codigo') or '').strip()
             if code and code != '—':
                 by_code[code] = fotos
-            key = (
-                (it.get('titulo') or '').strip().lower(),
-                (it.get('zona') or '').strip().lower(),
-                (it.get('precio') or '').strip().lower(),
-            )
-            by_key[key] = fotos
+            by_key[_clave_fotos(it)] = fotos
+    oc, ok, _ot = _fotos_oficiales_indice()
+    for code, fotos in oc.items():
+        by_code.setdefault(code, fotos)
+    for key, fotos in ok.items():
+        by_key.setdefault(key, fotos)
     return by_code, by_key
+
+
+def _fotos_de(it, *, fotos_code=None, fotos_key=None):
+    """Fotos del inmueble; si el inventario llegó vacío, usa la fuente oficial ya guardada."""
+    fotos = _fotos_limpias(it.get('fotos'))
+    if fotos:
+        return fotos
+    code = str(it.get('codigo') or '').strip()
+    if fotos_code is not None and code and code != '—':
+        fotos = list(fotos_code.get(code) or [])
+    if not fotos and fotos_key is not None:
+        fotos = list(fotos_key.get(_clave_fotos(it)) or [])
+    if fotos:
+        return fotos
+    oc, ok, ot = _fotos_oficiales_indice()
+    if code and code != '—':
+        fotos = list(oc.get(code) or [])
+    if not fotos:
+        fotos = list(ok.get(_clave_fotos(it)) or [])
+    if not fotos:
+        fotos = list(ot.get(_clave_fotos_tipo(it)) or [])
+    return fotos
 
 
 def _ficha_publica(it, *, fotos_code=None, fotos_key=None):
     """Campos públicos de un inmueble. Sin captador ni enlaces de Rex/Wasi."""
-    fotos = _fotos_limpias(it.get('fotos'))
     code = str(it.get('codigo') or '').strip()
-    if not fotos and fotos_code is not None:
-        if code and code != '—':
-            fotos = list(fotos_code.get(code) or [])
-        if not fotos and fotos_key is not None:
-            key = (
-                (it.get('titulo') or '').strip().lower(),
-                (it.get('zona') or '').strip().lower(),
-                (it.get('precio') or '').strip().lower(),
-            )
-            fotos = list(fotos_key.get(key) or [])
+    fotos = _fotos_de(it, fotos_code=fotos_code, fotos_key=fotos_key)
     return {
         'titulo': it.get('titulo') or '',
         'operacion': it.get('operacion') or '',
