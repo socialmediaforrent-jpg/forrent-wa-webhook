@@ -77,7 +77,7 @@ def test_captaciones_agrupadas():
             r'<details class="card mod-group">\s*<summary class="mod-group-sum">\s*<span>\s*<h2>([^<]+)</h2>(.*?)</details>',
             main, re.S)
         labels = [g[0] for g in grupos]
-        assert labels[:2] == ['Mis Captaciones', 'Captaciones For Rent'], (slug, labels)
+        assert labels[:3] == ['Mis Captaciones', 'Captaciones For Rent', 'Mercadeo'], (slug, labels)
         for titulo, cuerpo in grupos[:2]:
             assert re.search(r'<h3>Inmuebles</h3>', cuerpo), titulo
             assert re.search(r'<h3>Mercadeo', cuerpo), titulo
@@ -90,13 +90,19 @@ def test_captaciones_agrupadas():
             assert 'En preparación' in fr and not re.search(r'href="/mercadeo"', fr)
         else:
             assert 'href="/mercadeo"' in fr
-        assert 'Estadísticas de Mercadeo' in main
+        mer = dict(grupos)['Mercadeo']
+        assert re.search(r'<h3>Estadísticas', mer) and 'En preparación' in mer
+        assert 'Estadísticas de Mercadeo' not in mer
+        assert 'Llega en la etapa 8, solo con datos reales.' in mer
         assert 'Cargar inmueble' not in main
         assert 'href="/mis-inmuebles"' not in main
         if slug == 'jose':
-            assert 'Planificador' in main and 'Por revisar (carga)' in main
+            assert re.search(r'<h3>Planificador</h3>', mer)
+            assert 'href="/mercadeo/planificador"' in mer and 'Solo Administrador.' in mer
+            assert 'Por revisar (carga)' in main
         else:
-            assert 'Planificador' not in main
+            assert 'Planificador' not in mer
+            assert 'href="/mercadeo/planificador"' not in main
 
 def test_permisos_sin_cambios():
     assert cliente('mercadeo').get('/modulos').status_code == 403

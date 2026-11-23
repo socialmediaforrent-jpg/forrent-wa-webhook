@@ -941,9 +941,12 @@ def _modulos_para(role):
                s('Mercadeo', '/mercadeo' if admin else None,
                  '' if admin else 'Llega en la etapa 2.'),
            ])]
+    mercadeo_hijos = []
     if admin:
-        inv.append(s('Planificador', '/mercadeo/planificador', 'Solo Administrador.'))
-    inv.append(s('Estadísticas de Mercadeo', None, 'Llega en la etapa 8, solo con datos reales.'))
+        mercadeo_hijos.append(s('Planificador', '/mercadeo/planificador', 'Solo Administrador.'))
+    mercadeo_hijos.append(s('Estadísticas', None, 'Llega en la etapa 8, solo con datos reales.'))
+    if mercadeo_hijos:
+        inv.append(s('Mercadeo', hijos=mercadeo_hijos))
     # «Cargar inmueble» vive dentro de Mis Captaciones › Inmuebles (/mis-captaciones), no como entrada suelta.
     if admin:
         inv.append(s('Por revisar (carga)', '/inventario/cola'))
