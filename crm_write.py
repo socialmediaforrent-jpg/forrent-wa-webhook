@@ -284,4 +284,13 @@ def apply(q, op: str, data: dict):
         return {'ok': True}
     if op == 'delete_test':
         return {'ok': True, 'deleted': delete_test(q, data.get('id') or data.get('ghl_id'))}
+    if op == 'estatus_sync':
+        import crm as _crm
+        url = (data.get('url') or '').strip().rstrip('/')
+        key = (data.get('key') or '').strip()
+        if not url.startswith('https://') or not key:
+            return {'ok': False, 'error': 'url o llave inválida'}
+        _crm.set_meta(q, 'estatus_sync', {'url': url, 'key': key})
+        return {'ok': True}
     return {'ok': False, 'error': f'op desconocida: {op}'}
+

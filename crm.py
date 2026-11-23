@@ -69,6 +69,18 @@ def _meta(q, key, default=None):
     return _j(rows[0]['value'])
 
 
+def set_meta(q, key, value):
+    q("""INSERT INTO crm_meta (key, value, updated_at) VALUES (%s, %s, NOW())
+         ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=NOW()""",
+      (key, value))
+
+
+def estatus_sync_conf(q):
+    """URL y llave del Sistema de Clientes. No imprime valores."""
+    d = _meta(q, 'estatus_sync', {}) or {}
+    return d if isinstance(d, dict) else {}
+
+
 def _iso_asignado(raw, typed=None):
     """ISO corto (YYYY-MM-DDTHH:MM:SS) desde texto o timestamp."""
     for v in (raw, typed):

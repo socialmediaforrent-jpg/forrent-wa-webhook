@@ -41,16 +41,35 @@ def desactivado():
     return os.environ.get('CLIENTES_SYNC_DISABLED') == '1'
 
 
-def estatus_url():
-    return (os.environ.get('CLIENTES_ESTATUS_SYNC_URL') or '').rstrip('/')
+def _conf_meta(q):
+    try:
+        import crm as _crm
+        d = _crm.estatus_sync_conf(q) or {}
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
 
 
-def estatus_key():
-    return (os.environ.get('CLIENTES_ESTATUS_SYNC_KEY') or '').strip()
+def estatus_url(q=None):
+    u = (os.environ.get('CLIENTES_ESTATUS_SYNC_URL') or '').rstrip('/')
+    if u:
+        return u
+    if q is not None:
+        return str((_conf_meta(q).get('url') or '')).rstrip('/')
+    return ''
 
 
-def configurado():
-    return bool(estatus_url() and estatus_key())
+def estatus_key(q=None):
+    k = (os.environ.get('CLIENTES_ESTATUS_SYNC_KEY') or '').strip()
+    if k:
+        return k
+    if q is not None:
+        return str((_conf_meta(q).get('key') or '')).strip()
+    return ''
+
+
+def configurado(q=None):
+    return bool(estatus_url(q) and estatus_key(q))
 
 
 def intervalo():
@@ -76,10 +95,10 @@ def _guardar_portal(q, is_pg, nombre, datos):
           (nombre, datos, act))
 
 
-def leer_respuestas(opener=None):
+def leer_respuestas(opener=None, q=None):
     """Descarga las respuestas vigentes del Sistema de Clientes. No imprime el cuerpo."""
-    url = estatus_url() + '/sync/respuestas'
-    key = estatus_key()
+    url = estatus_url(q) + '/sync/respuestas'
+    key = estatus_key(q)
     req = urllib.request.Request(
         url,
         headers={'X-Sync-Key': key, 'User-Agent': 'forrent-clientes-sync', 'Accept': 'application/json'},
@@ -138,10 +157,10 @@ def pasada(q, *, is_pg=False, opener=None, also_crm=True):
     (sin borrar filas ni tocar otras tablas).
     """
     resumen = {'ok': False, 'cambiados': 0, 'n': 0, 'actualizado': ''}
-    if not configurado():
+    if not configurado(q):
         resumen['error'] = 'no configurado'
         return resumen
-    resp = leer_respuestas(opener=opener)
+    resp = leer_respuestas(opener=opener, q=q)
     data = None
     # Preferir la lista que el portal ya sirve (CRM si está listo).
     crm_listo = False
@@ -199,7 +218,7 @@ def maybe_refresh(q, *, is_pg=False, invalidate=None):
     Pensado para la carga de página. Si no está configurado o corre pytest, no hace nada.
     """
     global _ultima, _ultimo
-    if en_pruebas() or desactivado() or not configurado():
+    if en_pruebas() or desactivado() or not configurado(q):
         return None
     if _ultima and (time.time() - _ultima) < intervalo():
         return _ultimo
@@ -223,7 +242,7 @@ def maybe_refresh(q, *, is_pg=False, invalidate=None):
 def iniciar_fondo(app_factory, *, is_pg, invalidate=None):
     """Arranca un hilo daemon. app_factory() debe devolver (q,). No se usa en pytest."""
     global _hilo
-    if en_pruebas() or desactivado() or not configurado():
+    if en_pruebas() or desactivado() or not (configurado() or is_pg):
         return False
     if _hilo and _hilo.is_alive():
         return True
@@ -244,7 +263,9 @@ def iniciar_fondo(app_factory, *, is_pg, invalidate=None):
                     invalidate()
             except Exception:
                 log.exception('clientes_sync fondo')
-            _ultima = time.time()
+                _ultimo = {'ok': False, 'error': 'fallo'}
+            if (_ultimo or {}).get('error') != 'no configurado':
+                _ultima = time.time()
             _pedir.clear()
             _parar.wait(1)
 
