@@ -513,7 +513,7 @@ body:has(.ver-como-bar) .welcome-inicio{height:calc(100dvh - var(--appbar) - 44p
 .asig-titulo a.cli-agregar-btn{display:inline-flex;align-items:center;background:var(--naranja);color:#fff;border-radius:10px;font-weight:700;text-decoration:none}
 /* Tarjeta del cliente e Información del cliente: centradas, con margen y sin quedar bajo la barra inferior (27-nov-2026). */
 dialog.cli-ficha,dialog.cli-info{
-  --m-top:calc(16px + env(safe-area-inset-top, 0px));
+  --m-top:calc(var(--appbar, 56px) + 8px + env(safe-area-inset-top, 0px));
   --m-bot:calc(var(--bottom, 64px) + 12px + env(safe-area-inset-bottom, 0px));
   position:fixed;inset:0;margin:auto;
   top:var(--m-top);bottom:var(--m-bot);
