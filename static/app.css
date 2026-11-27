@@ -392,6 +392,8 @@ a.mod-sub:active{background:var(--naranja-suave);color:var(--naranja)}
    El bloque llega al borde inferior del viewport (100dvh - encabezado). El padding inferior
    reserva la barra fija + safe-area + ~22dvh, para que el saludo quede en la mesa y nunca
    detrás de los botones, aunque 100dvh en Android quede un poco largo. */
+/* Presidencia: el Inicio es solo la foto. Con resumen debajo, el padding de la barra se queda. */
+body:has(> main.welcome-only){padding-bottom:0}
 body:has(> main.welcome-inicio){padding-bottom:0}
 .welcome-inicio{max-width:none;width:100%;margin:0;height:calc(100dvh - var(--appbar));min-height:calc(100dvh - var(--appbar));display:flex;align-items:flex-end;justify-content:center;text-align:center;padding:24px 24px calc(var(--bottom) + env(safe-area-inset-bottom, 0px) + 22dvh);overflow:hidden;background-color:#1c1612;background-image:linear-gradient(to top,rgba(12,10,8,.82) 0%,rgba(12,10,8,.48) 28%,rgba(12,10,8,.18) 52%,rgba(12,10,8,.22) 100%),var(--welcome-foto);background-size:100% auto;background-position:center top;background-repeat:no-repeat}
 .welcome{max-width:20rem;position:relative;z-index:1}
@@ -413,3 +415,6 @@ body:has(> main.welcome-inicio){padding-bottom:0}
 .ver-como-bar button:hover{background:#ffe8e8}
 body:has(.ver-como-bar) .sidebar{padding-top:calc(var(--appbar) + 44px)}
 @media print{.ver-como-bar,.ver-como-stack{position:static}}
+
+.wrap-despues-bienvenida{padding-top:20px}
+body:has(.ver-como-bar) .welcome-inicio{height:calc(100dvh - var(--appbar) - 44px);min-height:calc(100dvh - var(--appbar) - 44px)}

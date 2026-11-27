@@ -292,7 +292,7 @@ def test_mercadeo_solo_sus_secciones():
     c = cliente('mercadeo')
     assert c.get('/mercadeo').status_code == 200
     assert c.get('/mercadeo/planificador').status_code == 200
-    assert c.get('/').status_code == 302 and c.get('/').headers['Location'].endswith('/mercadeo')
+    assert c.get('/').status_code == 200 and b'bienvenido a For Rent Online' in c.get('/').data
     for ruta in ('/panel', '/panel/data', '/mis-clientes', '/inventario', '/cierres', '/clientes-propios', '/admin/correos'):
         assert c.get(ruta).status_code == 403, ruta
     assert c.post('/mercadeo/marketplace', data={'key': 'x', 'csrf': csrf('mercadeo')}).status_code == 403

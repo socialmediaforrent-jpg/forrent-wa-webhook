@@ -173,7 +173,8 @@ def test_inventario_ve_inmuebles_con_encargado_y_menu(inv_pw):
     assert 'href="/mis-captaciones"' not in h and 'value="mias"' not in h
     d = html(c.get('/inventario/ver?k=' + quote('c:10542820')))
     assert 'Encargado del inmueble' in d and 'href="/mercadeo"' not in d
-    assert c.get('/portal').headers['Location'].endswith('/inventario')
+    r = c.get('/portal')
+    assert r.status_code == 200 and 'bienvenido a For Rent Online' in r.get_data(as_text=True)
 
 
 def test_inventario_no_entra_a_nada_mas(inv_pw):

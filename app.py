@@ -813,27 +813,23 @@ def require_login(fn):
             return _login_redirect()
         g.user = user
         if user.get('role') == 'mercadeo' and request.endpoint not in MERCADEO_ENDPOINTS:
-            # Mercadeo solo entra a su sección y al planificador (clientes, mensajes, cierres, etc. quedan fuera).
-            if request.method == 'GET' and request.endpoint == 'portal':
-                return redirect('/mercadeo')
+            # Mercadeo: su Inicio (/portal) y su sección. El resto responde 403.
             return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
         if user.get('role') == 'inventario' and request.endpoint not in INVENTARIO_ENDPOINTS:
-            # Inventario: solo Inmuebles, en lectura (todo lo demás 403 en el servidor).
-            if request.method == 'GET' and request.endpoint == 'portal':
-                return redirect('/inventario')
+            # Inventario: su Inicio (/portal) e Inmuebles en lectura. El resto responde 403.
             return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
         return fn(*args, **kwargs)
     return wrapper
 
 
 # Inventario solo abre Inmuebles (lista y ficha), ambas GET de solo lectura.
-INVENTARIO_ENDPOINTS = {'inventario', 'inventario_ver', 'carga_cola', 'carga_revisar', 'carga_decidir', 'carga_foto',
+INVENTARIO_ENDPOINTS = {'portal', 'inventario', 'inventario_ver', 'carga_cola', 'carga_revisar', 'carga_decidir', 'carga_foto',
                         'carga_kit', 'carga_agentiz'}
 # Quién ve el encargado (captador) y los portales en Inmuebles.
 ROLES_VER_ENCARGADO = ('admin', 'mercadeo', 'inventario')
 
 # Rutas con sesión que el usuario de Mercadeo puede abrir. Todo lo demás le responde 403 (en el servidor).
-MERCADEO_ENDPOINTS = {'mercadeo', 'mercadeo_link', 'mercadeo_verificar', 'mercadeo_planificador',
+MERCADEO_ENDPOINTS = {'portal', 'mercadeo', 'mercadeo_link', 'mercadeo_verificar', 'mercadeo_planificador',
                       'planif_nuevo', 'planif_editar', 'planif_guardar', 'planif_duplicar', 'planif_borrar',
                       'planif_media'}
 ROLES_MERCADEO = ('admin', 'mercadeo')
@@ -861,6 +857,16 @@ def require_admin(fn):
 
 
 ROLE_LABEL = {'admin': 'Presidencia', 'lider': 'Líder comercial', 'asesor': 'Asesora', 'mercadeo': 'Mercadeo', 'inventario': 'Inventario'}
+_SALUDO_BIENVENIDA = frozenset({
+    'luz', 'herlinda', 'ana', 'cristina', 'erika', 'ireida', 'maria', 'miriam',
+})
+
+
+@app.context_processor
+def _saludo_ctx():
+    u = getattr(g, 'user', None)
+    slug = (u.get('user') if u else '') or ''
+    return {'saludo': 'bienvenida' if slug in _SALUDO_BIENVENIDA else 'bienvenido'}
 
 
 @app.context_processor
@@ -871,12 +877,14 @@ def _portal_nav():
                 'viendo_como': False, 'viendo_como_nombre': '', 'csrf_real': ''}
     role = u['role']
     if role == 'mercadeo':
-        main = [{'href': '/mercadeo', 'label': 'Mercadeo', 'key': 'mercadeo', 'icon': 'megaphone'},
+        main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'},
+                {'href': '/mercadeo', 'label': 'Mercadeo', 'key': 'mercadeo', 'icon': 'megaphone'},
                 {'href': '/mercadeo/planificador', 'label': 'Planificador de anuncios', 'short': 'Planificador',
                  'key': 'planificador', 'icon': 'calendar'}]
         return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['mercadeo'], **_ver_como_ctx()}
     if role == 'inventario':
-        main = [{'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'},
+        main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'},
+                {'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'},
                 {'href': '/inventario/cola', 'label': 'Por revisar', 'key': 'carga_cola', 'icon': 'clipboard'}]
         return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['inventario'], **_ver_como_ctx()}
     links = _portal_links()
@@ -938,8 +946,8 @@ _ATRAS_RAICES = {
     'admin': frozenset({'/', '/portal', '/panel'}),
     'lider': frozenset({'/', '/portal', '/panel'}),
     'asesor': frozenset({'/', '/portal', '/panel'}),
-    'mercadeo': frozenset({'/mercadeo', '/mercadeo/planificador'}),
-    'inventario': frozenset({'/inventario', '/inventario/cola'}),
+    'mercadeo': frozenset({'/', '/portal', '/mercadeo', '/mercadeo/planificador'}),
+    'inventario': frozenset({'/', '/portal', '/inventario', '/inventario/cola'}),
 }
 
 
@@ -2893,11 +2901,22 @@ def volver_a_mi_cuenta():
 @app.get('/portal')
 @require_login
 def portal():
-    # Presidencia (admin): Inicio vacío con bienvenida. Cifras, embudo y accesos
-    # siguen en /modulos, /mis-asignaciones y /mis-clientes. Otros roles no cambian.
-    if g.user['role'] != 'admin':
-        return _render_asesor(g.user)
-    return _panel_headers(render_template('portal.html'))
+    # Todos arrancan con la foto del equipo y el saludo. Presidencia no lleva
+    # resumen aquí (sigue en Módulos). Las demás ven su resumen debajo.
+    role = g.user['role']
+    if role == 'admin':
+        return _panel_headers(render_template('portal.html'))
+    if role == 'mercadeo':
+        return _panel_headers(render_template('inicio_seccion.html', inicio_cards=[
+            {'href': '/mercadeo', 'title': 'Mercadeo', 'lead': 'Portales, publicaciones y verificación.'},
+            {'href': '/mercadeo/planificador', 'title': 'Planificador de anuncios', 'lead': 'Calendario de redes sociales.'},
+        ]))
+    if role == 'inventario':
+        return _panel_headers(render_template('inicio_seccion.html', inicio_cards=[
+            {'href': '/inventario', 'title': 'Inmuebles', 'lead': 'Inventario en lectura.'},
+            {'href': '/inventario/cola', 'title': 'Por revisar', 'lead': 'Cargas pendientes de revisión.'},
+        ]))
+    return _render_asesor(g.user)
 
 
 @app.get('/clientes-propios')

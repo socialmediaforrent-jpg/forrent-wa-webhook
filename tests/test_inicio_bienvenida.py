@@ -1,8 +1,9 @@
-"""Inicio de Presidencia: pantalla vacía con bienvenida. Otros roles no cambian."""
+"""Inicio: la foto del equipo y el saludo para todos; debajo, su resumen (si lo hay)."""
 import os
 import re
 
-from test_bandeja import cliente  # noqa: F401  (configura el entorno de prueba)
+from test_bandeja import cliente  # noqa: F401
+os.environ.setdefault('INVENTARIO_PASSWORD', 'clave-inv')
 
 
 def _main(html):
@@ -71,21 +72,23 @@ def test_cifras_siguen_en_modulos_y_rutas():
     assert 'Clientes por fase' in cli or 'fase' in cli.lower()
 
 
-def test_inicio_lider_y_asesora_no_cambia():
-    for slug, nombre in (('ana', 'Ana'), ('herlinda', 'Herlinda')):
+def test_inicio_lider_y_asesora_tienen_bienvenida_y_resumen():
+    for slug, nombre, saludo in (('ana', 'Ana', 'bienvenida'), ('herlinda', 'Herlinda', 'bienvenida'),
+                                 ('antonio', 'Antonio', 'bienvenido')):
         html = cliente(slug).get('/').get_data(as_text=True)
         main = _main(html)
+        assert f'<em>{nombre}</em>, {saludo} a For Rent Online.' in main, slug
+        assert 'inicio-equipo.webp' in main, slug
+        # El resumen sigue debajo de la foto.
+        assert main.find('inicio-equipo.webp') < main.find('Tu resumen'), slug
         assert 'Tu resumen' in main, slug
         assert 'Mis Asignaciones' in main, slug
-        assert 'Bienvenido,' not in main, slug
-        assert 'inicio-equipo.webp' not in main, slug
-        assert 'bienvenido a For Rent Online' not in main, slug
         assert f'Hola, {nombre}' in html, slug
         assert _botones(_bottomnav(html)) == ['Inicio', 'Módulos', 'Mensajes', 'Más'], slug
 
 
 def test_foto_equipo_se_sirve():
-    """La foto del equipo se sirve desde la app y solo aparece en el inicio de Presidencia."""
+    """La foto del equipo se sirve desde la app y aparece en el Inicio de todos."""
     r = cliente('jose').get('/static/inicio-equipo.webp')
     assert r.status_code == 200
     assert r.mimetype == 'image/webp'
@@ -105,4 +108,22 @@ def test_css_saludo_queda_encima_de_la_barra():
     assert '22dvh' in bloque
     # El padding fijo de 36px dejaba el título detrás de los botones en Android.
     assert 'padding:24px 24px 36px' not in bloque
-    assert 'body:has(> main.welcome-inicio){padding-bottom:0}' in css
+    assert 'body:has(> main.welcome-only){padding-bottom:0}' in css
+
+
+def test_inicio_mercadeo_e_inventario_tambien_saludan():
+    html = cliente('mercadeo').get('/').get_data(as_text=True)
+    main = _main(html)
+    assert '<em>Mercadeo</em>, bienvenido a For Rent Online.' in main
+    assert 'inicio-equipo.webp' in main
+    assert main.find('inicio-equipo.webp') < main.find('Tu resumen')
+    assert 'href="/mercadeo"' in main
+    assert _botones(_bottomnav(html)) == ['Inicio', 'Mercadeo', 'Planificador', 'Más']
+
+    html = cliente('inventario').get('/portal').get_data(as_text=True)
+    main = _main(html)
+    assert '<em>Inventario</em>, bienvenido a For Rent Online.' in main
+    assert 'inicio-equipo.webp' in main
+    assert 'Tu resumen' in main
+    assert 'href="/inventario"' in main
+    assert _botones(_bottomnav(html)) == ['Inicio', 'Inmuebles', 'Por revisar', 'Más']
