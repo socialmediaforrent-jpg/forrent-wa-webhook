@@ -538,3 +538,11 @@ def test_fmt_fecha_hora_caracas():
     # 18:23 en UTC-5 = 19:23 en Caracas (UTC-4).
     assert s == '22 de noviembre de 2026, 7:23 p. m. (Caracas)'
     assert portal_lib.fmt_fecha_hora('') == 'fecha no disponible'
+
+
+def test_volver_dice_solo_volver(monkeypatch):
+    _carga(monkeypatch)
+    html = cliente('ana').get('/mis-asignaciones?e=nuevas').get_data(as_text=True)
+    assert 'data-embudo-volver' in html
+    assert '>Volver</a>' in html
+    assert 'Volver al embudo' not in html

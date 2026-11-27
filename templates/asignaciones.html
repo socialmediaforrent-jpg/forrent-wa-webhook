@@ -61,7 +61,7 @@
   {% for t in f.tiles %}
   <section class="dash-sec embudo-lista" id="lista-{{ t.id }}" data-embudo-lista="{{ t.id }}" {% if not tile or tile.id != t.id %}hidden{% endif %}>
     <h2>{{ t.label }} <span class="muted">({{ t.n }})</span></h2>
-    <p class="lead" style="margin-bottom:10px"><a href="/mis-asignaciones" data-embudo-volver>Volver al embudo</a></p>
+    <p class="lead" style="margin-bottom:10px"><a href="/mis-asignaciones" data-embudo-volver>Volver</a></p>
     {{ cli_table(t.clientes, csrf, estatus_opciones, 'No hay clientes en este estatus.', mostrar_asesor=mostrar_asesor, sid='asig-' ~ t.id) }}
   </section>
   {% endfor %}
