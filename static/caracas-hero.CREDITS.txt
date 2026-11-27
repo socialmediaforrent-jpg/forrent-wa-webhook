@@ -7,7 +7,7 @@ Author: Periodismodepaz
 License: Creative Commons Attribution 4.0 International (CC BY 4.0)
 License URL: https://creativecommons.org/licenses/by/4.0/
 
-The original photograph was compressed to WebP for the app header.
+The image was cropped (foreground rooftop removed) and compressed to WebP for the app header and login background.
 Attribution also appears on the photo in the app: «Foto: Periodismodepaz · CC BY 4.0».
 
 The same photograph is also used, with original illustrations overlaid, in the
