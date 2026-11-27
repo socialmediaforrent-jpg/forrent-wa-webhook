@@ -510,3 +510,4 @@ body:has(.ver-como-bar) .welcome-inicio{height:calc(100dvh - var(--appbar) - 44p
 .fase-det>summary h2{display:inline}
 .fase-det>summary::after{content:"▸";float:right;color:var(--muted)}
 .fase-det[open]>summary::after{content:"▾"}
+.asig-titulo a.cli-agregar-btn{display:inline-flex;align-items:center;background:var(--naranja);color:#fff;border-radius:10px;font-weight:700;text-decoration:none}
