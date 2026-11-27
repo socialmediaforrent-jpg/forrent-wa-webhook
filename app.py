@@ -1117,8 +1117,7 @@ def _modulos_para(role):
     if admin:
         inv.append(s('Por revisar (carga)', '/inventario/cola'))
 
-    cli = [s('Mis Clientes (por fases)', '/mis-clientes'),
-           s('Mis Asignaciones', '/mis-asignaciones', 'Embudo comercial de tus asignaciones.')]
+    cli = [s('Mis Clientes', '/mis-clientes', 'Embudo y listas por fase de tus clientes.')]
     if admin or lider:
         cli.append(s('Clientes propios' if admin else 'Clientes del equipo', '/clientes-propios'))
     cli += [s('Seguimiento', None, 'Llega en la etapa 6.'),
@@ -2532,13 +2531,8 @@ def _tile_de_cliente(user, cid):
 
 def _volver_ficha(raw, cid, tile=''):
     """Vuelve a la lista donde quedó el cliente y reabre su tarjeta."""
-    base = (raw or '').strip()
-    if base.startswith('/mis-clientes'):
-        url = '/mis-clientes'
-        sep = '?'
-    else:
-        url = '/mis-asignaciones' + (f'?e={quote(tile)}' if tile else '')
-        sep = '&' if tile else '?'
+    url = '/mis-clientes' + (f'?e={quote(tile)}' if tile else '')
+    sep = '&' if tile else '?'
     return f'{url}{sep}abrir={quote(cid)}'
 
 
@@ -2559,27 +2553,31 @@ def _render_asesor(user, flash_ok='', flash_err='', form=None):
     clientes, _ = _asesor_clientes(user)
     return _panel_headers(render_template(
         'asesor.html', cierres=cierres, n_cierres=len(cierres), dash=_dashboard(user),
-        fases=_fases_de(clientes),
+        embudo=portal_lib.resumen_asignaciones(clientes),
     ))
 
 
 def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200):
+    """Mis Clientes: embudo con baldosas arriba y listas por fase. Reemplaza a Mis Asignaciones."""
     clientes_sync.maybe_refresh(q, is_pg=IS_PG, invalidate=lambda: _live_cache.__setitem__('t', 0.0))
     clientes, cli_fecha = _asesor_clientes(user)
     _fichas_clientes(clientes)
-    fases = _fases_de(clientes)
-    fases = dict(fases)
+    embudo = portal_lib.resumen_asignaciones(clientes)
+    fases = dict(_fases_de(clientes))
     fases['grupos'] = portal_lib.grupos_lista_clientes(clientes)
+    tile_id = (request.args.get('e') or '').strip()
+    tile = embudo['tiles'].get(tile_id) if tile_id else None
     resp = _panel_headers(render_template(
         'clientes.html',
-        clientes=clientes, n_clientes=len(clientes), fases=fases,
+        clientes=clientes, n_clientes=len(clientes), fases=fases, embudo=embudo, tile=tile,
         cli_fecha=portal_lib.fmt_fecha_hora(cli_fecha) if cli_fecha else 'fecha no disponible',
         estatus_opciones=portal_lib.ESTATUS_OPCIONES,
         csrf=portal_lib.csrf_token(user), puede_agregar=user['role'] != 'admin',
         mostrar_asesor=user.get('role') == 'admin',
         flash_ok=flash_ok, flash_err=flash_err, form=form or {},
         sit_modelo=estatus_modelo.opciones_js(), motivos=estatus_modelo.MOTIVOS,
-        volver_ficha='/mis-clientes', abrir=(request.args.get('abrir') or '').strip(),
+        volver_ficha='/mis-clientes' + (f'?e={quote(tile_id)}' if tile else ''),
+        abrir=(request.args.get('abrir') or '').strip(),
         modo_prueba=not clientes_sync.escritura_habilitada(),
     ))
     resp.status_code = status
@@ -3128,28 +3126,9 @@ def clientes_propios():
 @app.get('/mis-asignaciones')
 @require_login
 def mis_asignaciones():
-    """Embudo comercial de asignaciones. Mercadeo queda en 403 por require_login."""
-    clientes_sync.maybe_refresh(q, is_pg=IS_PG, invalidate=lambda: _live_cache.__setitem__('t', 0.0))
-    clientes, actualizado = _clientes_asignaciones(g.user)
-    _fichas_clientes(clientes)
-    embudo = portal_lib.resumen_asignaciones(clientes)
-    tile_id = (request.args.get('e') or '').strip()
-    tile = embudo['tiles'].get(tile_id) if tile_id else None
-    listados = list(tile['clientes']) if tile else []
-    return _panel_headers(render_template(
-        'asignaciones.html',
-        embudo=embudo, tile=tile, listados=listados,
-        csrf=portal_lib.csrf_token(g.user),
-        estatus_opciones=portal_lib.ESTATUS_OPCIONES,
-        mostrar_asesor=g.user.get('role') == 'admin',
-        cli_fecha=portal_lib.fmt_fecha_hora(actualizado) if actualizado else 'fecha no disponible',
-        sit_modelo=estatus_modelo.opciones_js(), motivos=estatus_modelo.MOTIVOS,
-        volver_ficha='/mis-asignaciones' + (f'?e={quote(tile_id)}' if tile else ''),
-        abrir=(request.args.get('abrir') or '').strip(),
-        flash_ok=_FICHA_OK.get(request.args.get('ok') or '', ''),
-        flash_err=(request.args.get('err') or '')[:200],
-        modo_prueba=not clientes_sync.escritura_habilitada(),
-    ))
+    """Mis Asignaciones se unió a Mis Clientes (27-nov-2026). Los enlaces viejos siguen sirviendo."""
+    qs = request.query_string.decode('utf-8', 'ignore')
+    return redirect('/mis-clientes' + (f'?{qs}' if qs else ''))
 
 
 @app.get('/mis-clientes')

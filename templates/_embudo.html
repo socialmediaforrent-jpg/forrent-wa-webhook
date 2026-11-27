@@ -1,0 +1,33 @@
+{% from '_icons.html' import icon %}
+{% macro embudo_tiles(embudo, tile, base='/mis-clientes', interactivo=true) %}
+  <div class="embudo"{% if interactivo %} data-embudo-root{% endif %} aria-label="Embudo comercial">
+    {% for f in embudo.fases %}
+    {% if f.id == 'otros' and f.n_total == 0 %}
+    {% elif f.simple %}
+      {% set t = f.tiles[0] %}
+      <a class="embudo-fase tono-{{ f.tono }} simple{% if tile and tile.id==t.id %} on{% endif %}" href="{{ base }}?e={{ t.id }}" data-embudo-tile="{{ t.id }}" aria-controls="lista-{{ t.id }}" aria-expanded="{{ 'true' if tile and tile.id==t.id else 'false' }}">
+        <span class="embudo-fase-ico" aria-hidden="true">{{ icon(f.icono) }}</span>
+        <span class="embudo-fase-tit"><b>{% if f.n %}{{ f.n }}. {% endif %}{{ f.titulo }}</b></span>
+        <span class="embudo-n">{{ t.n }}</span>
+      </a>
+    {% else %}
+    <section class="embudo-fase tono-{{ f.tono }}">
+      <header class="embudo-fase-cab">
+        <span class="embudo-fase-ico" aria-hidden="true">{{ icon(f.icono) }}</span>
+        <span class="embudo-fase-tit"><b>{% if f.n %}{{ f.n }}. {% endif %}{{ f.titulo }}</b></span>
+      </header>
+      <div class="embudo-tiles">
+        {% for t in f.tiles %}
+        <a class="embudo-tile{% if tile and tile.id==t.id %} on{% endif %}" href="{{ base }}?e={{ t.id }}" data-embudo-tile="{{ t.id }}" aria-controls="lista-{{ t.id }}" aria-expanded="{{ 'true' if tile and tile.id==t.id else 'false' }}">
+          <span class="embudo-tile-ico ico-{{ t.id }}" aria-hidden="true">{{ icon(t.icono) }}</span>
+          <span class="embudo-n">{{ t.n }}</span>
+          <span class="embudo-tile-lab">{{ t.label|replace("/", "/​") }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+{% endmacro %}

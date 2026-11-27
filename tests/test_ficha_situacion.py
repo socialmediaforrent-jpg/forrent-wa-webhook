@@ -36,7 +36,7 @@ def _post(slug, cid, datos, *, ver_como=None, token=None):
         token = token or csrf(ver_como)
     else:
         token = token or csrf(slug)
-    payload = {'csrf': token, 'volver': '/mis-asignaciones', **datos}
+    payload = {'csrf': token, 'volver': '/mis-clientes', **datos}
     return c, c.post(f'/asesor/asignados/{cid}/situacion', data=payload, follow_redirects=False)
 
 
@@ -73,7 +73,7 @@ def test_tarjeta_asignado_tiene_campos_e_info(monkeypatch):
                     'OJO: confirmar horario. WhatsApp del cliente: +58 414-0001111. '
                     'Puede retomar Los Caobos Rex 3927474542 (3 hab, US$800).',
     }])
-    html = cliente('ana').get('/mis-asignaciones?e=contactado').get_data(as_text=True)
+    html = cliente('ana').get('/mis-clientes?e=contactado').get_data(as_text=True)
     assert 'Carla Demo' in html
     assert 'Información del cliente' in html
     assert 'Actualizar situación' in html
@@ -97,7 +97,7 @@ def test_tarjeta_asignado_tiene_campos_e_info(monkeypatch):
 
 
 def test_html_no_se_guarda_en_cache_y_app_build_publico():
-    r = cliente('ana').get('/mis-asignaciones')
+    r = cliente('ana').get('/mis-clientes')
     assert r.status_code == 200
     assert 'no-store' in (r.headers.get('Cache-Control') or '')
     b = appmod.app.test_client().get('/app-build')
@@ -199,7 +199,7 @@ def test_validacion_fecha_y_permisos(monkeypatch):
     # Sin CSRF
     c = cliente('ana')
     r3 = c.post('/asesor/asignados/b1/situacion', data={
-        'estado': 'Nuevo', 'situacion': 'Contactado', 'volver': '/mis-asignaciones',
+        'estado': 'Nuevo', 'situacion': 'Contactado', 'volver': '/mis-clientes',
     }, follow_redirects=False)
     assert r3.status_code == 302
     assert 'sesi' in (r3.headers.get('Location') or '').lower() or 'err=' in (r3.headers.get('Location') or '')

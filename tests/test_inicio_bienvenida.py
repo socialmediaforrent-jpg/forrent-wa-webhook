@@ -64,9 +64,9 @@ def test_luz_admin_tambien_ve_bienvenida():
 
 def test_cifras_siguen_en_modulos_y_rutas():
     mods = cliente('jose').get('/modulos').get_data(as_text=True)
-    assert 'Mis Asignaciones' in mods
-    assert 'Mis Clientes (por fases)' in mods
-    assert cliente('jose').get('/mis-asignaciones').status_code == 200
+    assert 'Mis Asignaciones' not in mods
+    assert 'Mis Clientes' in mods
+    assert cliente('jose').get('/mis-clientes').status_code == 200
     assert cliente('jose').get('/mis-clientes').status_code == 200
     cli = cliente('jose').get('/mis-clientes').get_data(as_text=True)
     assert 'Clientes por fase' in cli or 'fase' in cli.lower()
@@ -82,7 +82,8 @@ def test_inicio_lider_y_asesora_tienen_bienvenida_y_resumen():
         # El resumen sigue debajo de la foto.
         assert main.find('inicio-equipo.webp') < main.find('Tu resumen'), slug
         assert 'Tu resumen' in main, slug
-        assert 'Mis Asignaciones' in main, slug
+        assert 'Mis Clientes' in main and 'Mis Asignaciones' not in main, slug
+        assert 'Clientes por fase' not in main, slug
         assert f'Hola, {nombre}' in html, slug
         assert _botones(_bottomnav(html)) == ['Inicio', 'Módulos', 'Mensajes', 'Más'], slug
 

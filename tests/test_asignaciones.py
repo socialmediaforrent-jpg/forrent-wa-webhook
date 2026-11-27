@@ -43,6 +43,13 @@ def _carga(monkeypatch, extras=None):
 
 
 
+def _lista_abierta(html):
+    """Lista de la baldosa elegida (details abierto)."""
+    import re
+    partes = re.findall(r'<details class="fase-det" open>(.*?)</details>', html, re.S)
+    return '\n'.join(partes)
+
+
 def _lista_visible(html):
     """Cuerpo de la lista del embudo que está visible (sin atributo hidden)."""
     import re
@@ -137,14 +144,16 @@ def _primera_tarjeta(html):
 def test_inicio_primer_boton_asesora():
     html = cliente('ana').get('/').get_data(as_text=True)
     href, main = _primera_tarjeta(html)
-    assert href == '/mis-asignaciones'
-    assert 'Mis Asignaciones' in main
-    # En el contenido, Mis Asignaciones va antes de Mi Perfil.
-    assert main.find('Mis Asignaciones') < main.find('Mi Perfil')
+    assert href == '/mis-clientes'
+    assert 'Mis Clientes' in main and 'Mis Asignaciones' not in main
+    assert 'Clientes por fase' not in main
+    # Las baldosas del embudo abren Mis Clientes con la fase elegida.
+    assert 'href="/mis-clientes?e=sin_estatus"' in main
+    assert main.find('Mis Clientes') < main.find('Mi Perfil')
 
 
 def test_inicio_primer_boton_admin():
-    """El inicio de Presidencia ya no lleva tarjetas; el embudo sigue en /mis-asignaciones."""
+    """El inicio de Presidencia ya no lleva tarjetas; el embudo sigue en /mis-clientes."""
     html = cliente('jose').get('/').get_data(as_text=True)
     main = html.split('<main', 1)[-1]
     assert '<em>José</em>, bienvenido a For Rent Online.' in main
@@ -154,38 +163,40 @@ def test_inicio_primer_boton_admin():
     assert 'Mis Asignaciones' not in main
     assert 'Resumen de operación' not in main
     assert 'Clientes por fase' not in main
-    asig = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
-    assert 'Mis Asignaciones' in asig
+    asig = cliente('jose').get('/mis-clientes').get_data(as_text=True)
+    assert 'data-embudo-tile' in asig
+    r = cliente('jose').get('/mis-asignaciones?e=nuevas')
+    assert r.status_code == 302 and r.headers['Location'].endswith('/mis-clientes?e=nuevas')
 
 
 def test_luz_es_admin_y_ve_todas(monkeypatch):
     assert portal_lib.user_by_username('luz')['role'] == 'admin'
     _carga(monkeypatch)
-    html = cliente('luz').get('/mis-asignaciones').get_data(as_text=True)
-    assert 'Nueva Ana' not in _lista_visible(html)  # la lista aparece al hacer clic
+    html = cliente('luz').get('/mis-clientes').get_data(as_text=True)
+    assert 'Nueva Ana' not in _lista_abierta(html)  # sin selección, todo plegado
     # Las del fixture tienen más de 24 h: Nueva Ana y Luz van a Clientes sin estatus.
-    lista = _lista_visible(cliente('luz').get('/mis-asignaciones?e=nuevas').get_data(as_text=True))
+    lista = _lista_abierta(cliente('luz').get('/mis-clientes?e=nuevas').get_data(as_text=True))
     assert 'Nueva Ana' not in lista
     assert 'Sin estatus Luz' not in lista
     assert 'Contactada Miriam' not in lista
-    sin_e = cliente('luz').get('/mis-asignaciones?e=sin_estatus').get_data(as_text=True)
+    sin_e = cliente('luz').get('/mis-clientes?e=sin_estatus').get_data(as_text=True)
     assert 'Sin estatus Luz' in sin_e
     assert 'Nueva Ana' in sin_e
     # Luz ve asignados de otras asesoras en el listado (admin).
-    todos = cliente('jose').get('/mis-asignaciones?e=contactado').get_data(as_text=True)
+    todos = cliente('jose').get('/mis-clientes?e=contactado').get_data(as_text=True)
     assert 'Contactada Miriam' in todos
 
 
 def test_asesora_solo_las_suyas(monkeypatch):
     _carga(monkeypatch)
-    html = cliente('ana').get('/mis-asignaciones?e=sin_estatus').get_data(as_text=True)
+    html = cliente('ana').get('/mis-clientes?e=sin_estatus').get_data(as_text=True)
     assert 'Nueva Ana' in html
     assert 'Sin estatus Luz' not in html
     assert 'Contactada Miriam' not in html
     # Corte: la asignación del 30 oct no aparece.
     assert 'Anterior Ana' not in html
     # Perdida tampoco.
-    perd = _lista_visible(cliente('ana').get('/mis-asignaciones?e=busqueda').get_data(as_text=True))
+    perd = _lista_abierta(cliente('ana').get('/mis-clientes?e=busqueda').get_data(as_text=True))
     assert 'Busca Ana' in perd
     assert 'Espera Ana' in perd
     assert 'Perdida Ana' not in perd
@@ -194,7 +205,7 @@ def test_asesora_solo_las_suyas(monkeypatch):
 def test_conteos_por_rol(monkeypatch):
     _carga(monkeypatch)
     def nums(slug):
-        r = cliente(slug).get('/mis-asignaciones')
+        r = cliente(slug).get('/mis-clientes')
         assert r.status_code == 200
         html = r.get_data(as_text=True)
         # Extrae los 10 números en orden de baldosas del embudo.
@@ -213,13 +224,13 @@ def test_conteos_por_rol(monkeypatch):
 
 
 def test_mercadeo_no_entra():
-    assert cliente('mercadeo').get('/mis-asignaciones').status_code == 403
-    assert cliente('mercadeo').get('/mis-asignaciones?e=nuevas').status_code == 403
+    assert cliente('mercadeo').get('/mis-clientes').status_code == 403
+    assert cliente('mercadeo').get('/mis-clientes?e=nuevas').status_code == 403
 
 
 def test_vista_tiene_fases_del_mockup(monkeypatch):
     _carga(monkeypatch)
-    html = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    html = cliente('jose').get('/mis-clientes').get_data(as_text=True)
     plano = html.replace('\u200b', '')
     for texto in ('1. Nuevas Asignaciones', 'Clientes sin estatus', '2. En Proceso', '3. En Negociación',
                   '4. Entrega de Inmueble', 'Perdidos', 'Contactado', 'En Búsqueda/Esperando', 'Agendado/Visitado',
@@ -227,12 +238,12 @@ def test_vista_tiene_fases_del_mockup(monkeypatch):
                   'Reserva Firmada', 'Inmueble Registrado/Notariado', 'Inmueble Entregado'):
         assert texto in plano, texto
     # Baldosa vacía sigue visible con 0 y es clicable.
-    assert 'href="/mis-asignaciones?e=entregado"' in html
-    assert 'href="/mis-asignaciones?e=sin_estatus"' in html
-    assert 'href="/mis-asignaciones?e=perdidos"' in html
-    vacia = cliente('jose').get('/mis-asignaciones?e=entregado').get_data(as_text=True)
+    assert 'href="/mis-clientes?e=entregado"' in html
+    assert 'href="/mis-clientes?e=sin_estatus"' in html
+    assert 'href="/mis-clientes?e=perdidos"' in html
+    vacia = cliente('jose').get('/mis-clientes?e=entregado').get_data(as_text=True)
     assert 'No hay clientes en este estatus.' in vacia
-    assert cliente('jose').get('/mis-asignaciones?e=no-existe').status_code == 200
+    assert cliente('jose').get('/mis-clientes?e=no-existe').status_code == 200
 
 
 def test_no_rompe_mis_clientes(monkeypatch):
@@ -248,54 +259,54 @@ def test_texto_corte_vive_en_info(monkeypatch):
     texto = 'Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí.'
     regla = 'Nuevas Asignaciones son las de hace menos de 24 horas'
     for slug in ('jose', 'ana', 'luz'):
-        html = cliente(slug).get('/mis-asignaciones').get_data(as_text=True)
+        html = cliente(slug).get('/mis-clientes').get_data(as_text=True)
         assert texto in html
         assert regla in html
         assert 'ASIGNADO, No contactado o el campo vacío no cuentan como avance' in html
         assert '<p class="lead">Embudo comercial' not in html
         assert 'class="asig-info-btn"' in html
-        assert 'popovertarget="asig-info"' in html
-        assert 'id="asig-info"' in html
-        assert 'Información de Mis Asignaciones' in html
+        assert 'popovertarget="cli-info"' in html
+        assert 'id="cli-info"' in html
         # El ícono va junto al título, no suelto en otra sección.
         tit = html.find('class="page-row asig-titulo"')
         info = html.find('class="asig-info-btn"')
-        h1 = html.find('>Mis Asignaciones</h1>')
+        h1 = html.find('>Mis Clientes</h1>')
         assert tit != -1 and info != -1 and h1 != -1
         assert tit < h1 < info
 
 
 def test_embudo_sin_flechas_y_tarjetas_compactas(monkeypatch):
     _carga(monkeypatch)
-    html = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    html = cliente('jose').get('/mis-clientes').get_data(as_text=True)
     assert 'embudo-flecha' not in html
     # Las 10 baldosas siguen siendo enlaces tocables.
     for tid in ('nuevas', 'sin_estatus', 'contactado', 'busqueda', 'agendado', 'oferta',
                 'oferta_aceptada', 'reserva_agendada', 'reserva_firmada',
                 'registrado', 'entregado', 'perdidos'):
-        assert f'href="/mis-asignaciones?e={tid}"' in html
+        assert f'href="/mis-clientes?e={tid}"' in html
 
 
 def test_embudo_listas_vienen_ocultas_para_alternar(monkeypatch):
     """Todas las listas viajan en la página, ocultas, para abrir y cerrar sin recargar."""
     import re
     _carga(monkeypatch)
-    html = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
-    assert _lista_visible(html) == ''
+    html = cliente('jose').get('/mis-clientes').get_data(as_text=True)
+    assert _lista_abierta(html) == ''
     assert 'data-embudo-tile="oferta_aceptada"' in html
     assert 'data-embudo-tile="nuevas"' in html
     assert 'data-embudo-tile="sin_estatus"' in html
     assert 'data-embudo-tile="perdidos"' in html
     assert 'data-embudo-volver' in html
     # Al entrar con ?e=, solo esa lista está visible y su baldosa resaltada.
-    html_a = cliente('jose').get('/mis-asignaciones?e=oferta_aceptada').get_data(as_text=True)
+    html_a = cliente('jose').get('/mis-clientes?e=oferta_aceptada').get_data(as_text=True)
     vis = _lista_visible(html_a)
     assert vis and 'Oferta aceptada' in vis
+    assert _lista_abierta(html_a) and 'Sin estatus Luz' not in _lista_visible(html_a)
     tag = re.search(r'<a class="embudo-tile on"[^>]*data-embudo-tile="oferta_aceptada"', html_a)
     assert tag
     # Un e inválido no deja ninguna lista abierta ni baldosa resaltada.
-    html_x = cliente('jose').get('/mis-asignaciones?e=no-existe').get_data(as_text=True)
-    assert _lista_visible(html_x) == ''
+    html_x = cliente('jose').get('/mis-clientes?e=no-existe').get_data(as_text=True)
+    assert _lista_abierta(html_x) == ''
     assert 'embudo-tile on' not in html_x and 'simple on' not in html_x
 
 
@@ -308,11 +319,11 @@ def test_sin_estatus_y_perdidos_segun_datos(monkeypatch):
     # Perdido (es_perdido / estado=Perdido) no se cuela en En Búsqueda.
     assert portal_lib.tile_de_asignacion('Perdido', 'Buscando', 'Buscando') == 'perdidos'
     assert portal_lib.tile_de_asignacion('En proceso', 'Buscando', 'Buscando') == 'busqueda'
-    html = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    html = cliente('jose').get('/mis-clientes').get_data(as_text=True)
     bloque = html[html.find('class="embudo"'):]
     assert bloque.find('1. Nuevas Asignaciones') < bloque.find('Clientes sin estatus') < bloque.find('2. En Proceso')
     assert bloque.find('4. Entrega de Inmueble') < bloque.find('Perdidos')
-    perd = _lista_visible(cliente('jose').get('/mis-asignaciones?e=perdidos').get_data(as_text=True))
+    perd = _lista_visible(cliente('jose').get('/mis-clientes?e=perdidos').get_data(as_text=True))
     assert 'Perdida Ana' in perd
     assert 'Busca Ana' not in perd
     assert 'Anterior Ana' not in perd
@@ -336,21 +347,21 @@ def test_cuadre_misasig_igual_mis_clientes(monkeypatch):
         f = portal_lib.resumen_fases(clientes)
         assert r['en_embudo'] == r['total'] == f['total'] == len(clientes), (slug, r, f['total'], len(clientes))
         html_cli = cliente(slug).get('/mis-clientes').get_data(as_text=True)
-        html_asig = cliente(slug).get('/mis-asignaciones').get_data(as_text=True)
+        html_asig = cliente(slug).get('/mis-clientes').get_data(as_text=True)
         nums = [int(x) for x in re.findall(r'class="embudo-n">(\d+)</span>', html_asig)]
         assert nums and sum(nums) == r['total'], (slug, nums, r['total'])
         assert html_cli.count('class="cli-row"') == r['total'], (slug, html_cli.count('class="cli-row"'), r['total'])
         assert 'Anterior Ana' not in html_cli and 'Anterior Ana' not in html_asig
     # El estatus no mapeado aparece en Otros, visible y tocable.
-    html_jose = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
-    assert 'href="/mis-asignaciones?e=otros"' in html_jose
-    lista = _lista_visible(cliente('jose').get('/mis-asignaciones?e=otros').get_data(as_text=True))
+    html_jose = cliente('jose').get('/mis-clientes').get_data(as_text=True)
+    assert 'href="/mis-clientes?e=otros"' in html_jose
+    lista = _lista_visible(cliente('jose').get('/mis-clientes?e=otros').get_data(as_text=True))
     assert 'Privado Ana' in lista
     # ASIGNADO del 14 nov ya superó las 24 h: va a Sin estatus, no a Nuevas.
-    nuevas = _lista_visible(cliente('jose').get('/mis-asignaciones?e=nuevas').get_data(as_text=True))
+    nuevas = _lista_visible(cliente('jose').get('/mis-clientes?e=nuevas').get_data(as_text=True))
     assert 'Asignado Luz' not in nuevas
     assert 'Privado Ana' not in nuevas
-    sin_e = _lista_visible(cliente('jose').get('/mis-asignaciones?e=sin_estatus').get_data(as_text=True))
+    sin_e = _lista_visible(cliente('jose').get('/mis-clientes?e=sin_estatus').get_data(as_text=True))
     assert 'Asignado Luz' in sin_e
     assert 'Asignado Luz' in cliente('jose').get('/mis-clientes').get_data(as_text=True)
 
@@ -381,63 +392,32 @@ def test_mis_clientes_sin_tableros_y_con_info(monkeypatch):
     assert tit != -1 and info != -1 and h1 != -1
     assert tit < h1 < info
     # Mis Asignaciones no se toca.
-    asig = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    asig = cliente('jose').get('/mis-clientes').get_data(as_text=True)
     assert 'class="embudo"' in asig and '1. Nuevas Asignaciones' in asig
 
 
 
 def test_mis_clientes_listas_contraidas_y_nuevas(monkeypatch):
-    """Mis Clientes arranca con las listas cerradas, en el orden del embudo, e incluye Nuevas."""
+    """Sin baldosa elegida: listas por fase cerradas, en el orden del embudo, cada cliente una sola vez."""
     import re
     _carga(monkeypatch, extras=[
         {'id': 'nueva1', 'nombre': 'Reciente Luz', 'asesor': 'luz', 'estado': 'ASIGNADO',
          'situacion': '', 'estatus': 'ASIGNADO', 'asignado_at': '2099-01-01T12:00:00', 'operacion': 'Alquiler'},
     ])
     html = cliente('jose').get('/mis-clientes').get_data(as_text=True)
-    asig = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
-    # Todas las listas salen cerradas.
-    for m in re.finditer(r'<details\b[^>]*class="[^"]*fase-sec[^"]*"[^>]*>', html):
-        tag = m.group(0)
-        assert ' open' not in tag, tag
-    # Orden y nombres.
-    ids = re.findall(r'id="fase-([a-z0-9_]+)"', html)
-    esperados = ['nuevas', 'sin_estatus', 'contactado', 'f2', 'f3', 'f4', 'f5', 'perdidos']
-    assert [i for i in ids if i in esperados] == esperados
-    assert 'Fase 1 · Asignación y contacto' not in html
-    # Los encabezados ya no llevan el prefijo «Fase N ·».
-    import re as _re
-    visibles = ' '.join(_re.findall(r'<summary>(.*?)</summary>', html, flags=_re.S))
-    assert 'Fase' not in visibles
-    assert 'Nuevas Asignaciones' in html
-    assert 'Clientes sin estatus' in html
-    assert 'Contactado' in html
-    # Conteos iguales a los del embudo (Fase 4 y 5 suman sus baldosas).
-    def n_grupo(hid, titulo):
-        m = re.search(r'id="fase-%s"[^>]*>\s*<summary>\s*%s\s*<span class="muted">\((\d+)\)</span>' % (hid, re.escape(titulo)), html)
-        assert m, (hid, titulo)
-        return int(m.group(1))
-    tiles = [int(x) for x in re.findall(r'class="embudo-n">(\d+)</span>', asig)]
-    # nuevas, sin_estatus, contactado, busqueda, agendado, oferta, oferta_aceptada,
-    # reserva_agendada, reserva_firmada, registrado, entregado, perdidos
-    assert n_grupo('nuevas', 'Nuevas Asignaciones') == tiles[0]
-    assert n_grupo('sin_estatus', 'Clientes sin estatus') == tiles[1]
-    assert n_grupo('contactado', 'Contactado') == tiles[2]
-    assert n_grupo('f2', 'Búsqueda / En proceso') == tiles[3]
-    assert n_grupo('f3', 'Visitas') == tiles[4]
-    assert n_grupo('f4', 'Negociación') == tiles[5] + tiles[6] + tiles[7]
-    assert n_grupo('f5', 'Entrega') == tiles[8] + tiles[9] + tiles[10]
-    assert n_grupo('perdidos', 'Perdidos') == tiles[11]
-    suma = (tiles[0] + tiles[1] + tiles[2] + tiles[3] + tiles[4]
-            + tiles[5] + tiles[6] + tiles[7] + tiles[8] + tiles[9] + tiles[10] + tiles[11])
-    # Si aparece Otros, también suma.
-    m_otros = re.search(r'id="fase-otros"[^>]*>\s*<summary>\s*Otros\s*<span class="muted">\((\d+)\)</span>', html)
-    if m_otros:
-        suma += int(m_otros.group(1))
-    assert html.count('class="cli-row"') == suma
-    assert 'Reciente Luz' in html
-    # La fila de nuevas está dentro de su lista, no en Sin estatus.
-    bloque_n = html[html.find('id="fase-nuevas"'):html.find('id="fase-sin_estatus"')]
-    assert 'Reciente Luz' in bloque_n
+    assert '<details class="fase-det" open>' not in html
+    ids = re.findall(r'data-embudo-lista="([a-z_]+)"', html)
+    tiles = re.findall(r'data-embudo-tile="([a-z_]+)"', html)
+    assert ids == tiles
+    nums = [int(x) for x in re.findall(r'class="embudo-n">(\d+)</span>', html)]
+    ns = [int(x) for x in re.findall(r'data-embudo-lista="[a-z_]+" data-n="(\d+)"', html)]
+    assert ns == nums
+    assert html.count('class="cli-row"') == sum(nums)
+    bloque = html[html.find('data-embudo-lista="nuevas"'):html.find('data-embudo-lista="sin_estatus"')]
+    assert 'Reciente Luz' in bloque
+    # Las listas vacías no se muestran sin selección.
+    for m in re.finditer(r'<section [^>]*data-n="0"[^>]*>', html):
+        assert 'hidden' in m.group(0)
 
 
 def test_nada_se_pierde_y_perdidos_no_se_duplican():
@@ -507,7 +487,7 @@ def test_regla_24h():
 
 def test_sello_actualizado_en_vivo_no_dice_copia(monkeypatch):
     _carga(monkeypatch)
-    html_a = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    html_a = cliente('jose').get('/mis-clientes').get_data(as_text=True)
     html_c = cliente('jose').get('/mis-clientes').get_data(as_text=True)
     sello = portal_lib.fmt_fecha_hora('2026-11-16T12:00:00-04:00')
     assert 'Copia del' not in html_a
@@ -523,7 +503,7 @@ def test_sello_usa_hora_de_sync_aunque_no_haya_cambios(monkeypatch):
     iso = '2026-11-22T22:43:09-04:00'
     clientes_sync._ultimo = {'ok': True, 'actualizado': iso, 'n': 209, 'cambiados': 0}
     sello = portal_lib.fmt_fecha_hora(iso)
-    html_a = cliente('jose').get('/mis-asignaciones').get_data(as_text=True)
+    html_a = cliente('jose').get('/mis-clientes').get_data(as_text=True)
     html_c = cliente('jose').get('/mis-clientes').get_data(as_text=True)
     assert 'Actualizado: ' + sello in html_a
     assert 'Actualizado: ' + sello in html_c
@@ -542,7 +522,7 @@ def test_fmt_fecha_hora_caracas():
 
 def test_volver_dice_solo_volver(monkeypatch):
     _carga(monkeypatch)
-    html = cliente('ana').get('/mis-asignaciones?e=nuevas').get_data(as_text=True)
+    html = cliente('ana').get('/mis-clientes?e=nuevas').get_data(as_text=True)
     assert 'data-embudo-volver' in html
     assert '>Volver</a>' in html
     assert 'Volver al embudo' not in html
