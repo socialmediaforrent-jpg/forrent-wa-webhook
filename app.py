@@ -17,7 +17,7 @@ Endpoints
   GET  /panel/data                   -> JSON de la bandeja (para auto-actualizar)
   POST /panel/responder              -> responder por WhatsApp desde la bandeja (sesión + CSRF; ventana 24 h; si
                                         está configurado GHL o Meta). Mismos permisos que /panel.
-  GET  /inventario                   -> inventario propios / alianza / red (solo lectura)
+  GET  /inventario                   -> inventario propios y alianza (solo lectura; sin la red)
 
 Variables de entorno
   DATABASE_URL                Postgres (Render). Si falta, usa SQLite local (solo pruebas).
@@ -2173,7 +2173,17 @@ def panel_import_ghl():
 INV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'inventario.json')
 
 
-def _inventario():
+# La app solo muestra inventario propio y en alianza. La red Wasi/Rex sigue en el
+# empuje y en inventario_para_monica.csv (Mónica la ofrece a clientes), pero no entra a las pantallas.
+_INV_ORIGENES = ('propio', 'alianza')
+
+
+def _inventario_vacio():
+    return {'actualizado': '', 'grupos': {'propio': [], 'alianza': []}, 'conteos': {'propio': 0, 'alianza': 0}}
+
+
+def _inventario_raw():
+    """Datos empujados, incluyendo la red. Uso interno (p. ej. cruce de duplicados en la carga)."""
     live = portal_lib._load('inventario.json', None) if portal_lib._LIVE_LOADER else None
     if isinstance(live, dict) and isinstance(live.get('grupos'), dict):
         return live
@@ -2181,7 +2191,31 @@ def _inventario():
         with open(INV_PATH, encoding='utf-8') as f:
             return json.load(f)
     except Exception:
-        return {'actualizado': '', 'grupos': {'propio': [], 'alianza': [], 'red': []}, 'conteos': {}}
+        return _inventario_vacio()
+
+
+def _inventario_sin_red(data):
+    """Copia con solo propios y alianza, filtrados por origen. Recalcula conteos."""
+    if not isinstance(data, dict):
+        return _inventario_vacio()
+    src = data.get('grupos') or {}
+    grupos = {}
+    for k in _INV_ORIGENES:
+        grupos[k] = [it for it in (src.get(k) or []) if (it.get('origen') or k) != 'red']
+    # Si un propio/alianza viniera mal archivado en otro grupo, no lo perdemos; la red sí se descarta.
+    for k, filas in src.items():
+        if k in grupos:
+            continue
+        for it in filas or []:
+            o = it.get('origen') or ''
+            if o in grupos:
+                grupos[o].append(it)
+    conteos = {k: len(v) for k, v in grupos.items()}
+    return {**data, 'grupos': grupos, 'conteos': conteos}
+
+
+def _inventario():
+    return _inventario_sin_red(_inventario_raw())
 
 
 _FOTO_HOSTS = (
@@ -4232,7 +4266,9 @@ def carga_cola():
 
 
 def _carga_inventario_items():
-    gr = _inventario().get('grupos') or {}
+    # Cruce interno de duplicados: incluye la red para no cargar de nuevo un aviso de otra inmobiliaria.
+    # No se muestra en pantallas; esas leen _inventario() (solo propio y alianza).
+    gr = _inventario_raw().get('grupos') or {}
     return list(gr.get('propio') or []) + list(gr.get('alianza') or []) + list(gr.get('red') or [])
 
 

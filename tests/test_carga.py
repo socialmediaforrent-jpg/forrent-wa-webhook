@@ -34,7 +34,9 @@ P4 = {'video': 'https://youtu.be/abc123', 'propietario_nombre': 'Pedro Dueño', 
 
 @pytest.fixture(autouse=True)
 def entorno(monkeypatch):
-    monkeypatch.setattr(appmod, '_inventario', lambda: json.loads(json.dumps(INV)))
+    inv = lambda: json.loads(json.dumps(INV))
+    monkeypatch.setattr(appmod, '_inventario_raw', inv)
+    monkeypatch.setattr(appmod, '_inventario', lambda: appmod._inventario_sin_red(inv()))
     monkeypatch.setenv('INVENTARIO_PASSWORD_SHA256', hashlib.sha256(b'clave-inv').hexdigest())
     monkeypatch.delenv('WASI_WRITE_MODE', raising=False)
     monkeypatch.delenv('AGENTIZ_FEED_TOKEN', raising=False)

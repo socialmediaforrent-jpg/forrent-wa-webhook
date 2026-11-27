@@ -8,14 +8,8 @@
   <a class="btn-carga" href="/mis-captaciones/agregar">Agregar captación</a>
   {% endif %}
 </div>
-<p class="lead">Solo donde figuras como captadora. Inventario del {{ inv_fecha }}. <a href="/inventario">Ver Inmuebles →</a></p>
 {% if ok %}<div class="alert ok" role="status">{{ ok }}</div>{% endif %}
 {% if err %}<div class="alert err" role="alert">{{ err }}</div>{% endif %}
-{% if puede %}
-<p class="muted">Para agregar, toca «Agregar captación». Para retirar una que ya está a tu nombre, ábrela y elige «Retirar captación».</p>
-{% else %}
-<p class="muted">Para agregar, toca «Agregar captación».</p>
-{% endif %}
 <nav class="tabs" aria-label="Filtro">
   <a href="/mis-captaciones?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propios ({{ n_prop }})</a>
   <a href="/mis-captaciones?f=aliadas" class="{{ 'on' if f=='aliadas' else '' }}">Alianza ({{ n_ali }})</a>

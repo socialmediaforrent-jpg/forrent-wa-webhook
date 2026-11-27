@@ -319,3 +319,37 @@ def test_agregar_captacion_error_vuelve_al_formulario():
     assert 'Indica el título o la dirección del inmueble.' in h
     assert 'name="accion" value="alta"' in h
     assert 'value="ab"' in h
+
+
+def test_inventario_de_la_app_omite_la_red():
+    raw = json.loads(json.dumps(INV))
+    raw['grupos']['propio'].append({
+        'titulo': 'RED COLADA', 'operacion': 'Venta', 'tipo': 'Casa', 'zona': 'Prados',
+        'precio': 'US$ 2', 'codigo': '888', 'origen': 'red',
+    })
+    out = appmod._inventario_sin_red(raw)
+    assert set(out['grupos']) == {'propio', 'alianza'}
+    assert out['conteos'] == {'propio': 2, 'alianza': 1}
+    blob = json.dumps(out, ensure_ascii=False)
+    assert 'RED NO DEBE SALIR' not in blob and 'RED COLADA' not in blob
+    assert 'Cubículo en El Rosal' in blob and 'Local Comercial En Alquiler' in blob
+
+
+def test_inventario_pantalla_usa_conteos_sin_red(monkeypatch):
+    monkeypatch.setattr(appmod, '_inventario_raw', lambda: json.loads(json.dumps(INV)))
+    monkeypatch.setattr(appmod, '_inventario', lambda: appmod._inventario_sin_red(appmod._inventario_raw()))
+    h = html(cliente('jose').get('/inventario'))
+    assert 'RED NO DEBE SALIR' not in h
+    assert 'Propias (2)' in h and 'aliados (1)' in h
+    assert '>3</b> resultados' in h
+
+
+def test_mis_captaciones_solo_titulo_y_pestanas():
+    h = html(cliente('ana').get('/mis-captaciones'))
+    assert 'Mis Captaciones' in h
+    assert 'Agregar captación' in h
+    assert 'Propios (' in h and 'Alianza (' in h and 'Todos (' in h
+    assert 'Solo donde figuras como captadora' not in h
+    assert 'Ver Inmuebles' not in h
+    assert 'Para agregar, toca' not in h
+    assert 'Inventario del' not in h
