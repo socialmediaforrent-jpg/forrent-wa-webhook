@@ -5,10 +5,17 @@
 <div class="page-row">
   <h1 class="page">Mis Captaciones</h1>
   {% if viewer.role in ('asesor', 'lider', 'admin') %}
-  <a class="btn-carga" href="/mis-inmuebles">Cargar inmueble</a>
+  <a class="btn-carga" href="/mis-captaciones/agregar">Agregar captación</a>
   {% endif %}
 </div>
 <p class="lead">Solo donde figuras como captadora. Inventario del {{ inv_fecha }}. <a href="/inventario">Ver Inmuebles →</a></p>
+{% if ok %}<div class="alert ok" role="status">{{ ok }}</div>{% endif %}
+{% if err %}<div class="alert err" role="alert">{{ err }}</div>{% endif %}
+{% if puede %}
+<p class="muted">Para agregar, toca «Agregar captación». Para retirar una que ya está a tu nombre, ábrela y elige «Retirar captación».</p>
+{% else %}
+<p class="muted">Para agregar, toca «Agregar captación».</p>
+{% endif %}
 <nav class="tabs" aria-label="Filtro">
   <a href="/mis-captaciones?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propios ({{ n_prop }})</a>
   <a href="/mis-captaciones?f=aliadas" class="{{ 'on' if f=='aliadas' else '' }}">Alianza ({{ n_ali }})</a>
@@ -20,24 +27,12 @@
 <table class="inv"><thead><tr><th>Inmueble</th><th>Operación</th><th>Zona</th><th>Precio</th><th>Estado</th></tr></thead><tbody>
 {% for s in aprob %}<tr><td data-label="Inmueble"><b>{{ s.titulo }}</b></td><td data-label="Operación">{{ s.operacion or '—' }}</td><td data-label="Zona">{{ s.zona or '—' }}</td><td data-label="Precio">{{ s.precio or '—' }}</td><td data-label="Estado"><span class="pill">Aprobada, pendiente de cargar en inventario</span></td></tr>{% endfor %}
 </tbody></table></section>{% endif %}
-{% if puede %}
+{% if puede and solicitudes %}
 <section class="sec">
-  <h2>Agregar una captación</h2>
-  <p class="muted">Se registra como solicitud y la aprueba tu líder (o José). Te llega un aviso por correo. Para retirar una que ya está a tu nombre, ábrela y elige «Retirar captación».</p>
-  <details {{ 'open' if err else '' }}><summary class="btn-sum">+ Solicitar agregar</summary>
-  <form class="grid" method="post" action="/mis-captaciones" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="idem" value="{{ idem_token() }}"><input type="hidden" name="accion" value="alta">
-    <div class="wide"><label>Título o dirección <input name="titulo" required maxlength="160"></label></div>
-    <div><label>Operación <select name="operacion"><option>Venta</option><option>Alquiler</option></select></label></div>
-    <div><label>Origen <select name="origen"><option value="propio">Propia</option><option value="alianza">Aliada</option></select></label></div>
-    <div><label>Tipo <input name="tipo" maxlength="60"></label></div><div><label>Zona <input name="zona" maxlength="120"></label></div>
-    <div><label>Precio <input name="precio" maxlength="60" placeholder="US$ …"></label></div><div><label>Código (si lo tiene) <input name="codigo" maxlength="40"></label></div>
-    <div class="wide"><label>Nota <textarea name="nota" maxlength="400"></textarea></label></div>
-    <div><button type="submit">Enviar solicitud</button></div>
-  </form></details>
-  {% if solicitudes %}<h2>Tus solicitudes</h2>
+  <h2>Tus solicitudes</h2>
   <table class="inv"><thead><tr><th>Fecha</th><th>Acción</th><th>Inmueble</th><th>Estado</th></tr></thead><tbody>
   {% for s in solicitudes %}<tr><td data-label="Fecha">{{ s.created_at[:10] }}</td><td data-label="Acción">{{ 'Agregar' if s.accion=='alta' else 'Retirar' }}</td>
   <td data-label="Inmueble">{{ s.titulo or s.codigo }}{% if s.codigo %} <span class="muted">· {{ s.codigo }}</span>{% endif %}</td><td data-label="Estado">{% if s.estado=='aprobada' and s.accion=='alta' %}<span class="pill">Aprobada, pendiente de cargar en inventario</span>{% elif s.estado=='aprobada' %}<span class="pill">Aprobada, pendiente de retirar del inventario</span>{% else %}<span class="pill {{ 'asig' if s.estado=='rechazada' else '' }}">{{ s.estado|capitalize }}</span>{% endif %}{% if s.nota_revision %}<div class="muted">«{{ s.nota_revision }}»</div>{% endif %}</td></tr>{% endfor %}
-  </tbody></table>{% endif %}
+  </tbody></table>
 </section>{% endif %}
 {% endblock %}

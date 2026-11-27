@@ -246,7 +246,9 @@ def test_mis_captaciones_retiro_en_la_ficha_no_en_bloque_grande():
     h = html(cliente('ana').get('/mis-captaciones'))
     assert 'Solicitar retiro de' not in h
     assert 'select name="codigo"' not in h
-    assert '+ Solicitar agregar' in h
+    assert 'Agregar captación' in h
+    assert '+ Solicitar agregar' not in h
+    assert 'Cargar inmueble' not in h
     assert 'Retirar captación' in h
     assert 'name="accion" value="baja"' in h
     assert 'value="10542820"' in h
@@ -262,8 +264,11 @@ def test_mis_captaciones_retiro_en_la_ficha_no_en_bloque_grande():
     # En la vista de equipo no se pide el retiro (es de la asesora, en Mis Captaciones).
     # José (admin) no tiene el bloque de solicitar.
     hj = html(cliente('jose').get('/mis-captaciones'))
+    assert 'inv-accion-retiro' not in hj
     assert 'Retirar captación' not in hj
     assert '+ Solicitar agregar' not in hj
+    assert 'Cargar inmueble' not in hj
+    assert 'Agregar captación' in hj
 
 
 def test_solicitar_retiro_sigue_el_mismo_flujo():
@@ -288,3 +293,29 @@ def test_volver_desde_ficha_acepta_mis_captaciones():
     assert appmod._volver_inv('/inventario?lista=propias') == '/inventario?lista=propias'
     assert appmod._volver_inv('https://evil.example/x') == '/inventario'
     assert appmod._volver_inv('/otra') == '/inventario'
+
+
+def test_agregar_captacion_solicitud_de_existente_sigue_el_mismo_flujo():
+    c = cliente('ana')
+    token = portal_lib.csrf_token(portal_lib.user_by_username('ana'))
+    s0 = appmod.q('SELECT COUNT(*) AS n FROM captacion_solicitudes', fetch=True)[0]['n']
+    r = c.post('/mis-captaciones', data={
+        'csrf': token, 'accion': 'alta', 'titulo': 'Local ya en inventario',
+        'codigo': '10542820', 'origen': 'propio', 'nota': 'Es mío', 'idem': 'tok-alta-unificado',
+    })
+    assert r.status_code == 302 and r.headers['Location'].endswith('/mis-captaciones?ok=1')
+    rows = appmod.q('SELECT * FROM captacion_solicitudes ORDER BY id DESC', fetch=True)
+    assert rows and rows[0]['accion'] == 'alta' and rows[0]['codigo'] == '10542820'
+    assert rows[0]['titulo'] == 'Local ya en inventario' and rows[0]['estado'] == 'pendiente'
+    assert appmod.q('SELECT COUNT(*) AS n FROM captacion_solicitudes', fetch=True)[0]['n'] == s0 + 1
+
+
+def test_agregar_captacion_error_vuelve_al_formulario():
+    c = cliente('ana')
+    token = portal_lib.csrf_token(portal_lib.user_by_username('ana'))
+    r = c.post('/mis-captaciones', data={'csrf': token, 'accion': 'alta', 'titulo': 'ab', 'idem': 'tok-alta-corto'})
+    assert r.status_code == 400
+    h = r.get_data(as_text=True)
+    assert 'Indica el título o la dirección del inmueble.' in h
+    assert 'name="accion" value="alta"' in h
+    assert 'value="ab"' in h

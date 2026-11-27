@@ -898,7 +898,7 @@ def _portal_nav():
         more.append({'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'})
     else:
         more.append({'href': '/visitas', 'label': 'Visitas', 'key': 'visitas', 'icon': 'calendar'})
-    more.append({'href': '/mis-inmuebles', 'label': 'Cargar inmueble', 'key': 'carga', 'icon': 'key'})
+    more.append({'href': '/mis-captaciones/agregar', 'label': 'Agregar captación', 'key': 'carga', 'icon': 'key'})
     if role == 'admin':
         more.append({'href': '/inventario/cola', 'label': 'Por revisar (carga)', 'key': 'carga_cola', 'icon': 'clipboard'})
     if role != 'admin':
@@ -967,6 +967,8 @@ def _atras_ya_tiene(path):
 def _atras_fallback(path, role):
     if path == '/modulos':
         return '/portal'
+    if path == '/mis-captaciones/agregar':
+        return '/mis-captaciones'
     if path.startswith('/mi-equipo/'):
         return '/mi-equipo'
     if path.startswith('/mis-inmuebles/'):
@@ -1004,9 +1006,10 @@ def _portal_atras():
 
 
 # Rutas de «Más» que no aparecen como href en Módulos, pero se abren desde una sección
-# que sí está ahí (misma función). «Cargar inmueble» vive en Mis Captaciones › Inmuebles.
+# que sí está ahí (misma función). «Agregar captación» vive en Mis Captaciones › Inmuebles.
 _MAS_CUBIERTO_POR = {
     '/mis-inmuebles': '/mis-captaciones',
+    '/mis-captaciones/agregar': '/mis-captaciones',
 }
 
 # El perfil no se quita de «Más», aunque algún día tuviera eco en Módulos.
@@ -3665,6 +3668,31 @@ def perfil_foto(slug):
 
 
 # --- Mis Captaciones (filtros) + solicitudes de alta/baja
+def _captaciones_agregar_render(u, *, tipo='', err='', form=None, status=200):
+    """Primera pregunta de «Agregar captación»: inmueble nuevo (carga) o ya en inventario (solicitud)."""
+    puede = u['role'] != 'admin'
+    if tipo == 'existente' and not puede:
+        return redirect('/mis-captaciones/agregar')
+    n_cargas = 0
+    try:
+        n_cargas = len(carga.de_asesor(q, u['user']) or [])
+    except Exception:
+        n_cargas = 0
+    return _hdr(render_template(
+        'captaciones_agregar.html', tipo=tipo if tipo == 'existente' else '',
+        err=err, form=form or {}, csrf=portal_lib.csrf_token(u), puede=puede, n_cargas=n_cargas,
+    ), status)
+
+
+@app.get('/mis-captaciones/agregar')
+@require_login
+def captaciones_agregar():
+    u = g.user
+    if u['role'] not in ('asesor', 'lider', 'admin'):
+        return _forbidden()
+    return _captaciones_agregar_render(u, tipo=request.args.get('tipo') or '')
+
+
 @app.route('/mis-captaciones', methods=['GET', 'POST'], endpoint='mis_captaciones2')
 @require_login
 def mis_captaciones2():
@@ -3713,6 +3741,10 @@ def mis_captaciones2():
                     else:
                         _correo(apr, f"{u['name']} pidió {que} una captación", aviso, f'captacion_{accion}_aprobador')
                     return redirect('/mis-captaciones?ok=1')
+        if err and (request.form.get('accion') == 'alta'):
+            form = {k: (request.form.get(k) or '') for k in
+                    ('titulo', 'codigo', 'operacion', 'origen', 'tipo', 'zona', 'precio', 'nota')}
+            return _captaciones_agregar_render(u, tipo='existente', err=err, form=form, status=400)
     f = request.args.get('f') or 'todas'
     if f not in ('propias', 'aliadas', 'todas'):
         f = 'todas'

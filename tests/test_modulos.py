@@ -196,12 +196,27 @@ def test_boton_atras():
     assert 'btn-atras' not in cliente('mercadeo').get('/mercadeo').get_data(as_text=True)
 
 
-def test_cargar_inmueble_en_mis_captaciones():
-    """La carga se abre desde Mis Captaciones › Inmuebles, no como entrada suelta en Módulos."""
+def test_agregar_captacion_en_mis_captaciones():
+    """Un solo botón «Agregar captación» en Mis Captaciones, no como entrada suelta en Módulos."""
     for slug in ('jose', 'ana'):
         h = cliente(slug).get('/mis-captaciones').get_data(as_text=True)
         m = re.search(r'<a class="btn-carga" href="([^"]+)">([^<]+)</a>', h)
-        assert m and m.group(1) == '/mis-inmuebles' and m.group(2) == 'Cargar inmueble', slug
+        assert m and m.group(1) == '/mis-captaciones/agregar' and m.group(2) == 'Agregar captación', slug
+        assert 'Cargar inmueble' not in h
+        assert '+ Solicitar agregar' not in h
+    h = cliente('ana').get('/mis-captaciones/agregar').get_data(as_text=True)
+    assert '¿Es un inmueble nuevo o ya está en el inventario?' in h
+    assert 'Es un inmueble nuevo' in h
+    assert 'Ya está en el inventario' in h
+    assert 'action="/mis-inmuebles/nuevo"' in h
+    h = cliente('ana').get('/mis-captaciones/agregar?tipo=existente').get_data(as_text=True)
+    assert 'name="accion" value="alta"' in h
+    assert 'Enviar solicitud' in h
+    # José carga inmuebles nuevos, no pide que se los asignen.
+    hj = cliente('jose').get('/mis-captaciones/agregar').get_data(as_text=True)
+    assert 'Es un inmueble nuevo' in hj
+    assert 'Ya está en el inventario' not in hj
+    assert cliente('jose').get('/mis-captaciones/agregar?tipo=existente').status_code in (302, 303)
 
 def test_mercadeo_mis_captaciones_solo_del_usuario():
     """Mis Captaciones › Mercadeo cuenta solo las captaciones del usuario conectado."""
