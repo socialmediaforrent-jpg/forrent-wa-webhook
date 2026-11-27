@@ -48,7 +48,7 @@
     </form>
   </details>
   {% endif %}
-  {{ cli_por_fase(fases.grupos, csrf, estatus_opciones, 'No tienes clientes en esta lista todavía.', mostrar_asesor=mostrar_asesor|default(false), abiertas=false, mostrar_vacias=(n_clientes|default(0))>0) }}
+  {{ cli_por_fase(fases.grupos, csrf, estatus_opciones, 'No tienes clientes en esta lista todavía.', mostrar_asesor=mostrar_asesor|default(false), abiertas=false, mostrar_vacias=(n_clientes|default(0))>0, volver=volver_ficha|default('/mis-clientes'), motivos=motivos|default([]), modo_prueba=modo_prueba|default(false), sit_modelo=sit_modelo|default(none), abrir=abrir|default('')) }}
 </main>
 <script>
 (function(){

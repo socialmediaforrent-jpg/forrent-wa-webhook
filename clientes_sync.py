@@ -240,6 +240,10 @@ def pasada(q, *, is_pg=False, opener=None, also_crm=True):
         return resumen
     nuevo, n_cam = aplicar_a_payload(data, resp)
     _guardar_portal(q, is_pg, 'clientes_asignados.json', nuevo)
+    try:
+        guardar_historial(q, is_pg, resp, [c.get('id') for c in (nuevo.get('clientes') or [])])
+    except Exception:
+        log.exception('clientes_sync historial')
     if also_crm:
         try:
             _aplicar_estatus_crm(q, nuevo.get('clientes') or [])
@@ -337,3 +341,112 @@ def iniciar_fondo(app_factory, *, is_pg, invalidate=None):
 
 def avisar():
     _pedir.set()
+
+
+# ---------------------------------------------------------------- Tarjeta del cliente (27-nov-2026)
+# Historial y actualización de la Situación desde For Rent Online, con el mismo Sistema de Clientes.
+# Fuente única: respuestas del Sistema de Clientes (GET /sync/respuestas, POST /sync/data con la misma
+# llave X-Sync-Key). La app no guarda estatus por su cuenta: copia lo que el Sistema confirma.
+HIST_NOMBRE = 'clientes_historial'
+_HIST_CAMPOS = ('estado', 'situacion', 'estatus', 'fecha', 'motivo', 'comentario', 'at', 'asesor', 'por', 'via')
+
+
+def _slim(rec):
+    return {k: rec[k] for k in _HIST_CAMPOS if isinstance(rec, dict) and rec.get(k)}
+
+
+def historial_de_respuestas(resp, ids):
+    """{id: [entradas, la más reciente al final]} solo para los clientes indicados."""
+    out = {}
+    for cid in ids or []:
+        r = (resp or {}).get(cid or '')
+        if not isinstance(r, dict) or not (r.get('estado') or r.get('estatus')):
+            continue
+        h = [_slim(x) for x in (r.get('historial') or []) if isinstance(x, dict)]
+        h = [x for x in h if x.get('estado') or x.get('estatus')]
+        out[cid] = h + [_slim(r)]
+    return out
+
+
+def leer_historial(q):
+    if not q:
+        return {}
+    try:
+        rows = q('SELECT datos FROM portal_datos WHERE nombre=%s', (HIST_NOMBRE,), fetch=True) or []
+        if rows:
+            d = rows[0]['datos']
+            if isinstance(d, str):
+                d = json.loads(d)
+            if isinstance(d, dict):
+                return d.get('clientes') or {}
+    except Exception:
+        pass
+    return {}
+
+
+def guardar_historial(q, is_pg, resp, ids):
+    nuevo = historial_de_respuestas(resp, ids)
+    # Clientes que el Sistema no trae (p. ej. uno de prueba en la copia de prueba): se conserva lo local.
+    previo = leer_historial(q)
+    for cid in ids or []:
+        if cid and cid not in nuevo and cid in previo:
+            nuevo[cid] = previo[cid]
+    _guardar_portal(q, is_pg, HIST_NOMBRE, {'actualizado': ahora_iso(), 'clientes': nuevo})
+    return nuevo
+
+
+def escritura_habilitada():
+    """Solo producción envía al Sistema de Clientes. En la copia de prueba queda en la base de prueba."""
+    return os.environ.get('CLIENTES_ESTATUS_WRITE') == '1'
+
+
+def enviar_respuesta(q, cid, rec, opener=None):
+    """Manda una entrada nueva al Sistema de Clientes por /sync/data (misma llave que la lectura).
+
+    El Sistema la une con merge_resp: la más reciente queda vigente y la anterior pasa al historial.
+    """
+    if not configurado(q):
+        raise RuntimeError('Sistema de Clientes no configurado')
+    url = estatus_url(q) + '/sync/data'
+    body = json.dumps({'respuestas': {cid: rec}}, ensure_ascii=False).encode()
+    req = urllib.request.Request(
+        url, data=body, method='POST',
+        headers={'X-Sync-Key': estatus_key(q), 'Content-Type': 'application/json',
+                 'User-Agent': 'forrent-online-ficha', 'Accept': 'application/json'},
+    )
+    open_fn = opener or urllib.request.urlopen
+    with open_fn(req, timeout=30) as resp:
+        d = json.loads(resp.read() or b'{}')
+    if not (isinstance(d, dict) and d.get('ok')):
+        raise RuntimeError('El Sistema de Clientes no confirmó el guardado')
+    return True
+
+
+def aplicar_local(q, is_pg, cid, rec):
+    """Refleja de inmediato la entrada nueva en lo que sirve la app (lista, CRM e historial)."""
+    global _ultima
+    estado = rec.get('estado') or ''
+    sit = rec.get('situacion') or ''
+    est = sit or estado
+    data = _cargar_asignados(q)
+    if data:
+        cambiado = False
+        for c in data.get('clientes') or []:
+            if (c.get('id') or '') == cid:
+                c['estado'], c['situacion'], c['estatus'] = estado, sit, est
+                cambiado = True
+        if cambiado:
+            data['actualizado'] = ahora_iso()
+            _guardar_portal(q, is_pg, 'clientes_asignados.json', data)
+    try:
+        _aplicar_estatus_crm(q, [{'id': cid, 'estado': estado, 'situacion': sit, 'estatus': est}])
+    except Exception:
+        pass
+    hist = leer_historial(q)
+    lst = list(hist.get(cid) or [])
+    lst.append(_slim(rec))
+    hist[cid] = lst
+    _guardar_portal(q, is_pg, HIST_NOMBRE, {'actualizado': ahora_iso(), 'clientes': hist})
+    # Que la próxima carga de página no pise el cambio con una pasada inmediata.
+    _ultima = time.time()
+    return est

@@ -104,7 +104,7 @@ def _iso_asignado(raw, typed=None):
 def _contactos_portal(q):
     rows = q(
         """SELECT registro_id, ghl_id, propio_id, asesor_slug, name, estatus, estado, situacion,
-                  inmueble, operacion, asignado_at_raw, asignado_at, origen
+                  inmueble, operacion, asignado_at_raw, asignado_at, origen, tipo_lead
            FROM crm_contacts
            WHERE NOT excluido AND asesor_slug IS NOT NULL
              AND (in_registro OR asignado_at IS NOT NULL OR asignado_at_raw IS NOT NULL)
@@ -124,6 +124,7 @@ def _contactos_portal(q):
             'operacion': r.get('operacion') or '',
             'asignado_at': _iso_asignado(r.get('asignado_at_raw'), r.get('asignado_at')),
             'origen': r.get('origen') or 'Asignado por For Rent',
+            'tipo_lead': r.get('tipo_lead') or '',
         })
     return out
 

@@ -21,6 +21,8 @@
       {{ icon('info', 'asig-info-ico') }}
     </button>
   </div>
+  {% if flash_ok %}<div class="alert ok" role="status">{{ flash_ok }}</div>{% endif %}
+  {% if flash_err %}<div class="alert err" role="alert">{{ flash_err }}</div>{% endif %}
   <div id="asig-info" class="asig-info-pop" popover>
     Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí. Nuevas Asignaciones son las de hace menos de 24 horas, contadas desde la fecha y hora de asignación, que todavía no tienen avance. Clientes sin estatus son las que ya cumplen 24 horas (o no tienen fecha) y siguen sin avance. Un avance es un estatus real: Contactado, Buscando, Esperando, Agendado, etc. ASIGNADO, No contactado o el campo vacío no cuentan como avance. El cálculo se actualiza cada vez que se carga la página.{% if cli_fecha %} Actualizado: {{ cli_fecha }}.{% endif %}
   </div>
@@ -62,12 +64,12 @@
   <section class="dash-sec embudo-lista" id="lista-{{ t.id }}" data-embudo-lista="{{ t.id }}" {% if not tile or tile.id != t.id %}hidden{% endif %}>
     <h2>{{ t.label }} <span class="muted">({{ t.n }})</span></h2>
     <p class="lead" style="margin-bottom:10px"><a href="/mis-asignaciones" data-embudo-volver>Volver</a></p>
-    {{ cli_table(t.clientes, csrf, estatus_opciones, 'No hay clientes en este estatus.', mostrar_asesor=mostrar_asesor, sid='asig-' ~ t.id) }}
+    {{ cli_table(t.clientes, csrf, estatus_opciones, 'No hay clientes en este estatus.', mostrar_asesor=mostrar_asesor, sid='asig-' ~ t.id, volver=volver_ficha, motivos=motivos, modo_prueba=modo_prueba) }}
   </section>
   {% endfor %}
   {% endif %}
   {% endfor %}
-  {{ cli_js() }}
+  {{ cli_js(sit_modelo, abrir) }}
 <script>
 (function(){
   var btn = document.querySelector(".asig-info-btn");

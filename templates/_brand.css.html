@@ -1,4 +1,25 @@
 <link rel="stylesheet" href="{{ static_v('app.css') }}">
+<meta name="app-build" content="{{ app_build }}">
+<script>
+/* Caché del teléfono (PWA): no hay service worker; si alguno quedó registrado, se quita.
+   Al volver a la app (desde memoria o tras un rato en segundo plano) se pide la versión y,
+   si cambió desde que se pintó esta página, se recarga para no mostrar HTML viejo. */
+(function(){
+  try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); }
+       if(window.caches&&caches.keys){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); } }catch(e){}
+  var mine=(document.querySelector('meta[name=app-build]')||{}).content||'', oculto=0;
+  function revisar(){
+    fetch('/app-build',{cache:'no-store',credentials:'same-origin'}).then(function(r){ return r.ok?r.json():null; })
+      .then(function(d){ if(d&&d.build&&mine&&d.build!==mine){ location.reload(); } }).catch(function(){});
+  }
+  window.addEventListener('pageshow',function(e){ if(e.persisted){ location.reload(); } });
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='hidden'){ oculto=Date.now(); return; }
+    if(oculto && Date.now()-oculto>30000){ revisar(); }
+  });
+  window.addEventListener('focus',function(){ if(oculto && Date.now()-oculto>30000){ revisar(); } });
+})();
+</script>
 <script>
 document.addEventListener('submit',function(e){var b=e.target.querySelector('button[type=submit]');if(b)b.setAttribute('aria-busy','true');},true);
 /* F1/F2 móvil: va en <head> para que los toques respondan desde que la fila se pinta. */

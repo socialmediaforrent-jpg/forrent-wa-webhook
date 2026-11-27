@@ -446,6 +446,33 @@ def static_v(name):
 app.jinja_env.globals['static_v'] = static_v
 app.jinja_env.globals['copia_prueba'] = os.environ.get('PORTAL_COPIA_PRUEBA', '').strip()
 
+# Versión publicada: el teléfono (PWA) compara al volver a la app y recarga si cambió.
+# No hay service worker; el HTML ya va con no-store. Esto cubre la app restaurada desde memoria.
+def _build_local():
+    # Igual en todos los workers: hash de app.py y plantillas (sin hora, para no recargar en bucle).
+    h = hashlib.sha256()
+    base = os.path.dirname(os.path.abspath(__file__))
+    for root in (base, os.path.join(base, 'templates')):
+        try:
+            for n in sorted(os.listdir(root)):
+                if n.endswith(('.py', '.html')):
+                    with open(os.path.join(root, n), 'rb') as fh:
+                        h.update(fh.read())
+        except OSError:
+            pass
+    return h.hexdigest()[:12]
+
+
+APP_BUILD = (os.environ.get('RENDER_GIT_COMMIT') or '').strip()[:12] or _build_local()
+app.jinja_env.globals['app_build'] = APP_BUILD
+
+
+@app.get('/app-build')
+def app_build():
+    r = make_response(jsonify({'build': APP_BUILD}))
+    r.headers['Cache-Control'] = 'no-store'
+    return r
+
 
 @app.after_request
 def _cache_estaticos(resp):
@@ -2375,6 +2402,8 @@ def _clientes_ejercicio(user):
             'origen_nota': '', 'busca': r.get('operacion') or '',
             'inmueble': r.get('inmueble') or '', 'editable': False,
             'asignado_at': r.get('asignado_at') or '',
+            'tipo_lead': r.get('tipo_lead') or '', 'operacion': r.get('operacion') or '',
+            'asesor_slug': (r.get('asesor') or '').strip(),
         }
         if es_admin:
             slug = (r.get('asesor') or '').strip()
@@ -2395,6 +2424,122 @@ def _asesor_clientes(user):
 def _clientes_asignaciones(user):
     """Embudo de Mis Asignaciones: misma fuente que Mis Clientes."""
     return _clientes_ejercicio(user)
+
+
+# ---------------------------------------------------------------- Tarjeta del cliente (27-nov-2026)
+# Al tocar un cliente asignado se abre su tarjeta: datos, «Información del cliente» ordenada,
+# actualizar Situación (modelo del Sistema de Clientes) e historial. Fuente única: Sistema de Clientes.
+import asignacion_info
+import estatus_modelo
+
+_MESES_CORTOS_ES = ('ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic')
+
+
+def _fmt_asignado(raw):
+    dt = portal_lib.parse_asignado_at(raw)
+    if not dt:
+        return ''
+    h = dt.hour % 12 or 12
+    ap = 'a. m.' if dt.hour < 12 else 'p. m.'
+    return f'{dt.day} {_MESES_CORTOS_ES[dt.month - 1]} {dt.year}, {h}:{dt.strftime("%M")} {ap}'
+
+
+def _fmt_at(raw):
+    """Hora de una entrada del historial, en Caracas como el resto del portal."""
+    dt = portal_lib.parse_caracas(raw) if raw else None
+    if not dt:
+        return ''
+    h = dt.hour % 12 or 12
+    ap = 'a. m.' if dt.hour < 12 else 'p. m.'
+    return f'{dt.day} {_MESES_CORTOS_ES[dt.month - 1]} {dt.year}, {h}:{dt.strftime("%M")} {ap}'
+
+
+def _wa_link(tel):
+    dig = ''.join(ch for ch in (tel or '') if ch.isdigit())
+    if dig.startswith('0') and len(dig) == 11:
+        dig = '58' + dig[1:]
+    return f'https://wa.me/{dig}' if len(dig) >= 10 else ''
+
+
+def _historial_vista(entradas):
+    out = []
+    for h in reversed(entradas or []):
+        partes = [h.get('estado') or h.get('estatus') or '']
+        if h.get('situacion'):
+            partes.append(h['situacion'])
+        out.append({
+            'titulo': ' · '.join(p for p in partes if p),
+            'fecha': portal_lib.fmt_fecha(h['fecha']) if h.get('fecha') else '',
+            'motivo': h.get('motivo') or '',
+            'comentario': h.get('comentario') or '',
+            'cuando': _fmt_at(h.get('at')),
+            'por': h.get('asesor') or '',
+        })
+    return out
+
+
+def _fichas_clientes(clientes):
+    """Completa cada cliente asignado con lo que pide la tarjeta. No toca los clientes propios."""
+    asig = [c for c in clientes if c.get('origen') != 'Propio del asesor']
+    if not asig:
+        return clientes
+    tels = {}
+    try:
+        for x in (portal_lib._load('clientes_telefonos.json', {}) or {}).get('clientes') or []:
+            k = x.get('id') or x.get('contact_id')
+            if k and x.get('telefono'):
+                tels[k] = x['telefono']
+    except Exception:
+        pass
+    hist = clientes_sync.leer_historial(q)
+    for c in asig:
+        cid = c.get('id') or ''
+        info = asignacion_info.parse_asignacion({
+            'inmueble': c.get('inmueble') or '', 'operacion': c.get('operacion') or c.get('busca') or '',
+            'tipo_lead': c.get('tipo_lead') or '',
+        })
+        c['info'] = info
+        c['resumen_corto'] = asignacion_info.resumen_corto({'inmueble': c.get('inmueble') or ''})
+        tel = tels.get(cid) or info.get('whatsapp_texto') or ''
+        c['telefono'] = tel
+        c['wa_link'] = _wa_link(tel)
+        c['asignado_fmt'] = _fmt_asignado(c.get('asignado_at'))
+        c['historial'] = _historial_vista(hist.get(cid))
+        c['puede_situacion'] = bool(cid)
+        c['estado_actual'] = c.get('estado') if c.get('estado') in estatus_modelo.ESTADOS else ''
+        c['situacion_actual'] = c.get('situacion') or ''
+        tl = (c.get('tipo_lead') or '').replace('Busqueda', 'Búsqueda')
+        c['tipo_lead_txt'] = tl
+    return clientes
+
+
+def _cliente_visible(user, cid):
+    """El cliente asignado, si este usuario lo ve en su lista (mismo criterio que Mis Asignaciones)."""
+    for c in _clientes_ejercicio(user)[0]:
+        if c.get('origen') != 'Propio del asesor' and (c.get('id') or '') == cid:
+            return c
+    return None
+
+
+def _tile_de_cliente(user, cid):
+    clientes, _ = _clientes_asignaciones(user)
+    emb = portal_lib.resumen_asignaciones(clientes)
+    for tid, tile in (emb.get('tiles') or {}).items():
+        if any((x.get('id') or '') == cid for x in tile.get('clientes') or []):
+            return tid
+    return ''
+
+
+def _volver_ficha(raw, cid, tile=''):
+    """Vuelve a la lista donde quedó el cliente y reabre su tarjeta."""
+    base = (raw or '').strip()
+    if base.startswith('/mis-clientes'):
+        url = '/mis-clientes'
+        sep = '?'
+    else:
+        url = '/mis-asignaciones' + (f'?e={quote(tile)}' if tile else '')
+        sep = '&' if tile else '?'
+    return f'{url}{sep}abrir={quote(cid)}'
 
 
 def _cierres_vista(user, *, full):
@@ -2421,6 +2566,7 @@ def _render_asesor(user, flash_ok='', flash_err='', form=None):
 def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200):
     clientes_sync.maybe_refresh(q, is_pg=IS_PG, invalidate=lambda: _live_cache.__setitem__('t', 0.0))
     clientes, cli_fecha = _asesor_clientes(user)
+    _fichas_clientes(clientes)
     fases = _fases_de(clientes)
     fases = dict(fases)
     fases['grupos'] = portal_lib.grupos_lista_clientes(clientes)
@@ -2432,6 +2578,9 @@ def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200):
         csrf=portal_lib.csrf_token(user), puede_agregar=user['role'] != 'admin',
         mostrar_asesor=user.get('role') == 'admin',
         flash_ok=flash_ok, flash_err=flash_err, form=form or {},
+        sit_modelo=estatus_modelo.opciones_js(), motivos=estatus_modelo.MOTIVOS,
+        volver_ficha='/mis-clientes', abrir=(request.args.get('abrir') or '').strip(),
+        modo_prueba=not clientes_sync.escritura_habilitada(),
     ))
     resp.status_code = status
     return resp
@@ -2982,6 +3131,7 @@ def mis_asignaciones():
     """Embudo comercial de asignaciones. Mercadeo queda en 403 por require_login."""
     clientes_sync.maybe_refresh(q, is_pg=IS_PG, invalidate=lambda: _live_cache.__setitem__('t', 0.0))
     clientes, actualizado = _clientes_asignaciones(g.user)
+    _fichas_clientes(clientes)
     embudo = portal_lib.resumen_asignaciones(clientes)
     tile_id = (request.args.get('e') or '').strip()
     tile = embudo['tiles'].get(tile_id) if tile_id else None
@@ -2993,6 +3143,12 @@ def mis_asignaciones():
         estatus_opciones=portal_lib.ESTATUS_OPCIONES,
         mostrar_asesor=g.user.get('role') == 'admin',
         cli_fecha=portal_lib.fmt_fecha_hora(actualizado) if actualizado else 'fecha no disponible',
+        sit_modelo=estatus_modelo.opciones_js(), motivos=estatus_modelo.MOTIVOS,
+        volver_ficha='/mis-asignaciones' + (f'?e={quote(tile_id)}' if tile else ''),
+        abrir=(request.args.get('abrir') or '').strip(),
+        flash_ok=_FICHA_OK.get(request.args.get('ok') or '', ''),
+        flash_err=(request.args.get('err') or '')[:200],
+        modo_prueba=not clientes_sync.escritura_habilitada(),
     ))
 
 
@@ -3000,8 +3156,8 @@ def mis_asignaciones():
 @require_login
 def mis_clientes():
     ok = request.args.get('ok')
-    flash_ok = 'Cliente guardado.' if ok == '1' else ('Estatus actualizado.' if ok == 'estatus' else '')
-    return _render_clientes(g.user, flash_ok=flash_ok)
+    flash_ok = 'Cliente guardado.' if ok == '1' else ('Estatus actualizado.' if ok == 'estatus' else _FICHA_OK.get(ok or '', ''))
+    return _render_clientes(g.user, flash_ok=flash_ok, flash_err=(request.args.get('err') or '')[:200])
 
 
 def _equipo_de(user):
@@ -3045,8 +3201,10 @@ def mi_equipo_asesora(slug):
     meta = portal_lib.asesor_by_user(slug) or {}
     cap = portal_lib.load_captaciones(slug=slug)
     clientes, cli_fecha = _asesor_clientes({'user': slug})
+    _fichas_clientes(clientes)
     for c in clientes:
         c['editable'] = False
+        c['puede_situacion'] = False
     inv = _inventario()
     visitas_r = q('SELECT * FROM asesor_visitas WHERE asesor_slug=%s ORDER BY fecha DESC, id DESC', (slug,), fetch=True) or []
     ofertas_r = q('SELECT * FROM asesor_ofertas WHERE asesor_slug=%s ORDER BY fecha DESC, id DESC', (slug,), fetch=True) or []
@@ -3130,6 +3288,76 @@ def asesor_estatus_cliente(cid):
     except Exception:
         log.exception('crm propio status')
     return redirect('/mis-clientes?ok=estatus')
+
+
+_FICHA_OK = {
+    'situacion': 'Situación actualizada. Quedó como una entrada nueva en el historial.',
+    'situacion_prueba': 'Situación actualizada en la copia de prueba (no se envió al Sistema de Clientes).',
+}
+
+
+def _ficha_redirect(volver, cid, *, err=''):
+    url = _volver_ficha(volver, cid)
+    if err:
+        url += '&err=' + quote(err, safe='')
+    return redirect(url)
+
+
+@app.post('/asesor/asignados/<cid>/situacion')
+@require_login
+def asesor_situacion_asignado(cid):
+    """Actualiza la Situación de un cliente asignado con el modelo del Sistema de Clientes.
+
+    Producción: la entrada va al Sistema de Clientes (misma fuente del seguimiento) y se refleja aquí.
+    Prueba (sin CLIENTES_ESTATUS_WRITE=1): solo en la base de prueba; la próxima sincronización
+    vuelve al valor real del Sistema.
+    En «ver como», la entrada queda a nombre del admin real.
+    """
+    cid = (cid or '').strip()[:80]
+    f = request.form
+    volver = (f.get('volver') or '').strip()
+    if not portal_lib.csrf_ok(g.user, f.get('csrf')):
+        return _ficha_redirect(volver, cid, err='La sesión expiró. Vuelve a intentar.')
+    c = _cliente_visible(g.user, cid)
+    if not c:
+        return _panel_headers(Response('No puedes actualizar este cliente.\n', 403))
+    d = {k: (f.get(k) or '').strip() for k in ('estado', 'situacion', 'fecha', 'motivo', 'comentario')}
+    if d['situacion'] in estatus_modelo.SOLO_EN_SISTEMA:
+        return _ficha_redirect(volver, cid, err='«Reserva firmada» se registra en el Sistema de Clientes, porque pide el documento.')
+    err = estatus_modelo.validar(d)
+    if err:
+        return _ficha_redirect(volver, cid, err=err)
+    if not _idem_claim(g.user['user'], f'situacion:{cid}'):
+        return redirect(_volver_ficha(volver, cid, _tile_de_cliente(g.user, cid)) + '&ok=situacion')
+    real = getattr(g, 'real_user', None) or g.user
+    viendo = getattr(g, 'view_as', None)
+    autor = real if viendo else g.user
+    at = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    rec = estatus_modelo.registro(d, asesor=_nombre_asesor(autor['user']) or autor['user'], at=at)
+    rec['via'] = 'For Rent Online' + (f' (viendo como {_nombre_asesor(viendo["user"])})' if viendo else '')
+    if viendo:
+        rec['por'] = real['user']
+    enviado = False
+    if clientes_sync.escritura_habilitada():
+        try:
+            enviado = clientes_sync.enviar_respuesta(q, cid, rec)
+        except Exception as e:
+            _idem_release()
+            log.warning('situacion: no se pudo enviar al Sistema de Clientes (%s)', type(e).__name__)
+            return _ficha_redirect(volver, cid, err='No se pudo guardar en el Sistema de Clientes. Inténtalo de nuevo.')
+    try:
+        clientes_sync.aplicar_local(q, IS_PG, cid, rec)
+    except Exception:
+        log.exception('situacion: aplicar local')
+    try:
+        import crm_write
+        crm_write.upsert_phase(q, {'ghl_id': cid, 'payload': rec, 'source': 'online'})
+    except Exception:
+        pass
+    _live_cache['t'] = 0.0
+    log.info('situacion actualizada cliente=%s por=%s enviado=%s', cid, autor['user'], enviado)
+    tile = _tile_de_cliente(g.user, cid)
+    return redirect(_volver_ficha(volver, cid, tile) + ('&ok=situacion' if enviado else '&ok=situacion_prueba'))
 
 
 

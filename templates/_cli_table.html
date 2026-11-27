@@ -1,4 +1,93 @@
-{% macro cli_table(clientes, csrf, estatus_opciones, vacio, mostrar_asesor=False, sid='cli') %}
+{% macro _info_cliente(c, iid) %}
+{% set info = c.info %}
+<dialog class="cli-modal cli-info" id="{{ iid }}" aria-label="Información de {{ c.nombre }}">
+  <div class="cli-modal-inner">
+    <button type="button" class="cli-modal-x" data-close aria-label="Cerrar">&times;</button>
+    <p class="cli-info-kicker">Información del cliente</p>
+    <h2 class="cli-info-nombre">{{ c.nombre }}</h2>
+    <p class="cli-info-sub"><span class="pill asig">Asignado por For Rent</span>{% if c.asignado_fmt %} <span class="muted">· {{ c.asignado_fmt }}</span>{% endif %}</p>
+
+    {% if info.ojos %}
+    <div class="ci-sec ci-ojo" role="region" aria-label="Advertencias">
+      <h3>Notas y advertencias</h3>
+      <ul>{% for o in info.ojos %}<li><b>OJO:</b> {{ o }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    {% if info.resumen %}
+    <div class="ci-sec">
+      <h3>Resumen</h3>
+      <dl class="ci-filas">{% for f in info.resumen %}<div><dt>{{ f.label }}</dt><dd>{{ f.value }}</dd></div>{% endfor %}</dl>
+    </div>
+    {% endif %}
+
+    {% if info.busca %}
+    <div class="ci-sec">
+      <h3>Qué busca</h3>
+      <dl class="ci-filas">{% for f in info.busca %}<div><dt>{{ f.label }}</dt><dd>{{ f.value }}</dd></div>{% endfor %}</dl>
+    </div>
+    {% endif %}
+
+    {% if info.inmuebles %}
+    <div class="ci-sec">
+      <h3>Inmuebles <span class="muted">({{ info.inmuebles|length }})</span></h3>
+      <div class="ci-inms">
+      {% for i in info.inmuebles %}
+        <article class="ci-inm{% if 'NO ofrecer' in i.badges %} no{% endif %}">
+          <header class="ci-inm-cab">
+            <b class="ci-inm-tit">{{ i.titulo or 'Inmueble' }}</b>
+            {% for cod in i.codigos %}<span class="ci-cod">{{ cod.label }}</span>{% endfor %}
+          </header>
+          {% set datos = [] %}
+          {% if i.hab %}{% set _ = datos.append(i.hab ~ ' hab') %}{% endif %}
+          {% if i.m2 %}{% set _ = datos.append(i.m2 ~ ' m²') %}{% endif %}
+          {% if i.banos %}{% set _ = datos.append(i.banos ~ (' baño' if i.banos == '1' else ' baños')) %}{% endif %}
+          {% if i.puesto %}{% set _ = datos.append(i.puesto ~ (' puesto' if i.puesto == '1' else ' puestos')) %}{% endif %}
+          {% if datos or i.precio %}<p class="ci-inm-datos">{{ datos|join(' · ') }}{% if datos and i.precio %} · {% endif %}{% if i.precio %}<b>{{ i.precio }}</b>{% endif %}</p>{% endif %}
+          {% if i.badges or i.estado %}
+          <p class="ci-badges">
+            {% for b in i.badges %}<span class="ci-badge {{ 'b-no' if b == 'NO ofrecer' else ('b-ok' if b == 'Disponible' else 'b-ali') }}">{{ b }}</span>{% endfor %}
+            {% if i.estado and i.estado != 'Disponible' %}<span class="ci-badge b-no">{{ i.estado }}</span>{% endif %}
+          </p>
+          {% endif %}
+          {% if i.captador %}
+          <div class="ci-cap">
+            <p class="ci-cap-tit">Captador <span class="ci-solo">SOLO ASESOR</span></p>
+            <p class="ci-cap-nom">{{ i.captador.nombre }}{% if i.captador.oficina %} <span class="muted">· {{ i.captador.oficina }}</span>{% endif %}</p>
+            {% if i.captador.telefono %}<p><a href="tel:{{ i.captador.telefono|replace(' ', '')|replace('-', '') }}">{{ i.captador.telefono }}</a></p>{% endif %}
+            {% if i.captador.email %}<p><a href="mailto:{{ i.captador.email }}">{{ i.captador.email }}</a></p>{% endif %}
+          </div>
+          {% endif %}
+          {% if i.links %}<p class="ci-links">{% for l in i.links %}<a class="btn ci-link" href="{{ l.url }}" target="_blank" rel="noopener noreferrer">{{ l.label }}</a>{% endfor %}</p>{% endif %}
+          <details class="ci-det"><summary>Detalle completo</summary><p>{{ i.texto }}</p></details>
+        </article>
+      {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if info.frases %}
+    <div class="ci-sec">
+      <h3>Lo que dijo el cliente</h3>
+      {% for fr in info.frases %}<blockquote class="ci-frase">«{{ fr }}»</blockquote>{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if info.otras_notas %}
+    <div class="ci-sec">
+      <h3>Otras notas</h3>
+      <ul class="ci-notas">{% for o in info.otras_notas %}<li>{{ o }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    {% if info.texto_original %}
+    <details class="ci-det ci-original"><summary>Texto original completo</summary><p>{{ info.texto_original }}</p></details>
+    {% endif %}
+  </div>
+</dialog>
+{% endmacro %}
+
+{% macro cli_table(clientes, csrf, estatus_opciones, vacio, mostrar_asesor=False, sid='cli', volver='', motivos=None, modo_prueba=False) %}
 {% if not clientes %}<div class="empty">{{ vacio }}</div>{% else %}
 <ul class="cli-list">
 {% for c in clientes %}
@@ -8,20 +97,18 @@
       <span class="cli-body">
         <span class="cli-name">{{ c.nombre }}</span>
         {% if mostrar_asesor %}<span class="cli-asesor">{{ c.asesor_nombre or '—' }}</span>{% endif %}
-        {% if c.busca %}<span class="cli-busca">{{ c.busca }}</span>{% endif %}
+        {% if c.origen=='Propio del asesor' and c.busca %}<span class="cli-busca">{{ c.busca }}</span>{% endif %}
       </span>
       <span class="pill pill-fase fase-{{ c.fase or 'otros' }}">{{ c.estatus or 'Sin estatus' }}</span>
     </button>
+    {% if c.origen=='Propio del asesor' or c.info is not defined %}
     <dialog class="cli-modal" id="{{ did }}" aria-label="Ficha de {{ c.nombre }}">
       <div class="cli-modal-inner fase-{{ c.fase or 'otros' }}">
         <button type="button" class="cli-modal-x" data-close aria-label="Cerrar">&times;</button>
         <dl class="cli-dl">
           <div><dt>Cliente</dt><dd><b>{{ c.nombre }}</b>{% if c.telefono %}<div class="muted">{{ c.telefono }}</div>{% endif %}</dd></div>
           {% if mostrar_asesor %}<div><dt>Asesor</dt><dd>{% if c.asesor_nombre %}{{ c.asesor_nombre }}{% else %}<span class="muted">—</span>{% endif %}</dd></div>{% endif %}
-          <div><dt>Origen</dt><dd>
-            {% if c.origen=='Propio del asesor' %}<span class="pill prop">Propio del asesor</span>{% else %}<span class="pill asig">Asignado por For Rent</span>{% endif %}
-            {% if c.origen_nota %}<div class="muted">{{ c.origen_nota }}</div>{% endif %}
-          </dd></div>
+          <div><dt>Origen</dt><dd>{% if c.origen=='Propio del asesor' %}<span class="pill prop">Propio del asesor</span>{% else %}<span class="pill asig">Asignado por For Rent</span>{% endif %}{% if c.origen_nota %}<div class="muted">{{ c.origen_nota }}</div>{% endif %}</dd></div>
           <div><dt>Busca</dt><dd>{% if c.busca %}{{ c.busca }}{% else %}<span class="muted">—</span>{% endif %}{% if c.inmueble %}<div class="muted">{{ c.inmueble }}</div>{% endif %}</dd></div>
           <div><dt>Estatus</dt><dd>
             {% if c.editable and csrf %}
@@ -35,22 +122,127 @@
         </dl>
       </div>
     </dialog>
+    {% else %}
+    {% set iid = did ~ '-info' %}
+    <dialog class="cli-modal cli-ficha" id="{{ did }}" data-cid="{{ c.id }}" aria-label="Tarjeta de {{ c.nombre }}">
+      <div class="cli-modal-inner fase-{{ c.fase or 'otros' }}">
+        <button type="button" class="cli-modal-x" data-close aria-label="Cerrar">&times;</button>
+        <header class="cf-cab">
+          <h2 class="cf-nombre">{{ c.nombre }}</h2>
+          <span class="pill pill-fase fase-{{ c.fase or 'otros' }}">{{ c.estatus or 'Sin estatus' }}</span>
+        </header>
+        <dl class="cf-filas">
+          <div><dt>WhatsApp</dt><dd>{% if c.wa_link %}<a class="cf-wa" href="{{ c.wa_link }}" target="_blank" rel="noopener noreferrer">{{ c.telefono }}</a>{% elif c.telefono %}{{ c.telefono }}{% else %}<span class="muted">Sin teléfono en el sistema</span>{% endif %}</dd></div>
+          {% if mostrar_asesor %}<div><dt>Asesor</dt><dd>{{ c.asesor_nombre or '—' }}</dd></div>{% endif %}
+          <div><dt>Tipo de lead</dt><dd>{{ c.tipo_lead_txt or '—' }}</dd></div>
+          <div><dt>Inmueble o búsqueda</dt><dd>{{ c.resumen_corto or '—' }}</dd></div>
+          <div><dt>Asignado</dt><dd>{{ c.asignado_fmt or '—' }}</dd></div>
+          <div><dt>Estatus actual</dt><dd>{{ c.estado_actual or c.estado or '' }}{% if c.situacion_actual %} · {{ c.situacion_actual }}{% endif %}{% if not (c.estado or c.situacion_actual) %}{{ c.estatus or 'Sin estatus' }}{% endif %}</dd></div>
+        </dl>
+        <button type="button" class="btn cf-info-btn" data-info="{{ iid }}">Información del cliente</button>
+
+        {% if c.puede_situacion and csrf %}
+        <div class="cf-sec">
+          <h3>Actualizar situación</h3>
+          <form class="cf-form" method="post" action="/asesor/asignados/{{ c.id|urlencode }}/situacion" data-sit-form data-estado="{{ c.estado_actual }}" data-sit="{{ c.situacion_actual }}">
+            <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="idem" value="{{ idem_token() }}">
+            <input type="hidden" name="volver" value="{{ volver }}">
+            <label class="cf-fld"><span>Estado</span>
+              <select name="estado" required data-estado-sel><option value="">— Estado —</option></select></label>
+            <label class="cf-fld" data-x="sit" hidden><span>Situación</span><select name="situacion" data-sit-sel></select></label>
+            <label class="cf-fld" data-x="fecha" hidden><span>Fecha</span><input type="date" name="fecha"></label>
+            <label class="cf-fld" data-x="motivo" hidden><span>Detalle</span>
+              <select name="motivo"><option value="">— Detalle —</option>{% for m in (motivos or []) %}<option>{{ m }}</option>{% endfor %}</select></label>
+            <label class="cf-fld"><span>Comentario</span><textarea name="comentario" maxlength="2000" rows="3" placeholder="Comentario o detalles…"></textarea></label>
+            <p class="cf-nota" data-x="solo" hidden>«Reserva firmada» se registra en el Sistema de Clientes porque pide el documento.</p>
+            <button type="submit" class="btn cf-guardar">Guardar</button>
+            {% if modo_prueba %}<p class="cf-nota">Copia de prueba: no se envía al Sistema de Clientes.</p>{% endif %}
+          </form>
+        </div>
+        {% endif %}
+
+        <div class="cf-sec">
+          <h3>Historial</h3>
+          {% if c.historial %}
+          <ol class="cf-hist">
+            {% for h in c.historial %}
+            <li{% if loop.first %} class="actual"{% endif %}>
+              <p class="cf-hist-tit"><b>{{ h.titulo }}</b>{% if h.fecha %} <span class="muted">({{ h.fecha }})</span>{% endif %}{% if loop.first %} <span class="cf-vig">vigente</span>{% endif %}</p>
+              {% if h.motivo %}<p>Detalle: {{ h.motivo }}</p>{% endif %}
+              {% if h.comentario %}<p>{{ h.comentario }}</p>{% endif %}
+              <p class="muted cf-hist-meta">{{ h.cuando }}{% if h.por %} · {{ h.por }}{% endif %}</p>
+            </li>
+            {% endfor %}
+          </ol>
+          {% else %}<p class="muted">Todavía no hay actualizaciones registradas.</p>{% endif %}
+        </div>
+      </div>
+    </dialog>
+    {{ _info_cliente(c, iid) }}
+    {% endif %}
   </li>
 {% endfor %}
 </ul>
 {% endif %}
 {% endmacro %}
 
-{% macro cli_js() %}
+{% macro cli_js(sit_modelo=None, abrir='') %}
+{% if sit_modelo %}<script type="application/json" id="sit-modelo">{{ sit_modelo|tojson }}</script>{% endif %}
 <script>
 (function(){
-  if (window.__cliBound) return; window.__cliBound = true;
+  if (!window.__cliBound) { window.__cliBound = true;
+    document.addEventListener('click', function(e){
+      var b = e.target.closest('.cli-row');
+      if (b){ var d = document.getElementById(b.getAttribute('data-dlg')); if (d){ if (d.showModal) d.showModal(); else d.setAttribute('open',''); } return; }
+      var d = e.target.closest('dialog.cli-modal');
+      if (d && (e.target === d || e.target.hasAttribute('data-close'))){ if (d.close) d.close(); else d.removeAttribute('open'); }
+    });
+  }
+  if (window.__cliFichaBound) return; window.__cliFichaBound = true;
+  /* «Información del cliente»: abre la ficha ordenada encima de la tarjeta. */
   document.addEventListener('click', function(e){
-    var b = e.target.closest('.cli-row');
-    if (b){ var d = document.getElementById(b.getAttribute('data-dlg')); if (d){ if (d.showModal) d.showModal(); else d.setAttribute('open',''); } return; }
-    var d = e.target.closest('dialog.cli-modal');
-    if (d && (e.target === d || e.target.hasAttribute('data-close'))){ if (d.close) d.close(); else d.removeAttribute('open'); }
+    var b = e.target.closest('[data-info]'); if (!b) return;
+    var d = document.getElementById(b.getAttribute('data-info'));
+    if (d){ if (d.showModal) d.showModal(); else d.setAttribute('open',''); }
   });
+  var el = document.getElementById('sit-modelo'); var M = {};
+  try { M = el ? JSON.parse(el.textContent) : {}; } catch(err) { M = {}; }
+  function opt(v, t, sel, dis){ var o = document.createElement('option'); o.value = v; o.textContent = t; if (sel) o.selected = true; if (dis) o.disabled = true; return o; }
+  function show(f, k, on){ var x = f.querySelector('[data-x="'+k+'"]'); if (x) x.hidden = !on; }
+  function sitInfo(f){ var e = f.querySelector('[data-estado-sel]').value, s = f.querySelector('[data-sit-sel]').value;
+    var cfg = M[e] || {}; return (cfg.sits || []).filter(function(x){ return x.s === s; })[0] || null; }
+  function onSit(f){ var si = sitInfo(f); show(f, 'fecha', !!(si && si.fecha)); var fe = f.querySelector('input[name=fecha]'); if (fe) fe.required = !!(si && si.oblig); }
+  function onEstado(f, keep){
+    var e = f.querySelector('[data-estado-sel]').value, cfg = M[e] || {};
+    var ss = f.querySelector('[data-sit-sel]'); var prev = keep ? (f.getAttribute('data-sit') || '') : ss.value;
+    ss.innerHTML = ''; var sits = cfg.sits || [];
+    if (sits.length){ ss.appendChild(opt('', '— Situación —'));
+      sits.forEach(function(x){ ss.appendChild(opt(x.s, x.s + (x.solo_sistema ? ' (en el Sistema de Clientes)' : ''), x.s === prev && !x.solo_sistema, x.solo_sistema)); }); }
+    ss.required = sits.length > 0; show(f, 'sit', sits.length > 0);
+    var mo = f.querySelector('select[name=motivo]'); show(f, 'motivo', !!cfg.motivo); if (mo) mo.required = !!cfg.motivo;
+    show(f, 'solo', sits.some(function(x){ return x.solo_sistema; }));
+    onSit(f);
+  }
+  function init(f){
+    var es = f.querySelector('[data-estado-sel]'); var cur = f.getAttribute('data-estado') || '';
+    Object.keys(M).forEach(function(k){ es.appendChild(opt(k, k, k === cur)); });
+    onEstado(f, true);
+    es.addEventListener('change', function(){ onEstado(f, false); });
+    f.querySelector('[data-sit-sel]').addEventListener('change', function(){ onSit(f); });
+  }
+  document.querySelectorAll('form[data-sit-form]').forEach(init);
+  /* Tras guardar, reabrir la tarjeta del cliente. */
+  var abrir = {{ abrir|tojson }};
+  if (abrir){
+    var ds = document.querySelectorAll('dialog.cli-ficha');
+    for (var i = 0; i < ds.length; i++){
+      var d = ds[i];
+      if (d.getAttribute('data-cid') === abrir && d.offsetParent !== null || (d.getAttribute('data-cid') === abrir && !d.closest('[hidden]'))){
+        if (d.showModal) d.showModal(); else d.setAttribute('open','');
+        break;
+      }
+    }
+  }
 })();
 </script>
 {% endmacro %}

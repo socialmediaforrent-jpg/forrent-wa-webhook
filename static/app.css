@@ -436,3 +436,67 @@ body:has(.ver-como-bar) .sidebar{padding-top:calc(var(--appbar) + 44px)}
 
 .wrap-despues-bienvenida{padding-top:20px}
 body:has(.ver-como-bar) .welcome-inicio{height:calc(100dvh - var(--appbar) - 44px);min-height:calc(100dvh - var(--appbar) - 44px)}
+/* Tarjeta del cliente asignado y «Información del cliente» (27-nov-2026). Pensado para 390 px. */
+.cli-ficha .cli-modal-inner,.cli-info .cli-modal-inner{max-height:90dvh;overflow:auto;-webkit-overflow-scrolling:touch}
+.cf-cab{display:flex;align-items:flex-start;gap:10px;padding-right:44px;margin-bottom:10px;flex-wrap:wrap}
+.cf-nombre{font-size:20px;margin:0;letter-spacing:-.02em;line-height:1.2;flex:1 1 auto}
+.cf-filas{margin:0 0 14px;display:grid;grid-template-columns:1fr;gap:0;border:1px solid #eceef2;border-radius:12px;overflow:hidden}
+.cf-filas>div{display:grid;grid-template-columns:112px 1fr;gap:8px;padding:9px 12px;border-top:1px solid #eceef2}
+.cf-filas>div:first-child{border-top:0}
+.cf-filas dt{font-size:12px;font-weight:700;color:var(--muted);line-height:1.35}
+.cf-filas dd{margin:0;font-size:14.5px;line-height:1.35;overflow-wrap:anywhere}
+.cf-wa{font-weight:700;color:#128c4a;text-decoration:none}
+.cf-info-btn{width:100%;justify-content:center;margin:0 0 16px;background:#fff;color:var(--naranja);border:2px solid var(--naranja)}
+.cf-sec{border-top:1px solid #eceef2;padding-top:12px;margin-top:4px}
+.cf-sec h3{font-size:15px;margin:0 0 8px}
+.cf-form{display:flex;flex-direction:column;gap:10px}
+.cf-fld{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:var(--muted)}
+.cf-fld[hidden],.cf-nota[hidden]{display:none}
+.cf-fld select,.cf-fld input,.cf-fld textarea{font:inherit;font-size:15px;font-weight:400;color:#1a1c21;padding:10px;border:1px solid #d5dae3;border-radius:10px;background:#fff;width:100%;box-sizing:border-box}
+.cf-guardar{width:100%;justify-content:center}
+.cf-nota{font-size:12.5px;color:var(--muted);margin:0}
+.cf-hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.cf-hist li{border-left:3px solid #d5dae3;padding:4px 0 4px 10px;font-size:14px}
+.cf-hist li.actual{border-left-color:var(--naranja)}
+.cf-hist p{margin:2px 0}
+.cf-hist-meta{font-size:12px}
+.cf-vig{display:inline-block;font-size:11px;font-weight:700;color:#fff;background:var(--naranja);border-radius:999px;padding:1px 7px;margin-left:4px;vertical-align:1px}
+/* Información del cliente */
+.cli-info-kicker{margin:0 0 2px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--naranja)}
+.cli-info-nombre{margin:0 44px 4px 0;font-size:20px;line-height:1.2}
+.cli-info-sub{margin:0 0 12px;font-size:13px}
+.ci-sec{margin:0 0 14px}
+.ci-sec h3{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#2a2e36;margin:0 0 6px}
+.ci-filas{margin:0;border:1px solid #eceef2;border-radius:12px;overflow:hidden}
+.ci-filas>div{display:grid;grid-template-columns:112px 1fr;gap:8px;padding:8px 12px;border-top:1px solid #eceef2}
+.ci-filas>div:first-child{border-top:0}
+.ci-filas dt{font-size:12px;font-weight:700;color:var(--muted);line-height:1.35}
+.ci-filas dd{margin:0;font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.ci-ojo{background:#fff4e5;border:1px solid #f5c58a;border-radius:12px;padding:10px 12px}
+.ci-ojo h3{color:#9a4a00}
+.ci-ojo ul{margin:0;padding-left:18px;font-size:14px;line-height:1.4}
+.ci-inms{display:flex;flex-direction:column;gap:10px}
+.ci-inm{border:1px solid #eceef2;border-radius:12px;padding:10px 12px;background:#fff}
+.ci-inm.no{background:#fbf3f3;border-color:#efc9c9}
+.ci-inm-cab{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:4px}
+.ci-inm-tit{font-size:15px}
+.ci-cod{font-size:11.5px;font-weight:700;background:#1a1c21;color:#fff;border-radius:6px;padding:2px 7px}
+.ci-inm-datos{margin:2px 0 6px;font-size:14px}
+.ci-badges{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.ci-badge{font-size:11.5px;font-weight:800;border-radius:999px;padding:3px 9px}
+.ci-badge.b-ok{background:#e3f6ea;color:#17703a}
+.ci-badge.b-no{background:#fde2e2;color:#a3191b}
+.ci-badge.b-ali{background:#fff1d6;color:#8a5a00}
+.ci-cap{background:#f6f7f9;border-radius:10px;padding:8px 10px;margin:0 0 8px;font-size:14px}
+.ci-cap p{margin:2px 0;overflow-wrap:anywhere}
+.ci-cap-tit{font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.ci-solo{display:inline-block;margin-left:4px;background:#1a1c21;color:#fff;border-radius:5px;padding:1px 6px;font-size:10.5px;letter-spacing:.04em}
+.ci-cap a{color:var(--naranja);font-weight:700;text-decoration:none}
+.ci-links{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 6px}
+.ci-link{font-size:13.5px;padding:8px 12px}
+.ci-det summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--muted);padding:4px 0}
+.ci-det p{font-size:13px;line-height:1.45;color:#3a3f48;margin:4px 0 0;overflow-wrap:anywhere}
+.ci-frase{margin:0 0 6px;padding:6px 10px;border-left:3px solid var(--naranja);background:#fffaf5;font-size:14px;line-height:1.4;font-style:italic}
+.ci-notas{margin:0;padding-left:18px;font-size:14px;line-height:1.45}
+.ci-notas li{margin:0 0 4px}
+.ci-original{border-top:1px solid #eceef2;padding-top:8px}
