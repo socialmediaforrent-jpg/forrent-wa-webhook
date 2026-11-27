@@ -527,7 +527,10 @@ dialog.cli-ficha .cli-modal-inner,dialog.cli-info .cli-modal-inner{max-height:no
 
 /* Menú “cool” (27-nov-2026): Inicio y Mis Clientes. Barra oscura, foto de Caracas y tablero. */
 body.theme-cool{background:#eef0f4}
-body.theme-cool .appbar{background:rgba(16,14,18,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:0;color:#fff}
+body.theme-cool .ver-como-stack{background:transparent}
+body.theme-cool .appbar{background:rgba(16,14,18,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:0;color:#fff}
+body.theme-cool .btn-atras{color:#fff}
+body.theme-cool .btn-atras:hover,body.theme-cool .btn-atras:focus-visible,body.theme-cool .btn-atras:active,body.theme-cool .btn-atras.is-pressed{background:rgba(255,255,255,.12);color:#fff}
 body.theme-cool .profile summary{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);color:#fff}
 body.theme-cool .profile summary:hover,body.theme-cool .profile[open] summary{box-shadow:0 0 0 3px rgba(229,91,1,.35)}
 body.theme-cool .greet{display:none}
