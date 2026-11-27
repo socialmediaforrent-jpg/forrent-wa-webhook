@@ -16,7 +16,10 @@
   {% if show_back %}
   <a class="btn-atras" href="{{ back_fallback }}" data-atras aria-label="Atrás"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6 9 12l6 6"/></svg><span>Atrás</span></a>
   {% endif %}
-  <a class="brand" href="/portal" aria-label="For Rent Online · Inicio"><picture><source srcset="{{ static_v('logo.webp') }} 1x, {{ static_v('logo-1200.webp') }} 2x" type="image/webp"><img class="logo" src="{{ static_v('logo.png') }}" alt="For Rent Online" width="800" height="302"></picture></a>
+  {% set logo_webp = 'logo-blanco.webp' if cool_hero else 'logo.webp' %}
+  {% set logo_2x = 'logo-blanco.webp' if cool_hero else 'logo-1200.webp' %}
+  {% set logo_png = 'logo-blanco.png' if cool_hero else 'logo.png' %}
+  <a class="brand" href="/portal" aria-label="For Rent Online · Inicio"><picture><source srcset="{{ static_v(logo_webp) }} 1x, {{ static_v(logo_2x) }} 2x" type="image/webp"><img class="logo" src="{{ static_v(logo_png) }}" alt="For Rent Online" width="800" height="302"></picture></a>
   </div>
   {% if viewer %}
   <details class="profile">

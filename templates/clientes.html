@@ -8,20 +8,20 @@
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
 </head>
-<body>
+<body class="theme-cool">
 {% from '_icons.html' import icon %}
 {% from '_cli_table.html' import cli_table, cli_js %}
 {% from '_embudo.html' import embudo_tiles %}
 {% set nav='clientes' %}
+{% set cool_hero=true %}
 {% include '_top.html' %}
-<main class="wrap-page wrap-asig">
-  <div class="page-row asig-titulo">
-    <h1 class="page">Mis Clientes</h1>
-    <button type="button" class="asig-info-btn" popovertarget="cli-info" aria-label="Información de Mis Clientes">
-      {{ icon('info', 'asig-info-ico') }}
-    </button>
-    {% if puede_agregar %}<a class="btn cli-agregar-btn" href="#agregar" data-agregar>+ Agregar cliente</a>{% endif %}
-  </div>
+<main>
+  {% set cool_title='Mis Clientes' %}
+  {% set cool_sub='Embudo comercial de tus asignaciones' %}
+  {% set cool_info=true %}
+  {% set cool_agregar=true %}
+  {% include '_hero.html' %}
+  <div class="cool-sheet wrap-page wrap-asig">
   <div id="cli-info" class="asig-info-pop" popover>
     Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí. Nuevas Asignaciones son las de hace menos de 24 horas, contadas desde la fecha y hora de asignación, que todavía no tienen avance. Clientes sin estatus son las que ya cumplen 24 horas (o no tienen fecha) y siguen sin avance. Un avance es un estatus real: Contactado, Buscando, Esperando, Agendado, etc. ASIGNADO, No contactado o el campo vacío no cuentan como avance. También aparecen tus clientes propios. Toca una baldosa para ver su lista; tócala otra vez para volver a todas. {{ n_clientes }} en total. Actualizado: {{ cli_fecha }}.
   </div>
@@ -64,6 +64,7 @@
   {% endif %}
   {% endfor %}
   {{ cli_js(sit_modelo, abrir) }}
+  </div>
 </main>
 <script>
 (function(){
@@ -122,6 +123,21 @@
       ev.preventDefault();
       mostrar("");
       root.scrollIntoView({block: "start"});
+    });
+  });
+  document.querySelectorAll("[data-embudo-kpi]").forEach(function(a){
+    a.addEventListener("click", function(ev){
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+      var id = a.getAttribute("data-embudo-kpi");
+      var tile = document.querySelector("[data-embudo-tile=\"" + id + "\"]");
+      if (tile) {
+        ev.preventDefault();
+        if (abierto() === id) mostrar("");
+        else mostrar(id);
+        return;
+      }
+      var fase = document.getElementById("fase-" + id);
+      if (fase) { ev.preventDefault(); fase.scrollIntoView({block: "start"}); }
     });
   });
   var inicial = document.querySelector("[data-embudo-tile].on");

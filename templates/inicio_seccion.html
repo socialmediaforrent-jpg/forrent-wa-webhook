@@ -8,13 +8,15 @@
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
 </head>
-<body>
+<body class="theme-cool">
 {% set nav='portal' %}
+{% set cool_hero=true %}
+{% set cool_welcome=true %}
+{% set cool_compact=true %}
 {% include '_top.html' %}
 <main>
-{% include '_bienvenida.html' %}
-<div class="wrap-page wrap-despues-bienvenida">
-  <p class="kicker">{{ role_label }}</p>
+{% include '_hero.html' %}
+<div class="cool-sheet wrap-page wrap-despues-bienvenida">
   <h1 class="page">Tu resumen</h1>
   <div class="cards cards-inicio">
     {% for card in inicio_cards %}

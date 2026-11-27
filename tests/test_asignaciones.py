@@ -158,7 +158,7 @@ def test_inicio_primer_boton_admin():
     assert '<em>José</em>, bienvenido a For Rent Online.' in main
     assert 'de For Rent Grupo Inmobiliario' not in main
     assert 'RIF J-50475755-1' not in main
-    assert 'inicio-equipo.webp' in main
+    assert 'caracas-hero.webp' in main
     assert 'Mis Asignaciones' not in main
     assert 'Resumen de operación' not in main
     assert 'Clientes por fase' not in main
@@ -274,11 +274,11 @@ def test_texto_corte_vive_en_info(monkeypatch):
         assert tit < h1 < info
 
 
-def test_embudo_sin_flechas_y_tarjetas_compactas(monkeypatch):
+def test_embudo_con_flechas_y_baldosas_tocables(monkeypatch):
     _carga(monkeypatch)
     html = cliente('jose').get('/mis-clientes').get_data(as_text=True)
-    assert 'embudo-flecha' not in html
-    # Las 10 baldosas siguen siendo enlaces tocables.
+    assert 'embudo-flecha' in html
+    # Las baldosas siguen siendo enlaces tocables.
     for tid in ('nuevas', 'sin_estatus', 'contactado', 'busqueda', 'agendado', 'oferta',
                 'oferta_aceptada', 'reserva_agendada', 'reserva_firmada',
                 'registrado', 'entregado', 'perdidos'):

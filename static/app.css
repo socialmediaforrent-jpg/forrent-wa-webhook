@@ -523,3 +523,76 @@ dialog.cli-ficha,dialog.cli-info{
   box-shadow:0 12px 40px rgba(17,17,17,.25)}
 dialog.cli-ficha[open],dialog.cli-info[open]{display:flex}
 dialog.cli-ficha .cli-modal-inner,dialog.cli-info .cli-modal-inner{max-height:none;flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+
+
+/* Menú “cool” (27-nov-2026): Inicio y Mis Clientes. Barra oscura, foto de Caracas y tablero. */
+body.theme-cool{background:#eef0f4}
+body.theme-cool .appbar{background:rgba(16,14,18,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:0;color:#fff}
+body.theme-cool .profile summary{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);color:#fff}
+body.theme-cool .profile summary:hover,body.theme-cool .profile[open] summary{box-shadow:0 0 0 3px rgba(229,91,1,.35)}
+body.theme-cool .greet{display:none}
+body.theme-cool .chev{color:#fff;opacity:.85}
+body.theme-cool .avatar{background:#fff;color:#16141a}
+body.theme-cool .bottomnav{background:#16181d;border-top-color:#2a2d33}
+body.theme-cool .bottomnav>a,body.theme-cool .bottomnav summary{color:#9aa0ab}
+body.theme-cool .bottomnav>a.on,body.theme-cool .bottomnav summary.on,body.theme-cool .more[open] summary{color:var(--naranja)}
+body.theme-cool .bottomnav>a:active,body.theme-cool .bottomnav summary:active,body.theme-cool .bottomnav>a.is-pressed,body.theme-cool .bottomnav summary.is-pressed{background:#2a2d33;color:var(--naranja);border-radius:12px}
+
+.cool-hero{position:relative;margin-top:calc(-1 * var(--appbar));padding:calc(var(--appbar) + 10px) 20px 32px;color:#fff;overflow:hidden;background-color:#1a1410;background-image:linear-gradient(to top,rgba(10,8,12,.92) 0%,rgba(10,8,12,.55) 42%,rgba(10,8,12,.28) 100%),var(--cool-foto);background-size:cover;background-position:center 40%;background-repeat:no-repeat}
+.cool-hero-copy{position:relative;z-index:1;max-width:560px}
+.cool-hi{margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em}
+.cool-role{margin:2px 0 14px;font-size:13px;font-weight:600;color:rgba(255,255,255,.78)}
+.cool-hero .welcome-title{margin:0;text-shadow:0 1px 18px rgba(0,0,0,.45)}
+.cool-hero.cool-hero-full .welcome-title{margin-top:8px;font-size:28px}
+.cool-compact .welcome-title,.cool-hero:not(.cool-hero-full) .welcome-title{font-size:22px;line-height:1.25;margin:0 0 4px}
+.cool-hero .page-row.asig-titulo{margin:10px 0 4px}
+.cool-hero h1.page{color:#fff;font-size:26px;font-weight:800;letter-spacing:-.03em}
+.cool-hero .asig-info-btn{color:rgba(255,255,255,.88)}
+.cool-hero .asig-info-btn:hover,.cool-hero .asig-info-btn:focus-visible,.cool-hero .asig-info-btn:active{color:#fff;background:rgba(255,255,255,.12)}
+.cool-sub{margin:0;font-size:13px;font-weight:600;color:rgba(255,255,255,.78);line-height:1.35;max-width:22rem}
+.cool-credito{position:absolute;right:12px;bottom:8px;margin:0;font-size:9px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.55);z-index:1}
+.welcome-only .cool-hero,.cool-hero-full{min-height:100dvh;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:calc(var(--bottom) + env(safe-area-inset-bottom, 0px) + 24px);box-sizing:border-box}
+
+.cool-sheet{position:relative;z-index:1;background:#eef0f4;border-radius:22px 22px 0 0;margin-top:-18px;padding:18px 16px 24px;min-height:40vh;box-shadow:0 -8px 28px rgba(10,8,12,.12)}
+.cool-sheet.wrap-page{max-width:1120px}
+.cool-sheet.wrap-despues-bienvenida{padding-top:18px}
+
+.cool-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 16px;max-width:560px}
+.cool-kpi{border-radius:16px;padding:12px 14px 14px;color:#fff;text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:86px;box-shadow:0 6px 18px rgba(17,17,17,.12);-webkit-tap-highlight-color:transparent}
+.cool-kpi-lab{font-size:12px;font-weight:700;line-height:1.25;opacity:.95}
+.cool-kpi-n{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-top:10px}
+.cool-kpi.kpi-nuevas{background:#E55B01}
+.cool-kpi.kpi-sin{background:#3a3f4b}
+.cool-kpi.kpi-proceso{background:#2f6fed}
+.cool-kpi.kpi-neg{background:#15803d}
+a.cool-kpi:hover{transform:translateY(-1px);transition:transform .15s}
+
+body.theme-cool .embudo{max-width:560px;gap:12px}
+body.theme-cool .embudo-fase{background:#fff;border:1px solid #e6e8ee;border-left-width:4px;border-left-color:var(--fase,#E55B01);border-radius:16px;padding:12px;box-shadow:0 4px 16px rgba(17,17,17,.06)}
+body.theme-cool .embudo-fase.simple{align-items:center;gap:10px;padding:12px 12px 12px 10px;min-height:64px;border-color:#e6e8ee;border-left-width:4px;border-left-color:var(--fase)}
+body.theme-cool .embudo-fase-ico{width:40px;height:40px;border-radius:12px;background:var(--fase-soft,#fff3ea);color:var(--fase,#E55B01)}
+body.theme-cool .embudo-fase-ico .i{width:20px;height:20px}
+body.theme-cool .embudo-fase-cab{align-items:center;padding:0 0 10px;gap:10px}
+body.theme-cool .embudo-fase-txt{flex:1;min-width:0}
+body.theme-cool .embudo-fase-tit{font-size:15px;color:#1a1c21}
+body.theme-cool .embudo-fase-sub{display:block;font-size:12px;font-weight:600;color:#6b7280;line-height:1.3;margin-top:2px}
+body.theme-cool .embudo-fase.simple .embudo-n{margin-left:auto;font-size:22px;color:#1a1c21}
+body.theme-cool .embudo-flecha{display:grid;place-items:center;flex:none;color:#9aa0ab;width:22px;height:22px}
+body.theme-cool .embudo-flecha .i{width:18px;height:18px;transform:rotate(-90deg)}
+body.theme-cool .embudo-tiles{gap:8px}
+body.theme-cool .embudo-tile{background:#f6f7f9;border-radius:12px;padding:8px 6px;min-height:72px;box-shadow:none}
+body.theme-cool .embudo-tile-ico{background:#fff;color:var(--fase,#1a1c21)}
+body.theme-cool .embudo-fase.simple.on,body.theme-cool .embudo-tile.on{border-color:var(--naranja);box-shadow:0 0 0 1px var(--naranja)}
+body.theme-cool .tono-peach{--fase:#E55B01;--fase-soft:#fff1e6;background:#fff}
+body.theme-cool .tono-gray{--fase:#2f6fed;--fase-soft:#e8f0fe;background:#fff}
+body.theme-cool .tono-lavender{--fase:#7c3aed;--fase-soft:#f3e8ff;background:#fff}
+body.theme-cool .tono-green{--fase:#16a34a;--fase-soft:#e7f6ec;background:#fff}
+body.theme-cool .tono-rose{--fase:#dc2626;--fase-soft:#fdecec;background:#fff}
+body.theme-cool .tono-sand{--fase:#4b5563;--fase-soft:#eef0f3;background:#fff}
+body.theme-cool .tono-stone{--fase:#6b7280;--fase-soft:#eceff3;background:#fff}
+
+@media (min-width:960px){
+  .cool-hero{padding:calc(var(--appbar) + 16px) 28px 40px}
+  .cool-hero-full,.welcome-only .cool-hero{padding-bottom:48px}
+  .cool-sheet{padding-left:28px;padding-right:28px}
+}
