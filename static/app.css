@@ -511,3 +511,15 @@ body:has(.ver-como-bar) .welcome-inicio{height:calc(100dvh - var(--appbar) - 44p
 .fase-det>summary::after{content:"▸";float:right;color:var(--muted)}
 .fase-det[open]>summary::after{content:"▾"}
 .asig-titulo a.cli-agregar-btn{display:inline-flex;align-items:center;background:var(--naranja);color:#fff;border-radius:10px;font-weight:700;text-decoration:none}
+/* Tarjeta del cliente e Información del cliente: centradas, con margen y sin quedar bajo la barra inferior (27-nov-2026). */
+dialog.cli-ficha,dialog.cli-info{
+  --m-top:calc(16px + env(safe-area-inset-top, 0px));
+  --m-bot:calc(var(--bottom, 64px) + 12px + env(safe-area-inset-bottom, 0px));
+  position:fixed;inset:0;margin:auto;
+  top:var(--m-top);bottom:var(--m-bot);
+  width:min(520px,calc(100% - 24px));height:fit-content;
+  max-height:calc(100dvh - var(--m-top) - var(--m-bot));
+  border-radius:16px;overflow:hidden;display:none;flex-direction:column;
+  box-shadow:0 12px 40px rgba(17,17,17,.25)}
+dialog.cli-ficha[open],dialog.cli-info[open]{display:flex}
+dialog.cli-ficha .cli-modal-inner,dialog.cli-info .cli-modal-inner{max-height:none;flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
