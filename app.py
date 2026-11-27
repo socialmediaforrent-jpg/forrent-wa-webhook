@@ -247,6 +247,11 @@ def init_db():
     q(f"""CREATE TABLE IF NOT EXISTS login_fails (
         id {SERIAL}, fail_key TEXT NOT NULL, failed_at TEXT NOT NULL)""")
     q("CREATE INDEX IF NOT EXISTS login_fails_key_at ON login_fails (fail_key, failed_at)")
+    # Bitácora de «Ver como asesora»: quién (admin real) hizo qué, sin guardar secretos.
+    q(f"""CREATE TABLE IF NOT EXISTS ver_como_audit (
+        id {SERIAL}, ts TEXT NOT NULL, admin_slug TEXT NOT NULL,
+        view_as TEXT, method TEXT NOT NULL, path TEXT NOT NULL, action TEXT NOT NULL)""")
+    q("CREATE INDEX IF NOT EXISTS ver_como_audit_ts ON ver_como_audit (ts)")
     try:
         portales.init(q, IS_PG)  # Mercadeo: crm_portal_links (aditiva)
     except Exception:
@@ -449,6 +454,12 @@ def _cache_estaticos(resp):
         v = request.args.get('v') or ''
         if name in STATIC_VERSIONADOS and v and v == _hash_static(name):
             resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    # Acciones (no GET) en modo «ver como»: quedan a nombre del admin real.
+    if (getattr(g, 'view_as', None)
+            and request.method not in ('GET', 'HEAD', 'OPTIONS')
+            and request.path not in ('/ver-como', '/volver-a-mi-cuenta', '/logout')
+            and resp.status_code < 500):
+        _ver_como_audit('escribir', view_as=g.view_as.get('user') or '')
     return resp
 
 
@@ -723,8 +734,66 @@ def _safe_next(val):
     return val
 
 
-def _current_user():
+def _real_user():
+    """Usuario autenticado de verdad (el admin), sin aplicar «ver como»."""
     return portal_lib.user_by_username(session.get('uid'))
+
+
+def _view_as_slug():
+    return (session.get('view_as') or '').strip().lower()
+
+
+def _asesoras_para_ver():
+    """Asesoras y líderes. Nunca admin, Mercadeo ni Inventario."""
+    filas = []
+    for a in portal_lib.asesores_meta():
+        if (a.get('role') or 'asesor') in ('asesor', 'lider'):
+            filas.append(a)
+    return filas
+
+
+def _perfil_ver_como(slug):
+    slug = (slug or '').strip().lower()
+    if not slug or not any(a.get('user') == slug for a in _asesoras_para_ver()):
+        return None
+    return portal_lib.user_by_username(slug)
+
+
+def _ver_como_audit(action, view_as='', method=None, path=None):
+    real = getattr(g, 'real_user', None) or _real_user()
+    if not real:
+        return
+    slug = view_as or ''
+    metodo = method or (request.method if request else '')
+    ruta = path if path is not None else (request.path if request else '')
+    q("INSERT INTO ver_como_audit (ts, admin_slug, view_as, method, path, action) VALUES (%s,%s,%s,%s,%s,%s)",
+      (now_iso(), real['user'], slug, metodo, ruta, action))
+    log.info('ver-como action=%s admin=%s view_as=%s method=%s path=%s',
+             action, real['user'], slug, metodo, ruta)
+
+
+def _current_user():
+    """Perfil con el que se ve la app. Si un admin eligió «ver como», es esa asesora.
+
+    session['uid'] no cambia: sigue siendo el administrador real.
+    """
+    real = _real_user()
+    g.real_user = real
+    g.view_as = None
+    if not real:
+        return None
+    slug = _view_as_slug()
+    if not slug:
+        return real
+    if real.get('role') != 'admin':
+        session.pop('view_as', None)
+        return real
+    target = _perfil_ver_como(slug)
+    if not target:
+        session.pop('view_as', None)
+        return real
+    g.view_as = target
+    return target
 
 
 def _login_redirect(next_url=None):
@@ -798,17 +867,18 @@ ROLE_LABEL = {'admin': 'Presidencia', 'lider': 'Líder comercial', 'asesor': 'As
 def _portal_nav():
     u = getattr(g, 'user', None)
     if not u:
-        return {'nav_main': [], 'nav_more': [], 'nav_more_keys': [], 'viewer': None, 'role_label': ''}
+        return {'nav_main': [], 'nav_more': [], 'nav_more_keys': [], 'viewer': None, 'role_label': '',
+                'viendo_como': False, 'viendo_como_nombre': '', 'csrf_real': ''}
     role = u['role']
     if role == 'mercadeo':
         main = [{'href': '/mercadeo', 'label': 'Mercadeo', 'key': 'mercadeo', 'icon': 'megaphone'},
                 {'href': '/mercadeo/planificador', 'label': 'Planificador de anuncios', 'short': 'Planificador',
                  'key': 'planificador', 'icon': 'calendar'}]
-        return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['mercadeo']}
+        return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['mercadeo'], **_ver_como_ctx()}
     if role == 'inventario':
         main = [{'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'},
                 {'href': '/inventario/cola', 'label': 'Por revisar', 'key': 'carga_cola', 'icon': 'clipboard'}]
-        return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['inventario']}
+        return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['inventario'], **_ver_como_ctx()}
     links = _portal_links()
     # Etapa 1 (Prompt Maestro, José 17-nov): la barra de abajo queda con 4 botones: Inicio, Módulos, Mensajes y Más.
     # Los 5 módulos viven en /modulos. «Más» solo trae lo que no está ya en Módulos (José, 22-nov).
@@ -850,9 +920,13 @@ def _portal_nav():
     if role in ('admin', 'lider'):
         more.append({'href': '/clientes-propios', 'label': 'Clientes propios' if role == 'admin' else 'Clientes del equipo',
                      'key': 'propios_more', 'icon': 'users'})
+    # Solo el administrador real lo ve; en modo «ver como» el rol aparente ya no es admin.
+    if role == 'admin' and not getattr(g, 'view_as', None):
+        more.append({'href': '/ver-como', 'label': 'Ver como asesora', 'key': 'ver-como', 'icon': 'user'})
     more = _mas_sin_redundancia(more, role)
+    ctx = _ver_como_ctx()
     return {'nav_main': main, 'nav_more': more, 'nav_more_keys': [m['key'] for m in more],
-            'viewer': u, 'role_label': ROLE_LABEL.get(role, role)}
+            'viewer': u, 'role_label': ROLE_LABEL.get(role, role), **ctx}
 
 
 # Botón «← Atrás» en el encabezado (José, 17-nov). No aparece en Inicio ni en Mensajes
@@ -928,7 +1002,19 @@ _MAS_CUBIERTO_POR = {
 }
 
 # El perfil no se quita de «Más», aunque algún día tuviera eco en Módulos.
-_MAS_SIEMPRE = frozenset({'perfil'})
+_MAS_SIEMPRE = frozenset({'perfil', 'ver-como'})
+
+
+def _ver_como_ctx():
+    real = getattr(g, 'real_user', None)
+    visto = getattr(g, 'view_as', None)
+    if not visto or not real or real.get('role') != 'admin':
+        return {'viendo_como': False, 'viendo_como_nombre': '', 'csrf_real': ''}
+    return {
+        'viendo_como': True,
+        'viendo_como_nombre': visto.get('name') or visto.get('user'),
+        'csrf_real': portal_lib.csrf_token(real),
+    }
 
 
 def _hrefs_en_modulos(role):
@@ -2748,6 +2834,59 @@ def logout():
         samesite='Lax', path='/',
     )
     return resp
+
+
+def _exige_admin_real():
+    """Solo el administrador autenticado (no la asesora aparente)."""
+    real = getattr(g, 'real_user', None) or _real_user()
+    if not real:
+        return _login_redirect()
+    if real.get('role') != 'admin':
+        return _forbidden()
+    return None
+
+
+@app.route('/ver-como', methods=['GET', 'POST'])
+@require_login
+def ver_como():
+    denied = _exige_admin_real()
+    if denied:
+        return denied
+    real = g.real_user
+    err = ''
+    if request.method == 'POST':
+        if not portal_lib.csrf_ok(real, request.form.get('csrf')):
+            err = 'La sesión expiró. Vuelve a intentar.'
+        else:
+            target = _perfil_ver_como(request.form.get('asesora') or '')
+            if not target:
+                err = 'Elige una asesora de la lista.'
+            else:
+                session['view_as'] = target['user']
+                g.view_as = target
+                _ver_como_audit('entrar', view_as=target['user'])
+                return redirect('/portal')
+    return _hdr(render_template(
+        'ver_como.html', asesoras=_asesoras_para_ver(), err=err,
+        csrf=portal_lib.csrf_token(real)), 400 if err else 200)
+
+
+@app.route('/volver-a-mi-cuenta', methods=['POST'])
+@require_login
+def volver_a_mi_cuenta():
+    denied = _exige_admin_real()
+    if denied:
+        session.pop('view_as', None)
+        return denied
+    real = g.real_user
+    if not portal_lib.csrf_ok(real, request.form.get('csrf')):
+        return _hdr(Response('La sesión expiró. Vuelve a intentar.\n', 400))
+    visto = _view_as_slug()
+    session.pop('view_as', None)
+    if visto:
+        _ver_como_audit('volver', view_as=visto)
+    g.view_as = None
+    return redirect('/portal')
 
 
 @app.get('/')

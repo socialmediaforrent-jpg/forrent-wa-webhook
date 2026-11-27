@@ -401,3 +401,15 @@ body:has(> main.welcome-inicio){padding-bottom:0}
   .welcome-inicio{height:calc(100dvh - var(--appbar));min-height:calc(100dvh - var(--appbar));padding:32px 40px 48px}
   .welcome-title{font-size:32px}
 }
+
+/* Barra fija de «Ver como asesora»: siempre visible hasta que el admin vuelva a su cuenta. */
+.ver-como-stack{position:sticky;top:0;z-index:50;background:#7a1f1f}
+.ver-como-stack .appbar{position:relative;top:auto}
+.ver-como-bar{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
+  background:#7a1f1f;color:#fff;padding:8px 12px;font-size:14px;font-weight:600;text-align:center}
+.ver-como-bar form{display:inline;margin:0}
+.ver-como-bar button{background:#fff;color:#7a1f1f;border:0;border-radius:8px;padding:6px 12px;
+  font-weight:700;cursor:pointer;font-size:14px}
+.ver-como-bar button:hover{background:#ffe8e8}
+body:has(.ver-como-bar) .sidebar{padding-top:calc(var(--appbar) + 44px)}
+@media print{.ver-como-bar,.ver-como-stack{position:static}}

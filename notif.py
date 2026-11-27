@@ -36,6 +36,16 @@ def _smtp_send(to_addr, subject, body):
 
 def queue(q, now_iso, *, to_slug, to_addr, subject, body, evento, estado=None, motivo=''):
     """Registra el correo y, según EMAIL_MODE, lo envía. Devuelve el estado final."""
+    try:
+        from flask import g, has_request_context
+        if has_request_context() and getattr(g, 'view_as', None):
+            estado, motivo = 'omitido', 'viendo como asesora (sin correo a la asesora)'
+            q("INSERT INTO email_outbox (to_slug, to_addr, asunto, cuerpo, evento, estado, motivo, created_at) "
+              "VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+              (to_slug, (to_addr or '').strip(), subject, body, evento, estado, motivo, now_iso()))
+            return estado
+    except Exception:
+        pass
     m = mode()
     to_addr = (to_addr or '').strip()
     if estado is None:
