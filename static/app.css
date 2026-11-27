@@ -148,17 +148,33 @@ button[aria-busy="true"]{opacity:.65;cursor:progress}
 .alert.ok{background:#ecfdf3;border-color:#abefc6;color:#067647}
 .alert.err{background:#fef3f2;border-color:#fecdca;color:#b42318}
 @media (max-width:720px){form.grid{grid-template-columns:1fr}}
-.login-body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px !important}
-.login-wrap{width:100%;max-width:400px}
-.login-card{background:#fff;border-radius:18px;padding:28px 24px 24px;box-shadow:0 10px 36px rgba(17,17,17,.08);border-top:4px solid var(--naranja)}
+.login-body{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px 16px calc(24px + env(safe-area-inset-bottom, 0px)) !important;background-color:#1a1410;background-image:linear-gradient(to top,rgba(10,8,12,.72) 0%,rgba(10,8,12,.4) 50%,rgba(10,8,12,.45) 100%),var(--cool-foto);background-size:cover;background-position:center 40%;background-repeat:no-repeat}
+.login-wrap{width:100%;max-width:400px;position:relative}
+.login-card{background:rgba(16,14,20,.78);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:18px;padding:28px 22px 22px;border:1.5px solid var(--naranja);box-shadow:0 0 0 1px rgba(229,91,1,.35),0 0 28px rgba(229,91,1,.28),0 16px 40px rgba(0,0,0,.35);color:#fff}
 .login-card .brand{display:flex;justify-content:center}
 .login-logo{height:64px;width:auto;max-width:100%;margin:0 auto 8px}
-.login-card .page{text-align:center;font-size:22px;line-height:1.25;margin:12px 0 4px}
-.login-card .lead{text-align:center}
+.login-card .page{text-align:center;font-size:22px;line-height:1.25;margin:12px 0 4px;color:#fff}
+.login-card .lead{text-align:center;color:rgba(255,255,255,.82)}
+.login-card .alert{margin:10px 0 0}
 .login-form{display:flex;flex-direction:column;gap:12px}
-.login-form label{display:block;font-size:12px;font-weight:700;color:#444}
-.login-form input{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1px solid #d5dae3;border-radius:10px;margin-top:4px}
-.login-form button{background:var(--naranja);color:#fff;border:0;border-radius:10px;padding:12px 14px;font-weight:700;font-size:15px;cursor:pointer;margin-top:4px}
+.login-form label{display:block;font-size:12px;font-weight:700;color:rgba(255,255,255,.86)}
+.login-input{position:relative;display:block;margin-top:4px}
+.login-input .login-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--naranja);display:grid;place-items:center;pointer-events:none}
+.login-input .login-ico .i{width:18px;height:18px}
+.login-form .login-input input{width:100%;font:inherit;font-size:16px;padding:11px 12px 11px 40px;border:1px solid rgba(255,255,255,.18);border-radius:10px;margin-top:0;background:rgba(255,255,255,.1);color:#fff;caret-color:#fff}
+.login-form .login-input input::placeholder{color:rgba(255,255,255,.45)}
+.login-form .login-input input:focus{outline:none;border-color:var(--naranja);box-shadow:0 0 0 3px rgba(229,91,1,.25)}
+.login-ojo{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;background:transparent;color:rgba(255,255,255,.8);display:grid;place-items:center;cursor:pointer;border-radius:10px;padding:0}
+.login-ojo .i{width:20px;height:20px}
+.login-ojo .i:last-child{display:none}
+.login-ojo.on .i:first-child{display:none}
+.login-ojo.on .i:last-child{display:block}
+.login-ojo:hover,.login-ojo:focus-visible{color:#fff;background:rgba(255,255,255,.1);outline:none}
+.login-form .login-input input[type=password],.login-form .login-input input[type=text]{padding-right:44px}
+.login-recordar{display:flex !important;align-items:center;gap:10px;font-size:14px !important;font-weight:600 !important;color:rgba(255,255,255,.9) !important;cursor:pointer}
+.login-recordar input{width:auto !important;margin:0 !important;accent-color:var(--naranja);inline-size:18px;block-size:18px}
+.login-form>button[type=submit]{background:var(--naranja);color:#fff;border:0;border-radius:10px;padding:12px 14px;font-weight:700;font-size:15px;cursor:pointer;margin-top:4px}
+.login-credito{margin:12px 0 0;text-align:center;font-size:10px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.55)}
 
 .side-brand{display:none}
 .kpi.empty{text-align:left;padding:12px 13px;font-size:inherit}
@@ -598,4 +614,29 @@ body.theme-cool .tono-stone{--fase:#6b7280;--fase-soft:#eceff3;background:#fff}
   .cool-hero{padding:calc(var(--appbar) + 16px) 28px 40px}
   .cool-hero-full,.welcome-only .cool-hero{padding-bottom:48px}
   .cool-sheet{padding-left:28px;padding-right:28px}
+}
+
+/* Módulos: tarjetas grandes del menú cool (27-nov-2026). */
+body.theme-cool .sec.mod{margin:0 0 12px;scroll-margin-top:calc(var(--appbar) + 12px)}
+.mod-cool-sum{list-style:none;display:flex;align-items:center;gap:10px;padding:12px 10px 12px 10px;cursor:pointer;background:#fff;border:1px solid #e6e8ee;border-left-width:4px;border-left-color:var(--fase,#E55B01);border-radius:16px;box-shadow:0 4px 16px rgba(17,17,17,.06);min-height:88px;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.mod-cool-sum::-webkit-details-marker{display:none}
+.mod-cool-ico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;background:var(--fase-soft,#fff3ea);color:var(--fase,#E55B01)}
+.mod-cool-ico .i{width:20px;height:20px}
+.mod-cool-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mod-cool-txt b{font-size:15px;font-weight:800;letter-spacing:-.02em;color:#1a1c21;line-height:1.2}
+.mod-cool-desc{font-size:12px;font-weight:600;color:#6b7280;line-height:1.3}
+.mod-cool-img{width:64px;height:64px;object-fit:cover;border-radius:12px;flex:none;background:#eef0f4}
+.mod-cool-flecha{display:grid;place-items:center;flex:none;color:#9aa0ab;width:22px;height:22px}
+.mod-cool-flecha .i{width:18px;height:18px;transform:rotate(-90deg);transition:transform .15s}
+.sec.mod[open] .mod-cool-flecha .i{transform:rotate(0deg)}
+.sec.mod[open] .mod-cool-sum{border-bottom-left-radius:0;border-bottom-right-radius:0;box-shadow:none}
+body.theme-cool .mod-cards{padding:8px 0 4px;gap:6px}
+.tono-mod-inventario{--fase:#E55B01;--fase-soft:#fff1e6}
+.tono-mod-clientes{--fase:#2f6fed;--fase-soft:#e8f0fe}
+.tono-mod-operaciones{--fase:#7c3aed;--fase-soft:#f3e8ff}
+.tono-mod-comisiones{--fase:#16a34a;--fase-soft:#e7f6ec}
+.tono-mod-rendimiento{--fase:#0ea5e9;--fase-soft:#e0f4fd}
+@media (min-width:960px){
+  .mod-cool-img{width:80px;height:80px}
+  .mod-cool-sum{min-height:96px;padding:14px 14px}
 }

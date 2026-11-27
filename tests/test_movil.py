@@ -176,7 +176,7 @@ def test_html_con_datos_sigue_no_store(propio):
     r = appmod.app.test_client().get('/login')
     assert r.headers['Cache-Control'] == 'private, no-store'
     html = r.get_data(as_text=True)
-    assert appmod.static_v('app.css') in html and appmod.static_v('logo.webp') in html
+    assert appmod.static_v('app.css') in html and appmod.static_v('logo-blanco.webp') in html
 
 
 # ------------------------------------------------------------ F1: script en <head>

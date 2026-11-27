@@ -422,7 +422,7 @@ app.jinja_env.globals['idem_token'] = idem_token
 # ---------------------------------------------------------------- F4 móvil: caché de estáticos versionados
 # Solo CSS y logos/favicons enlazados con ?v=<hash del archivo>. Al cambiar el archivo cambia el hash y la URL.
 # El HTML con datos de clientes sigue con su Cache-Control actual (private, no-store).
-STATIC_VERSIONADOS = {'app.css', 'inmuebles.css', 'logo.webp', 'logo-1200.webp', 'logo.png', 'logo-blanco.webp', 'logo-blanco.png', 'caracas-hero.webp', 'favicon.ico', 'favicon-32.png', 'inicio-equipo.webp'}
+STATIC_VERSIONADOS = {'app.css', 'inmuebles.css', 'logo.webp', 'logo-1200.webp', 'logo.png', 'logo-blanco.webp', 'logo-blanco.png', 'caracas-hero.webp', 'mod-inventario.webp', 'mod-clientes.webp', 'mod-operaciones.webp', 'mod-comisiones.webp', 'mod-rendimiento.webp', 'favicon.ico', 'favicon-32.png', 'inicio-equipo.webp'}
 _static_hash = {}
 
 
@@ -1142,11 +1142,21 @@ def _modulos_para(role):
         ren.insert(0, s('Mi Equipo' if lider else 'Equipos', '/mi-equipo'))
 
     return [
-        {'n': 1, 'key': 'inventario', 'titulo': 'Inventario', 'icon': 'building', 'secciones': inv},
-        {'n': 2, 'key': 'clientes', 'titulo': 'Clientes', 'icon': 'users', 'secciones': cli},
-        {'n': 3, 'key': 'operaciones', 'titulo': 'Operaciones', 'icon': 'calendar', 'secciones': ops},
-        {'n': 4, 'key': 'comisiones', 'titulo': 'Comisiones', 'icon': 'cash', 'secciones': com},
-        {'n': 5, 'key': 'rendimiento', 'titulo': 'Rendimiento', 'icon': 'chart', 'secciones': ren},
+        {'n': 1, 'key': 'inventario', 'titulo': 'Inventario', 'icon': 'building',
+         'descripcion': 'Administra tus captaciones, el inventario de For Rent y su mercadeo.',
+         'secciones': inv},
+        {'n': 2, 'key': 'clientes', 'titulo': 'Clientes', 'icon': 'users',
+         'descripcion': 'Tu embudo comercial y el seguimiento de cada cliente.',
+         'secciones': cli},
+        {'n': 3, 'key': 'operaciones', 'titulo': 'Operaciones', 'icon': 'calendar',
+         'descripcion': 'Visitas, ofertas, reservas, cierres y la agenda del día a día.',
+         'secciones': ops},
+        {'n': 4, 'key': 'comisiones', 'titulo': 'Comisiones', 'icon': 'cash',
+         'descripcion': 'Consulta tus comisiones y el estado de tus cierres.',
+         'secciones': com},
+        {'n': 5, 'key': 'rendimiento', 'titulo': 'Rendimiento', 'icon': 'chart',
+         'descripcion': 'El desempeño de tu equipo y tus puntajes, en un vistazo.',
+         'secciones': ren},
     ]
 
 

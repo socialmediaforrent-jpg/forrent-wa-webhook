@@ -8,10 +8,15 @@
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
 </head>
-<body>
+<body{% if cool_hero %} class="theme-cool"{% endif %}>
 {% from '_icons.html' import icon %}
 {% include '_top.html' %}
+{% if cool_hero %}
+{% include '_hero.html' %}
+<main class="cool-sheet wrap-page">
+{% else %}
 <main class="wrap-page">
+{% endif %}
 {% if ok %}<div class="alert ok" role="status">{{ ok }}</div>{% endif %}
 {% if err %}<div class="alert err" role="alert">{{ err }}</div>{% endif %}
 {% block body %}{% endblock %}

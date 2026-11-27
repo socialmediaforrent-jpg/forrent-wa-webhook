@@ -1,10 +1,21 @@
-{% extends 'base.html' %}{% set nav='modulos' %}{% block title %}Módulos{% endblock %}
+{% extends 'base.html' %}
+{% set nav='modulos' %}
+{% set cool_hero=true %}
+{% set cool_title='Módulos' %}
+{% set cool_sub='Gestiona tu negocio inmobiliario de forma simple, rápida y en un solo lugar.' %}
+{% block title %}Módulos{% endblock %}
 {% block body %}
-<h1 class="page">Módulos</h1>
-<p class="lead">Los 5 módulos de For Rent Online. Lo que dice «En preparación» todavía no tiene pantalla; no muestra números.</p>
 {% for m in modulos %}
 <details class="sec mod" id="mod-{{ m.key }}">
-  <summary class="mod-sum">{{ icon(m.icon) }}<span><b>{{ m.n }}. {{ m.titulo }}</b></span>{{ icon('chev', 'i chev') }}</summary>
+  <summary class="mod-sum mod-cool-sum tono-mod-{{ m.key }}">
+    <span class="mod-cool-ico" aria-hidden="true">{{ icon(m.icon) }}</span>
+    <span class="mod-cool-txt">
+      <b>{{ m.n }}. {{ m.titulo }}</b>
+      {% if m.descripcion %}<span class="mod-cool-desc">{{ m.descripcion }}</span>{% endif %}
+    </span>
+    <img class="mod-cool-img" src="{{ static_v('mod-' ~ m.key ~ '.webp') }}" alt="" width="160" height="160">
+    <span class="mod-cool-flecha" aria-hidden="true">{{ icon('chev') }}</span>
+  </summary>
   <div class="cards mod-cards">
   {% for sct in m.secciones %}
     {% if sct.hijos %}

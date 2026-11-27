@@ -70,3 +70,37 @@ def test_kpi_coinciden_con_fases():
     assert kpis[1] == nums[1]
     assert kpis[2] == sum(nums[2:5])
     assert kpis[3] == sum(nums[5:8])
+
+
+def test_modulos_tiene_estilo_cool():
+    html = cliente('ana').get('/modulos').get_data(as_text=True)
+    assert 'theme-cool' in html
+    assert 'caracas-hero.webp' in html
+    assert 'logo-blanco.webp' in html
+    assert '>Módulos</h1>' in html
+    assert 'Gestiona tu negocio inmobiliario de forma simple, rápida y en un solo lugar.' in html
+    assert 'mod-inventario.webp' in html and 'mod-rendimiento.webp' in html
+    assert 'mod-cool-sum' in html
+    assert _botones(_bottomnav(html)) == ['Inicio', 'Módulos', 'Mensajes', 'Más']
+    assert re.search(r'href="/modulos"[^>]*class="on"', _bottomnav(html))
+    # Siguen cerrados y con las mismas subopciones.
+    assert len(re.findall(r'<details class="sec mod" id="mod-[^"]+"\s*>', html)) == 5
+    assert 'En preparación' in html
+
+
+def test_login_tiene_estilo_cool():
+    from test_bandeja import appmod
+    html = appmod.app.test_client().get('/login').get_data(as_text=True)
+    assert 'caracas-hero.webp' in html
+    assert 'logo-blanco.webp' in html
+    assert '¡Bienvenido a For Rent Online!' in html
+    assert 'Gestiona tus inmuebles, clientes, operaciones y comisiones en un solo lugar.' in html
+    assert 'name="usuario"' in html and 'name="password"' in html
+    assert 'Recordar mi usuario' in html
+    assert 'data-ojo' in html
+    assert 'forrent.usuario' in html
+    assert 'localStorage' in html
+    # No se inventa una recuperación que la app todavía no tiene.
+    assert 'Olvidaste' not in html and 'olvidaste' not in html
+    assert 'method="post"' in html and 'action="/login"' in html
+    assert 'Periodismodepaz' in html

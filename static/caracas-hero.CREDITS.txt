@@ -9,3 +9,7 @@ License URL: https://creativecommons.org/licenses/by/4.0/
 
 The original photograph was compressed to WebP for the app header.
 Attribution also appears on the photo in the app: «Foto: Periodismodepaz · CC BY 4.0».
+
+The same photograph is also used, with original illustrations overlaid, in the
+module card images: mod-inventario.webp, mod-clientes.webp, mod-operaciones.webp,
+mod-comisiones.webp and mod-rendimiento.webp.
