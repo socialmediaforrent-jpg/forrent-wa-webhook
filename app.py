@@ -2257,6 +2257,8 @@ def _ficha_publica(it, *, fotos_code=None, fotos_key=None):
         'zona': it.get('zona') or '',
         'precio': it.get('precio') or '',
         'codigo': '' if (not code or code == '—') else code,
+        'origen': it.get('origen') or '',
+        'key': portales.key_de(it),
         'solo_cliente_directo': bool(it.get('solo_cliente_directo')),
         'fotos': fotos,
     }
@@ -3135,7 +3137,12 @@ def inventario_ver():
 
 def _volver_inv(v):
     v = v or ''
-    return v if v.startswith('/inventario') and '//' not in v and '\\' not in v else '/inventario'
+    if '//' in v or '\\' in v or not v.startswith('/'):
+        return '/inventario'
+    path = v.split('?', 1)[0]
+    if path.startswith('/inventario') or path in ('/mis-captaciones',) or path.startswith('/mi-equipo/'):
+        return v
+    return '/inventario'
 
 
 def _inmuebles_fichas(user):

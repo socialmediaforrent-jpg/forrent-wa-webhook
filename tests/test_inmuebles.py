@@ -240,3 +240,51 @@ def test_mis_captaciones_lista_numerada_cerrada():
     assert exp and all('hidden' in e for e in exp)
     assert 'inv-modal' not in h
     assert 'data-inm-toggle' in h
+
+
+def test_mis_captaciones_retiro_en_la_ficha_no_en_bloque_grande():
+    h = html(cliente('ana').get('/mis-captaciones'))
+    assert 'Solicitar retiro de' not in h
+    assert 'select name="codigo"' not in h
+    assert '+ Solicitar agregar' in h
+    assert 'Retirar captación' in h
+    assert 'name="accion" value="baja"' in h
+    assert 'value="10542820"' in h
+    assert 'Ver inmueble' in h
+    assert 'href="/inventario/ver?k=' in h
+    assert 'volver=/mis-captaciones' in h
+    # El formulario de retiro vive dentro de la ficha, que arranca cerrada.
+    ficha = re.search(r'<div class="inv-ficha-exp"[^>]*>.*?</li>', h, re.S).group(0)
+    assert 'hidden' in ficha[:80]
+    assert 'Retirar captación' in ficha
+    assert 'Solicitar retiro' in ficha
+    assert 'name="nota"' in ficha
+    # En la vista de equipo no se pide el retiro (es de la asesora, en Mis Captaciones).
+    # José (admin) no tiene el bloque de solicitar.
+    hj = html(cliente('jose').get('/mis-captaciones'))
+    assert 'Retirar captación' not in hj
+    assert '+ Solicitar agregar' not in hj
+
+
+def test_solicitar_retiro_sigue_el_mismo_flujo():
+    c = cliente('ana')
+    token = portal_lib.csrf_token(portal_lib.user_by_username('ana'))
+    s0 = appmod.q('SELECT COUNT(*) AS n FROM captacion_solicitudes', fetch=True)[0]['n']
+    r = c.post('/mis-captaciones', data={
+        'csrf': token, 'accion': 'baja', 'codigo': '10542820',
+        'titulo': 'Local Comercial En Alquiler Av. Urdaneta 7 m2',
+        'origen': 'propio', 'nota': 'Ya no lo trabajo', 'idem': 'tok-baja-ficha',
+    })
+    assert r.status_code == 302 and r.headers['Location'].endswith('/mis-captaciones?ok=1')
+    rows = appmod.q('SELECT * FROM captacion_solicitudes ORDER BY id DESC', fetch=True)
+    assert rows and rows[0]['accion'] == 'baja' and rows[0]['codigo'] == '10542820'
+    assert rows[0]['nota'] == 'Ya no lo trabajo' and rows[0]['estado'] == 'pendiente'
+    assert appmod.q('SELECT COUNT(*) AS n FROM captacion_solicitudes', fetch=True)[0]['n'] == s0 + 1
+
+
+def test_volver_desde_ficha_acepta_mis_captaciones():
+    assert appmod._volver_inv('/mis-captaciones') == '/mis-captaciones'
+    assert appmod._volver_inv('/mis-captaciones?f=todas') == '/mis-captaciones?f=todas'
+    assert appmod._volver_inv('/inventario?lista=propias') == '/inventario?lista=propias'
+    assert appmod._volver_inv('https://evil.example/x') == '/inventario'
+    assert appmod._volver_inv('/otra') == '/inventario'

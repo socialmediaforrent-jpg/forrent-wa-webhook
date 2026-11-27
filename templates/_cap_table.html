@@ -1,4 +1,4 @@
-{% macro cap_table(items, vacio, sid='inv') %}
+{% macro cap_table(items, vacio, sid='inv', csrf='', puede_retirar=False, volver='') %}
 {% if not items %}<div class="empty">{{ vacio }}</div>{% else %}
 <ul class="inv-list" id="{{ sid }}-list">
 {% for it in items %}
@@ -43,6 +43,28 @@
           <div><dt>Código</dt><dd>{{ it.codigo or '—' }}</dd></div>
         </dl>
         {% if it.solo_cliente_directo %}<p class="inv-badge-wrap"><span class="badge">Solo cliente directo</span></p>{% endif %}
+        {% if it.key or (puede_retirar and it.codigo) %}
+        <div class="inv-acciones" aria-label="Acciones de esta captación">
+          {% if it.key %}
+          <a class="inv-accion" href="/inventario/ver?k={{ it.key|urlencode }}{% if volver %}&amp;volver={{ volver|urlencode }}{% endif %}">Ver inmueble</a>
+          {% endif %}
+          {% if puede_retirar and it.codigo %}
+          <details class="inv-retirar">
+            <summary class="inv-accion inv-accion-retiro">Retirar captación</summary>
+            <form class="inv-retirar-form" method="post" action="/mis-captaciones">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <input type="hidden" name="idem" value="{{ idem_token() }}">
+              <input type="hidden" name="accion" value="baja">
+              <input type="hidden" name="codigo" value="{{ it.codigo }}">
+              <input type="hidden" name="titulo" value="{{ it.titulo }}">
+              {% if it.origen %}<input type="hidden" name="origen" value="{{ it.origen }}">{% endif %}
+              <label>Motivo <textarea name="nota" maxlength="400" rows="3" placeholder="¿Por qué se retira?"></textarea></label>
+              <button type="submit" class="btn-sec">Solicitar retiro</button>
+            </form>
+          </details>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
     </div>
   </li>
@@ -71,7 +93,7 @@
   }
 
   list.addEventListener('click', function(e){
-    if (e.target.closest('.inv-gal-nav')) return;
+    if (e.target.closest('.inv-gal-nav, .inv-acciones')) return;
     var btn = e.target.closest('[data-inm-toggle]');
     if (!btn) return;
     var item = btn.closest('.inv-item');
