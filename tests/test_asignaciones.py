@@ -46,8 +46,7 @@ def _carga(monkeypatch, extras=None):
 def _lista_abierta(html):
     """Lista de la baldosa elegida (details abierto)."""
     import re
-    partes = re.findall(r'<details class="fase-det" open>(.*?)</details>', html, re.S)
-    return '\n'.join(partes)
+    return _lista_visible(html)
 
 
 def _lista_visible(html):
@@ -398,26 +397,23 @@ def test_mis_clientes_sin_tableros_y_con_info(monkeypatch):
 
 
 def test_mis_clientes_listas_contraidas_y_nuevas(monkeypatch):
-    """Sin baldosa elegida: listas por fase cerradas, en el orden del embudo, cada cliente una sola vez."""
+    """Sin fase elegida solo se ve el tablero; cada lista viaja oculta y una sola vez."""
     import re
     _carga(monkeypatch, extras=[
         {'id': 'nueva1', 'nombre': 'Reciente Luz', 'asesor': 'luz', 'estado': 'ASIGNADO',
          'situacion': '', 'estatus': 'ASIGNADO', 'asignado_at': '2099-01-01T12:00:00', 'operacion': 'Alquiler'},
     ])
     html = cliente('jose').get('/mis-clientes').get_data(as_text=True)
-    assert '<details class="fase-det" open>' not in html
+    assert _lista_visible(html) == ''
     ids = re.findall(r'data-embudo-lista="([a-z_]+)"', html)
-    tiles = re.findall(r'data-embudo-tile="([a-z_]+)"', html)
-    assert ids == tiles
+    assert ids == re.findall(r'data-embudo-tile="([a-z_]+)"', html)
     nums = [int(x) for x in re.findall(r'class="embudo-n">(\d+)</span>', html)]
-    ns = [int(x) for x in re.findall(r'data-embudo-lista="[a-z_]+" data-n="(\d+)"', html)]
-    assert ns == nums
+    assert [int(x) for x in re.findall(r'data-embudo-lista="[a-z_]+" data-n="(\d+)"', html)] == nums
     assert html.count('class="cli-row"') == sum(nums)
-    bloque = html[html.find('data-embudo-lista="nuevas"'):html.find('data-embudo-lista="sin_estatus"')]
-    assert 'Reciente Luz' in bloque
-    # Las listas vacías no se muestran sin selección.
-    for m in re.finditer(r'<section [^>]*data-n="0"[^>]*>', html):
-        assert 'hidden' in m.group(0)
+    for tid in ('nuevas', 'sin_estatus', 'perdidos'):
+        vis = _lista_visible(cliente('jose').get(f'/mis-clientes?e={tid}').get_data(as_text=True))
+        assert vis and 'data-embudo-volver' in vis
+    assert 'Reciente Luz' in _lista_visible(cliente('jose').get('/mis-clientes?e=nuevas').get_data(as_text=True))
 
 
 def test_nada_se_pierde_y_perdidos_no_se_duplican():
