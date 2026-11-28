@@ -178,7 +178,7 @@ def test_ficha_portales_plegable():
 
 
 def test_ficha_redes_plegable():
-    """La barra Redes Sociales va cerrada, con las 5 redes de redes.py, y solo se llena con una publicación real."""
+    """La barra Redes Sociales va cerrada, con 6 redes (Pinterest incluida), y solo se llena con una publicación real."""
     import redes_inmueble
     key = 'c:10542820'
     it = next((x for xs in (INV['grupos']['propio'], INV['grupos']['alianza']) for x in xs
@@ -192,9 +192,9 @@ def test_ficha_redes_plegable():
     assert m, 'falta la barra Redes Sociales'
     assert 'open' not in (m.group('attrs') or '')
     assert 'Redes Sociales' in m.group(0)
-    assert '1/5' in m.group(0)
+    assert '1/6' in m.group(0)
     assert 'instagram.com/reel/DdofgI6lTZM' in m.group('body')
-    assert m.group('body').count('class="pl vacia"') == 4  # FB, TikTok, YouTube, LinkedIn vacías
+    assert m.group('body').count('class="pl vacia"') == 5  # FB, TikTok, YouTube, Pinterest, LinkedIn vacías
     # Ana no edita; Presidencia y Mercadeo sí.
     assert 'Editar enlaces de redes' not in h
     hj = html(cliente('jose').get('/inventario/ver?k=' + quote(key)))
@@ -204,6 +204,11 @@ def test_ficha_redes_plegable():
     # No se acepta el perfil de For Rent como publicación del inmueble.
     assert redes_inmueble.url_valida('instagram', 'https://www.instagram.com/forrent.grupoinmobiliario')[0] is None
     assert redes_inmueble.url_valida('youtube', 'https://www.youtube.com/channel/UChfbVol9e7YtGsw_SqYR-qw')[0] is None
+    assert [r['key'] for r in redes_inmueble.REDES] == [
+        'instagram', 'facebook', 'tiktok', 'youtube', 'pinterest', 'linkedin']
+    pin, err = redes_inmueble.url_valida('pinterest', 'https://www.pinterest.com/pin/1099370959080844583/')
+    assert err is None and '/pin/1099370959080844583' in pin
+    assert redes_inmueble.url_valida('pinterest', 'https://www.pinterest.com/forrentgrupo/')[0] is None
 
 
 def test_redes_inmueble_permisos_y_ruta():

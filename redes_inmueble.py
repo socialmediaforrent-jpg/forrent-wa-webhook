@@ -1,7 +1,8 @@
 """Enlaces de publicaciones en redes sociales, por inmueble.
 
 Tablas aditivas ``crm_redes_links`` (un enlace por inmueble y red) y ``crm_redes_links_log``.
-Las redes son las de ``redes.py`` (Instagram, Facebook, TikTok, YouTube, LinkedIn).
+Las redes son las de ``redes.py`` (Instagram, Facebook, TikTok, YouTube, LinkedIn)
+más Pinterest en esta barra (sexta casilla). LinkedIn queda en la barra; vacío si no hay publicación.
 Nunca se inventan URLs: la casilla queda vacía hasta que hay un enlace de publicación real.
 No se usan los perfiles de For Rent de redes.py como si fueran publicaciones del inmueble.
 """
@@ -15,7 +16,12 @@ from zoneinfo import ZoneInfo
 import redes
 
 TZ = ZoneInfo('America/Caracas')
-REDES = list(redes.REDES)
+REDES = [r for r in redes.REDES if r['key'] != 'linkedin']
+REDES.append({
+    'key': 'pinterest', 'nombre': 'Pinterest', 'logo': 'redes/pinterest.svg',
+    'dominios': ('pinterest.com',),
+})
+REDES.extend(r for r in redes.REDES if r['key'] == 'linkedin')
 REDES_KEYS = [r['key'] for r in REDES]
 POR_KEY = {r['key']: r for r in REDES}
 
@@ -26,12 +32,15 @@ _PATH = {
     'tiktok': re.compile(r'/(video|photo)/\d+', re.I),
     'youtube': re.compile(r'/(watch|shorts/|embed/|live/)', re.I),
     'linkedin': re.compile(r'/(posts|feed|pulse|activity|video)/', re.I),
+    'pinterest': re.compile(r'/pin/\d+', re.I),
 }
 
 # Hosts extra que no están en el perfil de redes.py pero sí son de esa red.
 _HOSTS_EXTRA = {
     'facebook': ('fb.watch', 'fb.com'),
     'youtube': ('youtu.be', 'm.youtube.com', 'youtube.com', 'www.youtube.com'),
+    'pinterest': ('pinterest.es', 'pinterest.com.mx', 'pinterest.co.uk', 'pinterest.fr',
+                  'pinterest.de', 'pinterest.it', 'pinterest.ca', 'pinterest.com.au'),
 }
 
 
@@ -116,7 +125,7 @@ def links_por_key(q):
 
 
 def casillas(links_inmueble):
-    """Las 5 casillas de redes.py, con URL solo si hay publicación guardada."""
+    """Las 6 casillas (5 de redes.py más Pinterest), con URL solo si hay publicación guardada."""
     links = links_inmueble or {}
     out = []
     for r in REDES:
