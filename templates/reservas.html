@@ -1,0 +1,31 @@
+{% extends 'base.html' %}{% set nav='reservas' %}{% block title %}Reservas{% endblock %}
+{% block body %}
+
+<h1 class="page">Reservas</h1>
+<p class="lead">Registra las reservas de tus operaciones y adjunta el contrato u otros documentos (PDF o imágenes).</p>
+{% if ok %}<p class="alert ok">{{ ok }}</p>{% endif %}
+{% if err %}<p class="alert err">{{ err }}</p>{% endif %}
+<section class="sec"><h2>Registradas</h2>
+{% if not regs %}<div class="empty">No hay reservas registradas.</div>{% else %}
+<table class="inv"><thead><tr><th>Fecha</th>{% if ver_asesor %}<th>Asesor</th>{% endif %}<th>Cliente</th><th>Inmueble</th><th>Monto</th><th>Adjuntos</th></tr></thead><tbody>
+{% for o in regs %}<tr>
+  <td data-label="Fecha">{{ o.fecha or 'sin fecha' }}</td>
+  {% if ver_asesor %}<td data-label="Asesor">{{ o.asesor_nombre or o.asesor_slug }}</td>{% endif %}
+  <td data-label="Cliente"><b><a href="/reservas/{{ o.id }}">{{ o.cliente }}</a></b></td>
+  <td data-label="Inmueble">{{ o.inmueble or '—' }}</td>
+  <td data-label="Monto">{{ o.monto or '—' }}</td>
+  <td data-label="Adjuntos">{% if o.n_adjuntos %}<a href="/reservas/{{ o.id }}">{{ o.n_adjuntos }}</a>{% else %}—{% endif %}</td>
+</tr>{% endfor %}
+</tbody></table>{% endif %}</section>
+{% if puede %}<details class="sec" {{ 'open' if err else '' }}><summary class="btn-sum">+ Registrar reserva</summary>
+<form class="grid" method="post" action="/reservas" enctype="multipart/form-data" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}">
+  <div><label>Fecha <input type="date" name="fecha"></label></div>
+  <div><label>Cliente <input name="cliente" required maxlength="120"></label></div>
+  <div><label>Inmueble <input name="inmueble" maxlength="160"></label></div>
+  <div><label>Monto <input name="monto" maxlength="40" placeholder="US$ …"></label></div>
+  <div class="wide"><label>Nota <textarea name="nota" maxlength="400"></textarea></label></div>
+  <div class="wide"><label>Adjuntos (PDF o imágenes, hasta 5 archivos de 5 MB)
+    <input type="file" name="adjuntos" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif,.pdf,.jpg,.jpeg,.png,.webp,.gif" multiple></label></div>
+  <div><button type="submit">Guardar reserva</button></div>
+</form></details>{% endif %}
+{% endblock %}

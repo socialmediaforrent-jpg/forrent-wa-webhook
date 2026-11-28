@@ -36,7 +36,7 @@ def test_mas_sin_redundancia_con_modulos():
     sheet_j = _sheet(cliente('jose').get('/modulos').get_data(as_text=True))
     for href in ('/mis-clientes', '/inventario', '/mis-inmuebles', '/inventario/cola',
                  '/mi-equipo', '/mis-captaciones', '/mercadeo',
-                 '/ofertas', '/cierres', '/admin/actividades', '/clientes-propios', '/visitas'):
+                 '/ofertas', '/reservas', '/cierres', '/admin/actividades', '/clientes-propios', '/visitas'):
         assert f'href="{href}"' not in nav_j, href
     # Planificador solo en Más, para rol admin (José y Luz). No se repite en Módulos.
     assert 'href="/mercadeo/planificador"' in sheet_j
@@ -50,7 +50,7 @@ def test_mas_sin_redundancia_con_modulos():
     nav_a = _bottomnav(cliente('ana').get('/modulos').get_data(as_text=True))
     sheet_a = _sheet(cliente('ana').get('/modulos').get_data(as_text=True))
     for href in ('/mis-clientes', '/visitas', '/inventario', '/mis-captaciones',
-                 '/mis-inmuebles', '/ofertas', '/cierres', '/actividades',
+                 '/mis-inmuebles', '/ofertas', '/reservas', '/cierres', '/actividades',
                  '/mi-equipo', '/clientes-propios', '/mercadeo'):
         assert f'href="{href}"' not in nav_a, href
     assert 'href="/perfil"' in sheet_a
@@ -61,7 +61,7 @@ def test_mas_sin_redundancia_con_modulos():
     nav_h = _bottomnav(cliente('herlinda').get('/modulos').get_data(as_text=True))
     sheet_h = _sheet(cliente('herlinda').get('/modulos').get_data(as_text=True))
     for href in ('/mis-clientes', '/visitas', '/inventario', '/mis-captaciones',
-                 '/mis-inmuebles', '/ofertas', '/cierres', '/actividades', '/mercadeo'):
+                 '/mis-inmuebles', '/ofertas', '/reservas', '/cierres', '/actividades', '/mercadeo'):
         assert f'href="{href}"' not in nav_h, href
     assert 'href="/perfil"' in sheet_h
     assert 'href="/aprobaciones"' not in sheet_h
@@ -470,6 +470,7 @@ def test_operaciones_sin_visitas():
     assert '>Visitas<' not in ops and 'href="/visitas"' not in ops
     assert '>Agenda<' not in ops
     assert 'Ofertas' in ops and 'Reservas' in ops and 'Mis Cierres' in ops
+    assert 'href="/reservas"' in ops and 'href="/ofertas"' in ops
     # El código de visitas no se borra: la pantalla sigue respondiendo.
     r = cliente('ana').get('/visitas')
     assert r.status_code == 200

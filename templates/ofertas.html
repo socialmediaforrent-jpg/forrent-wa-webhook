@@ -2,20 +2,32 @@
 {% block body %}
 
 <h1 class="page">Ofertas</h1>
-<p class="lead">Solo lo que registres tú{% if t=='realizada' %} y los clientes con estatus de oferta en la copia del {{ act }}{% endif %}. No se calculan montos.</p>
+<p class="lead">Solo lo que registres tú{% if t=='realizada' %} y los clientes con estatus de oferta en la copia del {{ act }}{% endif %}. No se calculan montos. Puedes adjuntar PDF e imágenes a cada oferta.</p>
 <nav class="tabs"><a href="/ofertas?t=recibidas" class="{{ 'on' if t=='recibida' else '' }}">Recibidas</a><a href="/ofertas?t=realizadas" class="{{ 'on' if t=='realizada' else '' }}">Realizadas</a></nav>
+{% if ok %}<p class="alert ok">{{ ok }}</p>{% endif %}
+{% if err %}<p class="alert err">{{ err }}</p>{% endif %}
 {% if de_estatus %}<section class="sec"><h2>Según estatus del cliente</h2><table class="inv"><thead><tr><th>Cliente</th><th>Estatus</th><th>Monto</th></tr></thead><tbody>
 {% for c in de_estatus %}<tr><td data-label="Cliente"><b>{{ c.nombre }}</b></td><td data-label="Estatus"><span class="pill">{{ c.estatus }}</span></td><td data-label="Monto"><span class="muted">sin dato</span></td></tr>{% endfor %}</tbody></table></section>{% endif %}
 <section class="sec"><h2>Registradas</h2>
 {% if not regs %}<div class="empty">No hay ofertas {{ 'recibidas' if t=='recibida' else 'realizadas' }} registradas.</div>{% else %}
-<table class="inv"><thead><tr><th>Fecha</th><th>Cliente</th><th>Inmueble</th><th>Monto</th><th>Nota</th></tr></thead><tbody>
-{% for o in regs %}<tr><td data-label="Fecha">{{ o.fecha or 'sin fecha' }}</td><td data-label="Cliente"><b>{{ o.cliente }}</b></td><td data-label="Inmueble">{{ o.inmueble or '—' }}</td><td data-label="Monto">{{ o.monto or '—' }}</td><td data-label="Nota">{{ o.nota or '—' }}</td></tr>{% endfor %}
+<table class="inv"><thead><tr><th>Fecha</th>{% if ver_asesor %}<th>Asesor</th>{% endif %}<th>Cliente</th><th>Inmueble</th><th>Monto</th><th>Adjuntos</th></tr></thead><tbody>
+{% for o in regs %}<tr>
+  <td data-label="Fecha">{{ o.fecha or 'sin fecha' }}</td>
+  {% if ver_asesor %}<td data-label="Asesor">{{ o.asesor_nombre or o.asesor_slug }}</td>{% endif %}
+  <td data-label="Cliente"><b><a href="/ofertas/{{ o.id }}">{{ o.cliente }}</a></b></td>
+  <td data-label="Inmueble">{{ o.inmueble or '—' }}</td>
+  <td data-label="Monto">{{ o.monto or '—' }}</td>
+  <td data-label="Adjuntos">{% if o.n_adjuntos %}<a href="/ofertas/{{ o.id }}">{{ o.n_adjuntos }}</a>{% else %}—{% endif %}</td>
+</tr>{% endfor %}
 </tbody></table>{% endif %}</section>
 {% if puede %}<details class="sec" {{ 'open' if err else '' }}><summary class="btn-sum">+ Registrar oferta</summary>
-<form class="grid" method="post" action="/ofertas" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}">
+<form class="grid" method="post" action="/ofertas" enctype="multipart/form-data" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}">
   <div><label>Tipo <select name="tipo"><option value="recibida" {{ 'selected' if t=='recibida' else '' }}>Recibida</option><option value="realizada" {{ 'selected' if t=='realizada' else '' }}>Realizada</option></select></label></div>
   <div><label>Fecha <input type="date" name="fecha"></label></div><div><label>Cliente <input name="cliente" required maxlength="120"></label></div>
   <div><label>Inmueble <input name="inmueble" maxlength="160"></label></div><div><label>Monto (tal como se ofertó) <input name="monto" maxlength="40" placeholder="US$ …"></label></div>
-  <div class="wide"><label>Nota <textarea name="nota" maxlength="400"></textarea></label></div><div><button type="submit">Guardar oferta</button></div>
+  <div class="wide"><label>Nota <textarea name="nota" maxlength="400"></textarea></label></div>
+  <div class="wide"><label>Adjuntos (PDF o imágenes, hasta 5 archivos de 5 MB)
+    <input type="file" name="adjuntos" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif,.pdf,.jpg,.jpeg,.png,.webp,.gif" multiple></label></div>
+  <div><button type="submit">Guardar oferta</button></div>
 </form></details>{% endif %}
 {% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}{% set nav='ofertas' %}{% block title %}Oferta · {{ reg.cliente }}{% endblock %}
+{% block body %}
+
+<p class="back"><a href="/ofertas?t={{ 'realizadas' if reg.tipo=='realizada' else 'recibidas' }}">← Ofertas</a></p>
+<h1 class="page">Oferta {{ 'realizada' if reg.tipo=='realizada' else 'recibida' }}</h1>
+{% if ok %}<p class="alert ok">{{ ok }}</p>{% endif %}
+{% if err %}<p class="alert err">{{ err }}</p>{% endif %}
+<section class="sec">
+  <dl class="cf-filas">
+    <div><dt>Cliente</dt><dd>{{ reg.cliente }}</dd></div>
+    <div><dt>Fecha</dt><dd>{{ reg.fecha or 'sin fecha' }}</dd></div>
+    <div><dt>Inmueble</dt><dd>{{ reg.inmueble or '—' }}</dd></div>
+    <div><dt>Monto</dt><dd>{{ reg.monto or '—' }}</dd></div>
+    <div><dt>Asesor</dt><dd>{{ reg.asesor_nombre or reg.asesor_slug }}</dd></div>
+    <div><dt>Nota</dt><dd>{{ reg.nota or '—' }}</dd></div>
+  </dl>
+</section>
+<section class="sec">
+  <h2>Adjuntos</h2>
+  {% if not adjuntos %}<div class="empty">No hay archivos adjuntos.</div>{% else %}
+  <ul class="adj-list">
+    {% for a in adjuntos %}
+    <li>
+      <a href="/ofertas/{{ reg.id }}/adjuntos/{{ a.id }}" target="_blank" rel="noopener">{{ a.nombre }}</a>
+      <span class="adj-meta">{{ a.tam_fmt }} · {{ a.mime_corto }}</span>
+      <a class="adj-dl" href="/ofertas/{{ reg.id }}/adjuntos/{{ a.id }}?dl=1">Descargar</a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if puede_adjuntar %}
+  <form class="grid" method="post" action="/ofertas/{{ reg.id }}/adjuntos" enctype="multipart/form-data" style="margin-top:12px">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="wide"><label>Agregar adjuntos (PDF o imágenes, hasta 5 archivos de 5 MB)
+      <input type="file" name="adjuntos" accept="application/pdf,image/jpeg,image/png,image/webp,image/gif,.pdf,.jpg,.jpeg,.png,.webp,.gif" multiple required></label></div>
+    <div><button type="submit">Agregar</button></div>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

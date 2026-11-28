@@ -42,7 +42,7 @@ Variables de entorno
   META_SOCIAL_INBOX=1         muestra Instagram/Facebook en la bandeja (solo admin, solo lectura) usando
                               META_PAGE_TOKEN o META_PAGE_TOKEN_FILE (token de página). Apagado por defecto.
 """
-import csv, hashlib, hmac, html, ipaddress, json, logging, os, re, sqlite3, threading, time, urllib.request
+import csv, hashlib, hmac, html, io, ipaddress, json, logging, os, re, sqlite3, threading, time, urllib.request
 from pathlib import Path as _Path
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -50,7 +50,7 @@ from zoneinfo import ZoneInfo
 from functools import wraps
 from urllib.parse import parse_qs, quote, urlparse
 
-from flask import Flask, Response, abort, g, jsonify, make_response, redirect, render_template, request, session
+from flask import Flask, Response, abort, g, jsonify, make_response, redirect, render_template, request, send_file, session
 
 import notif
 import portal_lib
@@ -62,6 +62,7 @@ import marketplace
 import redes_inmueble
 import inmuebles
 import carga
+import adjuntos
 import planificador as planif
 import ghl_sync
 import clientes_sync
@@ -273,6 +274,10 @@ def init_db():
         planif.init(q, IS_PG)  # Planificador propio: social_accounts/social_posts/social_media/social_meta (aditivas)
     except Exception:
         log.exception('planificador.init')
+    try:
+        adjuntos.init(q, IS_PG)  # Adjuntos de ofertas/reservas en la base (sobreviven al redeploy si hay Postgres)
+    except Exception:
+        log.exception('adjuntos.init')
     try:
         ghl_sync.ensure_tables(q)
     except Exception:
@@ -1159,7 +1164,7 @@ def _modulos_para(user_or_role):
     # Operaciones es de oferta en adelante (José, 27-nov 11:08 PM). La ruta /visitas y su
     # código siguen; las visitas se ven en Clientes, embudo En Proceso.
     ops = [s('Ofertas', '/ofertas'),
-           s('Reservas', None, 'Llega en la etapa 4.'),
+           s('Reservas', '/reservas'),
            s('Mis Cierres', None, 'Llega en la etapa 4.'),
            s('Mis Entregas', None, 'Llega en la etapa 4.'),
            s('Actividades For Rent', '/admin/actividades' if admin else '/actividades')]
@@ -4433,7 +4438,97 @@ def _fecha_valida(s):
         return False
 
 
-# --- Ofertas
+# --- Ofertas y reservas (con adjuntos persistentes en la base de datos)
+def _puede_ver_operacion(user, slug):
+    if not user or not slug:
+        return False
+    if user.get('role') == 'admin':
+        return True
+    return slug in (portal_lib.visible_slugs(user) or [])
+
+
+def _slugs_operacion(user):
+    if user.get('role') == 'admin':
+        return [a['user'] for a in portal_lib.asesores_meta()] or [user['user']]
+    return list(portal_lib.visible_slugs(user) or [user['user']])
+
+
+def _insert_id(sql, args):
+    rows = q(sql + ' RETURNING id', args, fetch=True) or []
+    return rows[0]['id'] if rows else None
+
+
+def _cargar_regs(tabla, user, extra_sql='', extra_args=()):
+    slugs = _slugs_operacion(user)
+    ph = ','.join(['%s'] * len(slugs))
+    rows = q(
+        f'SELECT * FROM {tabla} WHERE asesor_slug IN ({ph}){extra_sql} ORDER BY fecha DESC, id DESC',
+        tuple(slugs) + tuple(extra_args), fetch=True,
+    ) or []
+    tipo_adj = 'oferta' if tabla == 'asesor_ofertas' else 'reserva'
+    counts = adjuntos.listar_conteos(q, tipo_adj, [r['id'] for r in rows])
+    for r in rows:
+        r['n_adjuntos'] = counts.get(int(r['id']), 0)
+        r['asesor_nombre'] = _nombre_asesor(r.get('asesor_slug'))
+    return rows, len(slugs) > 1
+
+
+def _registro(tabla, rid):
+    rows = q(f'SELECT * FROM {tabla} WHERE id=%s', (rid,), fetch=True) or []
+    if not rows:
+        return None
+    r = rows[0]
+    r['asesor_nombre'] = _nombre_asesor(r.get('asesor_slug'))
+    return r
+
+
+def _adjuntos_vista(tipo, rid):
+    rows = adjuntos.listar(q, tipo, rid)
+    for a in rows:
+        a['tam_fmt'] = adjuntos.fmt_tam(a.get('tam'))
+        mime = a.get('mime') or ''
+        a['mime_corto'] = 'PDF' if mime == 'application/pdf' else (mime.split('/')[-1] or '').upper()
+    return rows
+
+
+def _enviar_adjunto(tipo, rid, aid, tabla):
+    reg = _registro(tabla, rid)
+    if not reg:
+        abort(404)
+    if not _puede_ver_operacion(g.user, reg.get('asesor_slug')):
+        return _forbidden()
+    a = adjuntos.uno(q, tipo, rid, aid)
+    if not a or a.get('datos') is None:
+        abort(404)
+    data = bytes(a['datos'])
+    descargar = request.args.get('dl') == '1'
+    return send_file(
+        io.BytesIO(data),
+        mimetype=a.get('mime') or 'application/octet-stream',
+        as_attachment=descargar,
+        download_name=a.get('nombre') or 'archivo',
+        max_age=0,
+    )
+
+
+def _agregar_adjuntos(tipo, rid, tabla, redir):
+    u = g.user
+    reg = _registro(tabla, rid)
+    if not reg:
+        abort(404)
+    if not _puede_ver_operacion(u, reg.get('asesor_slug')):
+        return _forbidden()
+    if not _csrf_ok():
+        return redirect(redir + '?err=sesion')
+    err, archivos = adjuntos.leer_form(request.files.getlist('adjuntos'))
+    if err:
+        return redirect(redir + '?err=tipo')
+    if not archivos:
+        return redirect(redir + '?err=vacio')
+    adjuntos.guardar(q, tipo, rid, archivos, u['user'], now_iso())
+    return redirect(redir + '?ok=adj')
+
+
 @app.route('/ofertas', methods=['GET', 'POST'])
 @require_login
 def ofertas():
@@ -4446,6 +4541,7 @@ def ofertas():
         tipo = f.get('tipo')
         cliente = _txt(f, 'cliente', 120)
         fecha = _txt(f, 'fecha', 10)
+        ferr, archivos = adjuntos.leer_form(request.files.getlist('adjuntos'))
         if not _csrf_ok():
             err = 'La sesión expiró. Vuelve a intentar.'
         elif tipo not in ('recibida', 'realizada'):
@@ -4454,9 +4550,15 @@ def ofertas():
             err = 'Indica el cliente.'
         elif fecha and not _fecha_valida(fecha):
             err = 'La fecha no es válida.'
+        elif ferr:
+            err = ferr
         else:
-            q('INSERT INTO asesor_ofertas (asesor_slug, tipo, cliente, inmueble, monto, fecha, nota, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)',
-              (u['user'], tipo, cliente, _txt(f, 'inmueble', 160), _txt(f, 'monto', 40), fecha, (f.get('nota') or '').strip()[:400], now_iso()))
+            oid = _insert_id(
+                'INSERT INTO asesor_ofertas (asesor_slug, tipo, cliente, inmueble, monto, fecha, nota, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)',
+                (u['user'], tipo, cliente, _txt(f, 'inmueble', 160), _txt(f, 'monto', 40), fecha, (f.get('nota') or '').strip()[:400], now_iso()),
+            )
+            if oid and archivos:
+                adjuntos.guardar(q, 'oferta', oid, archivos, u['user'], now_iso())
             try:
                 import crm_write
                 crm_write.insert_offer(q, {
@@ -4467,15 +4569,158 @@ def ofertas():
                 _live_cache['t'] = 0.0
             except Exception:
                 log.exception('crm oferta')
-            return redirect(f'/ofertas?t={tipo}&ok=1')
+            return redirect(f'/ofertas/{oid}' if oid else f'/ofertas?t={tipo}&ok=1')
     t = request.args.get('t') or 'recibidas'
     t = 'realizada' if t.startswith('realizada') else 'recibida'
-    regs = q('SELECT * FROM asesor_ofertas WHERE asesor_slug=%s AND tipo=%s ORDER BY fecha DESC, id DESC', (u['user'], t), fetch=True) or []
+    regs, ver_asesor = _cargar_regs('asesor_ofertas', u, ' AND tipo=%s', (t,))
     cli, act = _clientes_estatus(u['user'])
     de_estatus = [c for c in cli if c['estatus'] in ('Oferta realizada', 'Oferta aceptada')] if t == 'realizada' else []
     return _hdr(render_template('ofertas.html', t=t, regs=regs, de_estatus=de_estatus, act=_fecha_corta(act), err=err,
                                 ok='Oferta registrada.' if request.args.get('ok') == '1' else '', csrf=portal_lib.csrf_token(u),
-                                puede=u['role'] != 'admin'), 400 if err else 200)
+                                puede=u['role'] != 'admin', ver_asesor=ver_asesor), 400 if err else 200)
+
+
+@app.get('/ofertas/<int:oid>')
+@require_login
+def oferta_detalle(oid):
+    u = g.user
+    reg = _registro('asesor_ofertas', oid)
+    if not reg:
+        abort(404)
+    if not _puede_ver_operacion(u, reg.get('asesor_slug')):
+        return _forbidden()
+    ok = {'1': 'Oferta registrada.', 'adj': 'Adjunto guardado.'}.get(request.args.get('ok') or '', '')
+    err = {'sesion': 'La sesión expiró. Vuelve a intentar.',
+           'tipo': 'Solo se aceptan PDF e imágenes de hasta 5 MB.',
+           'vacio': 'Elige al menos un archivo.'}.get(request.args.get('err') or '', '')
+    return _hdr(render_template(
+        'oferta.html', reg=reg, adjuntos=_adjuntos_vista('oferta', oid),
+        csrf=portal_lib.csrf_token(u), puede_adjuntar=True, ok=ok, err=err,
+    ))
+
+
+@app.post('/ofertas/<int:oid>/adjuntos')
+@require_login
+def oferta_agregar_adjuntos(oid):
+    return _agregar_adjuntos('oferta', oid, 'asesor_ofertas', f'/ofertas/{oid}')
+
+
+@app.get('/ofertas/<int:oid>/adjuntos/<int:aid>')
+@require_login
+def oferta_adjunto(oid, aid):
+    return _enviar_adjunto('oferta', oid, aid, 'asesor_ofertas')
+
+
+@app.post('/ofertas/<int:oid>/eliminar')
+@require_login
+def oferta_eliminar(oid):
+    """Quita un registro (y sus adjuntos). Solo el dueño o un admin; para borrar un ejemplo de prueba."""
+    u = g.user
+    reg = _registro('asesor_ofertas', oid)
+    if not reg:
+        abort(404)
+    if u['role'] != 'admin' and u['user'] != reg.get('asesor_slug'):
+        return _forbidden()
+    if not _csrf_ok():
+        return _forbidden()
+    adjuntos.borrar_de(q, 'oferta', oid)
+    q('DELETE FROM asesor_ofertas WHERE id=%s', (oid,))
+    tipo = reg.get('tipo') or 'recibida'
+    return redirect(f"/ofertas?t={'realizadas' if tipo=='realizada' else 'recibidas'}")
+
+
+@app.route('/reservas', methods=['GET', 'POST'])
+@require_login
+def reservas():
+    u = g.user
+    err = ''
+    if request.method == 'POST':
+        if u['role'] == 'admin':
+            return _forbidden()
+        f = request.form
+        cliente = _txt(f, 'cliente', 120)
+        fecha = _txt(f, 'fecha', 10)
+        ferr, archivos = adjuntos.leer_form(request.files.getlist('adjuntos'))
+        if not _csrf_ok():
+            err = 'La sesión expiró. Vuelve a intentar.'
+        elif len(cliente) < 2:
+            err = 'Indica el cliente.'
+        elif fecha and not _fecha_valida(fecha):
+            err = 'La fecha no es válida.'
+        elif ferr:
+            err = ferr
+        else:
+            rid = _insert_id(
+                'INSERT INTO asesor_reservas (asesor_slug, cliente, inmueble, monto, fecha, nota, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s)',
+                (u['user'], cliente, _txt(f, 'inmueble', 160), _txt(f, 'monto', 40), fecha, (f.get('nota') or '').strip()[:400], now_iso()),
+            )
+            if rid and archivos:
+                adjuntos.guardar(q, 'reserva', rid, archivos, u['user'], now_iso())
+            try:
+                import crm_write
+                crm_write.insert_reservation(q, {
+                    'asesor_slug': u['user'], 'asesor_nombre': u.get('name'), 'cliente': cliente,
+                    'inmueble': _txt(f, 'inmueble', 160), 'fecha': fecha, 'source': 'portal',
+                })
+                _live_cache['t'] = 0.0
+            except Exception:
+                log.exception('crm reserva')
+            return redirect(f'/reservas/{rid}' if rid else '/reservas?ok=1')
+    regs, ver_asesor = _cargar_regs('asesor_reservas', u)
+    return _hdr(render_template(
+        'reservas.html', regs=regs, err=err,
+        ok='Reserva registrada.' if request.args.get('ok') == '1' else '',
+        csrf=portal_lib.csrf_token(u), puede=u['role'] != 'admin', ver_asesor=ver_asesor,
+    ), 400 if err else 200)
+
+
+@app.get('/reservas/<int:rid>')
+@require_login
+def reserva_detalle(rid):
+    u = g.user
+    reg = _registro('asesor_reservas', rid)
+    if not reg:
+        abort(404)
+    if not _puede_ver_operacion(u, reg.get('asesor_slug')):
+        return _forbidden()
+    ok = {'1': 'Reserva registrada.', 'adj': 'Adjunto guardado.'}.get(request.args.get('ok') or '', '')
+    err = {'sesion': 'La sesión expiró. Vuelve a intentar.',
+           'tipo': 'Solo se aceptan PDF e imágenes de hasta 5 MB.',
+           'vacio': 'Elige al menos un archivo.'}.get(request.args.get('err') or '', '')
+    return _hdr(render_template(
+        'reserva.html', reg=reg, adjuntos=_adjuntos_vista('reserva', rid),
+        csrf=portal_lib.csrf_token(u), puede_adjuntar=True, ok=ok, err=err,
+    ))
+
+
+@app.post('/reservas/<int:rid>/adjuntos')
+@require_login
+def reserva_agregar_adjuntos(rid):
+    return _agregar_adjuntos('reserva', rid, 'asesor_reservas', f'/reservas/{rid}')
+
+
+@app.get('/reservas/<int:rid>/adjuntos/<int:aid>')
+@require_login
+def reserva_adjunto(rid, aid):
+    return _enviar_adjunto('reserva', rid, aid, 'asesor_reservas')
+
+
+@app.post('/reservas/<int:rid>/eliminar')
+@require_login
+def reserva_eliminar(rid):
+    u = g.user
+    reg = _registro('asesor_reservas', rid)
+    if not reg:
+        abort(404)
+    if u['role'] != 'admin' and u['user'] != reg.get('asesor_slug'):
+        return _forbidden()
+    if not _csrf_ok():
+        return _forbidden()
+    adjuntos.borrar_de(q, 'reserva', rid)
+    q('DELETE FROM asesor_reservas WHERE id=%s', (rid,))
+    return redirect('/reservas')
+
+
 
 
 # --- Cierres (Pendientes / Realizados), mismas reglas de comisión
