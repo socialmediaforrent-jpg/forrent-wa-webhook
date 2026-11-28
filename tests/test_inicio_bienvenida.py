@@ -40,7 +40,8 @@ def test_inicio_presidencia_solo_bienvenida():
     assert 'Accesos' not in main
     assert 'Sistema de Clientes' not in main
     # Encabezado y barra inferior se mantienen.
-    assert 'Hola, José' in html
+    assert 'Hola, José · Presidencia' in html
+    assert 'class="cool-hi"' not in html
     assert 'class="logo"' in html
     assert _botones(_bottomnav(html)) == ['Inicio', 'Módulos', 'Mensajes', 'Más']
     # Sin botón atrás en Inicio.
@@ -59,7 +60,7 @@ def test_luz_admin_tambien_ve_bienvenida():
     assert 'For Rent Online · For Rent Grupo Inmobiliario' not in main
     assert 'inicio-equipo.webp' in main
     assert 'Mis Asignaciones' not in main
-    assert 'Hola, Luz' in html
+    assert 'Hola, Luz · Presidencia' in html
 
 
 def test_cifras_siguen_en_modulos_y_rutas():
@@ -86,7 +87,7 @@ def test_inicio_lider_y_asesora_tienen_solo_bienvenida():
         assert 'Mis Clientes' not in main, slug
         assert 'Mis Asignaciones' not in main, slug
         assert 'Clientes por fase' not in main, slug
-        assert f'Hola, {nombre}' in html, slug
+        assert f'Hola, {nombre} · ' in html, slug
         assert _botones(_bottomnav(html)) == ['Inicio', 'Módulos', 'Mensajes', 'Más'], slug
 
 
@@ -113,9 +114,10 @@ def test_css_saludo_queda_encima_de_la_barra():
     css = open(ruta, encoding='utf-8').read()
     assert 'body:has(> main.welcome-only):not(.page-inicio){padding-bottom:0}' in css
     assert '.welcome-only .cool-hero' in css or '.cool-hero-full' in css
-    assert '100dvh' in css
+    assert '100svh' in css
     assert 'safe-area-inset-bottom' in css
     assert 'var(--bottom)' in css
+    assert 'body.theme-cool .appbar{background:#fff' in css
 
 
 def test_inicio_mercadeo_e_inventario_tambien_saludan():

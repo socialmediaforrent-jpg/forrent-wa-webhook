@@ -543,15 +543,16 @@ dialog.cli-ficha .cli-modal-inner,dialog.cli-info .cli-modal-inner{max-height:no
 
 /* Menú “cool” (27-nov-2026): Inicio y Mis Clientes. Barra oscura, foto de Caracas y tablero. */
 body.theme-cool{background:#eef0f4}
-body.theme-cool .ver-como-stack{background:transparent}
-body.theme-cool .appbar{background:rgba(16,14,18,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:0;color:#fff}
-body.theme-cool .btn-atras{color:#fff}
-body.theme-cool .btn-atras:hover,body.theme-cool .btn-atras:focus-visible,body.theme-cool .btn-atras:active,body.theme-cool .btn-atras.is-pressed{background:rgba(255,255,255,.12);color:#fff}
-body.theme-cool .profile summary{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);color:#fff}
-body.theme-cool .profile summary:hover,body.theme-cool .profile[open] summary{box-shadow:0 0 0 3px rgba(229,91,1,.35)}
-body.theme-cool .greet{display:none}
-body.theme-cool .chev{color:#fff;opacity:.85}
-body.theme-cool .avatar{background:#fff;color:#16141a}
+body.theme-cool .ver-como-stack{background:#fff}
+body.theme-cool .appbar{background:#fff;backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:1px solid var(--linea);color:var(--negro)}
+body.theme-cool .btn-atras{color:var(--negro)}
+body.theme-cool .btn-atras:hover,body.theme-cool .btn-atras:focus-visible,body.theme-cool .btn-atras:active,body.theme-cool .btn-atras.is-pressed{background:var(--naranja-suave);color:var(--naranja-2)}
+body.theme-cool .profile summary{background:#fff;border-color:var(--linea);color:var(--negro)}
+body.theme-cool .profile summary:hover,body.theme-cool .profile[open] summary{box-shadow:0 0 0 3px var(--naranja-suave)}
+body.theme-cool .greet{display:inline;color:var(--negro);font-size:13px;max-width:48vw}
+body.theme-cool .appbar:has(.btn-atras) .greet{max-width:34vw}
+body.theme-cool .chev{color:var(--negro);opacity:.55}
+body.theme-cool .avatar{background:var(--negro);color:#fff}
 body.theme-cool .bottomnav{background:#16181d;border-top-color:#2a2d33}
 body.theme-cool .bottomnav>a,body.theme-cool .bottomnav summary{color:#9aa0ab}
 body.theme-cool .bottomnav>a.on,body.theme-cool .bottomnav summary.on,body.theme-cool .more[open] summary{color:var(--naranja)}
@@ -644,12 +645,13 @@ body.theme-cool .mod-cards{padding:8px 0 4px;gap:6px}
 
 
 /* Inicio: foto del equipo, una sola pantalla sin scroll (27-nov-2026, José). */
-body.page-inicio,body.page-modulos{height:100dvh;max-height:100dvh;overflow:hidden;padding-bottom:calc(var(--bottom) + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column}
+html:has(body.page-inicio),html:has(body.page-modulos){height:100svh;max-height:100svh;overflow:hidden}
+body.page-inicio,body.page-modulos{height:100vh;max-height:100vh;height:100svh;max-height:100svh;overflow:hidden;padding-bottom:0;display:flex;flex-direction:column}
 body.page-inicio > .appbar,body.page-inicio > .ver-como-stack,
 body.page-modulos > .appbar,body.page-modulos > .ver-como-stack{flex:none;position:relative;top:auto}
-body.page-inicio > main{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
-body.page-inicio main.welcome-only{padding:0}
-body.page-inicio .welcome-only .cool-hero,body.page-inicio .cool-hero-full{min-height:0;flex:1 1 auto;height:auto;margin-top:0;padding:12px 20px 16px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.82) 0%,rgba(10,8,12,.22) 26%,rgba(10,8,12,.05) 52%,rgba(10,8,12,.12) 100%),var(--cool-foto);background-size:contain;background-position:center top;background-repeat:no-repeat;background-color:#1a1410}
+body.page-inicio > main{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding-bottom:calc(var(--bottom) + env(safe-area-inset-bottom, 0px));box-sizing:border-box}
+body.page-inicio main.welcome-only{padding:0;padding-bottom:calc(var(--bottom) + env(safe-area-inset-bottom, 0px))}
+body.page-inicio .welcome-only .cool-hero,body.page-inicio .cool-hero-full{min-height:0;flex:1 1 auto;height:auto;margin-top:0;padding:12px 20px 24px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.82) 0%,rgba(10,8,12,.22) 26%,rgba(10,8,12,.05) 52%,rgba(10,8,12,.12) 100%),var(--cool-foto);background-size:contain;background-position:center top;background-repeat:no-repeat;background-color:#1a1410}
 body.page-inicio .cool-hero:not(.cool-hero-full){flex:none;min-height:0;height:200px;margin-top:0;padding:8px 16px 22px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.9) 0%,rgba(10,8,12,.45) 42%,rgba(10,8,12,.12) 100%),var(--cool-foto);background-size:cover;background-position:center 30%;background-repeat:no-repeat}
 body.page-inicio .cool-hi{font-size:13px}
 body.page-inicio .cool-role{margin:0 0 4px;font-size:12px}
@@ -674,7 +676,7 @@ body.page-modulos .cool-hero{flex:none;min-height:0;height:56px;margin-top:0;pad
 body.page-modulos .cool-hero h1.page{font-size:22px;margin:0}
 body.page-modulos .cool-credito{display:none}
 body.page-modulos .cool-hero .page-row.asig-titulo{margin:0}
-body.page-modulos > main{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:8px;margin-top:-8px;padding:24px 16px 10px;border-radius:18px 18px 0 0}
+body.page-modulos > main{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:8px;margin-top:-8px;padding:24px 16px calc(10px + var(--bottom) + env(safe-area-inset-bottom, 0px));border-radius:18px 18px 0 0}
 body.page-modulos .sec.mod{margin:0;flex:none;min-height:0;display:flex;flex-direction:column}
 body.page-modulos .mod-cool-sum{min-height:64px;flex:none;padding:6px 10px;gap:8px;border-radius:14px;box-shadow:0 2px 10px rgba(17,17,17,.05)}
 body.page-modulos .mod-cool-ico{width:32px;height:32px;border-radius:9px}
@@ -686,7 +688,8 @@ body.page-modulos .sec.mod[open]{flex:1 1 auto;min-height:0;overflow:auto}
 body.page-modulos .mod-cards{padding:6px 0 2px}
 @media (min-width:960px){
   body.page-inicio,body.page-modulos{height:auto;max-height:none;overflow:auto;display:block;padding-bottom:0}
-  body.page-inicio > main,body.page-modulos > main{height:auto;overflow:visible;display:block}
+  body.page-inicio > main,body.page-modulos > main{height:auto;overflow:visible;display:block;padding-bottom:24px}
+  body.page-inicio main.welcome-only{padding-bottom:0}
   body.page-inicio .cool-hero-full,body.page-inicio .welcome-only .cool-hero{min-height:70vh}
   body.page-inicio .cool-hero:not(.cool-hero-full){height:200px}
 }

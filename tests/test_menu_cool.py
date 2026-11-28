@@ -21,9 +21,9 @@ def test_mis_clientes_tiene_estilo_cool(monkeypatch):
     html = cliente('ana').get('/mis-clientes').get_data(as_text=True)
     assert 'class="theme-cool"' in html or 'theme-cool' in html
     assert 'caracas-hero.webp' in html
-    assert 'logo-blanco.webp' in html
-    assert 'Hola, Ana' in html
-    assert 'Líder comercial' in html
+    assert 'logo.webp' in html
+    assert 'logo-blanco.webp' not in html
+    assert 'Hola, Ana · Líder comercial' in html
     assert '>Mis Clientes</h1>' in html
     assert 'Embudo comercial de tus asignaciones' in html
     assert 'class="cool-kpis"' in html
@@ -47,8 +47,10 @@ def test_inicio_asesora_tiene_estilo_cool():
     main = re.search(r'<main\b.*?</main>', html, re.S).group(0)
     assert 'theme-cool' in html
     assert 'inicio-equipo.webp' in html
-    assert 'logo-blanco.webp' in html
-    assert 'Hola, Ana' in html
+    assert 'logo.webp' in html
+    assert 'logo-blanco.webp' not in html
+    assert 'Hola, Ana · Líder comercial' in html
+    assert 'class="cool-hi"' not in html
     assert '<em>Ana</em>, bienvenida a For Rent Online.' in main
     assert 'cool-hero-full' in main
     assert 'Tu resumen' not in main
@@ -77,7 +79,9 @@ def test_modulos_tiene_estilo_cool():
     html = cliente('ana').get('/modulos').get_data(as_text=True)
     assert 'theme-cool' in html
     assert 'caracas-hero.webp' in html
-    assert 'logo-blanco.webp' in html
+    assert 'logo.webp' in html
+    assert 'logo-blanco.webp' not in html
+    assert 'Hola, Ana · Líder comercial' in html
     assert '>Módulos</h1>' in html
     assert 'Gestiona tu negocio inmobiliario' not in html
     assert 'class="cool-hi"' not in html
@@ -86,7 +90,7 @@ def test_modulos_tiene_estilo_cool():
     assert 'mod-cool-sum' in html
     css = cliente('ana').get('/static/app.css').get_data(as_text=True)
     # Más aire bajo el título; las tarjetas no se estiran para llenar la pantalla.
-    assert 'body.page-modulos > main{' in css and 'padding:24px 16px 10px' in css
+    assert 'body.page-modulos > main{' in css and 'padding:24px 16px calc(10px + var(--bottom)' in css
     assert 'body.page-modulos .sec.mod{margin:0;flex:none' in css
     assert 'body.page-modulos .mod-cool-sum{min-height:64px;flex:none' in css
     assert _botones(_bottomnav(html)) == ['Inicio', 'Módulos', 'Mensajes', 'Más']
