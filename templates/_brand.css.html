@@ -6,7 +6,7 @@
    Al volver a la app (desde memoria o tras un rato en segundo plano) se pide la versión y,
    si cambió desde que se pintó esta página, se recarga para no mostrar HTML viejo. */
 (function(){
-  try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ var w=r.active||r.waiting||r.installing, u=w&&w.scriptURL?new URL(w.scriptURL).pathname:''; if(u!=='/sw.js'){ r.unregister(); } }); }); }
+  try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ var w=r.active||r.waiting||r.installing; if(!w||!w.scriptURL){ return; } if(new URL(w.scriptURL).pathname!=='/sw.js'){ r.unregister(); } }); }); }
        if(window.caches&&caches.keys){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); } }catch(e){}
   var mine=(document.querySelector('meta[name=app-build]')||{}).content||'', oculto=0;
   function revisar(){

@@ -127,3 +127,18 @@ def test_portal_sync_dispara_el_aviso(monkeypatch):
     assert p['nuevos'] == 1 and p['codigos'] == [201]
     appmod.q('DELETE FROM portal_datos WHERE nombre=%s', ('clientes_asignados.json',))
     appmod._live_cache['t'] = 0.0
+
+
+def test_scripts_de_la_pagina_son_javascript_valido(tmp_path):
+    import shutil
+    import subprocess
+    if not shutil.which('node'):
+        pytest.skip('sin node')
+    html = cliente('ana').get('/portal').get_data(as_text=True)
+    scripts = re.findall(r'<script>(.*?)</script>', html, re.S)
+    assert any('push-aviso' in s for s in scripts) and any('getRegistrations' in s for s in scripts)
+    for i, js in enumerate(scripts):
+        f = tmp_path / f's{i}.js'
+        f.write_text(js)
+        r = subprocess.run(['node', '--check', str(f)], capture_output=True, text=True)
+        assert r.returncode == 0, r.stderr
