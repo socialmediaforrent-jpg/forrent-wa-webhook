@@ -491,3 +491,14 @@ def test_mis_captaciones_solo_titulo_y_pestanas():
     assert 'Ver Inmuebles' not in h
     assert 'Para agregar, toca' not in h
     assert 'Inventario del' not in h
+
+
+def test_ficha_barra_naranja():
+    """La barra «Inmueble» de la ficha va en el naranja de For Rent con flecha blanca."""
+    import os
+    raiz = os.path.dirname(os.path.dirname(__file__))
+    css = open(os.path.join(raiz, 'static/inmuebles.css'), encoding='utf-8').read()
+    assert '.wz-bar.wz-bar-marca{background:#E55B01;color:#fff}' in css
+    assert '.wz-bar.wz-bar-marca a.back{color:#fff}' in css
+    tpl = open(os.path.join(raiz, 'templates/inmueble.html'), encoding='utf-8').read()
+    assert 'class="wz-bar wz-bar-marca"' in tpl

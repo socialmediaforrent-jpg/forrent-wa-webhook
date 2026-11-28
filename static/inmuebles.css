@@ -6,6 +6,9 @@
 .wz-bar h1{font-size:19px;margin:0;flex:1;font-weight:800;letter-spacing:.01em}
 .wz-bar a.back{color:var(--w-amarillo);font-size:28px;line-height:1;text-decoration:none;padding:0 6px}
 .wz-bar h1.c{text-align:center}
+/* Ficha del inmueble: barra de título en el naranja de For Rent (#E55B01), texto y flecha blancos. */
+.wz-bar.wz-bar-marca{background:#E55B01;color:#fff}
+.wz-bar.wz-bar-marca a.back{color:#fff}
 .wz-seg{display:flex;background:rgba(255,255,255,.14);border-radius:999px;padding:3px}
 .wz-seg button{border:0;background:transparent;color:#fff;font:inherit;font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;cursor:pointer;min-height:32px}
 .wz-seg button.on{background:var(--w-amarillo);color:#1a1a1a}
