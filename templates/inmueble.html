@@ -24,7 +24,7 @@
     {% if fotos %}<img src="{{ fotos[0].thumb or fotos[0].full }}" alt="" referrerpolicy="no-referrer">{% else %}<span class="ph"></span>{% endif %}
     <div><div class="tt">{{ f.titulo }}</div><div class="cd">{% if f.codigo %}{{ cod_lbl(f) }} {{ f.codigo }} · {% endif %}{{ 'Propia' if f.origen == 'propio' else 'Aliado' }}</div></div>
   </div>
-  {% if f.codigo %}<p class="wz-codcopy"><span>{{ cod_lbl(f) }} {{ f.codigo }}</span> <button type="button" data-copiar="{{ f.codigo }}">Copiar código</button></p>{% endif %}
+  {% if f.codigo %}<p class="wz-codcopy"><span>{{ cod_lbl(f) }} {{ f.codigo }}</span> <button type="button" data-copiar="{{ f.codigo }}">Copiar código</button>{% for alt in f.codigos_alt %} <span>· Código Rex {{ alt }}</span> <button type="button" data-copiar="{{ alt }}">Copiar código</button>{% endfor %}</p>{% endif %}
   {# Pestañas ocultas por decisión de José (27-nov): aún no hay datos de clientes por inmueble. #}
   <div class="wz-tabs" role="tablist" hidden><span class="on" role="tab" aria-selected="true">Detalles</span><span role="tab" aria-disabled="true" title="Todavía no enlazamos clientes con inmuebles por código">Clientes enlazados (—)</span><span role="tab" aria-disabled="true">Clientes potenciales (—)</span></div>
 

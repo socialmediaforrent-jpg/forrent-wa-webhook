@@ -301,11 +301,33 @@ def _safe(q, r):
         return 'error'
 
 
+def fusionar_links(links, alias):
+    """Une los enlaces guardados con un código alterno (p. ej. el de Rex) al inmueble que se conserva.
+    ``alias`` = {codigo_quitado: codigo_conservado}. Los enlaces del conservado mandan."""
+    if not alias:
+        return links
+    out = {k: dict(v) for k, v in links.items()}
+    for viejo, nuevo in alias.items():
+        for portal, row in (links.get('c:' + viejo) or {}).items():
+            out.setdefault('c:' + nuevo, {}).setdefault(portal, row)
+    return out
+
+
 # ---------------------------------------------------------------- armado de la vista
-def casillas(links_inmueble):
+def casillas(links_inmueble, derivados=()):
+    """``derivados``: claves de portal que se saben publicadas (código propio de Wasi/Rex) aunque no haya enlace
+    guardado. Cuentan como publicadas, pero sin URL: nunca se inventa un enlace."""
     out = []
     for p in PORTALES:
         r = (links_inmueble or {}).get(p['key'])
+        if not r and p['key'] in derivados:
+            out.append({
+                'key': p['key'], 'nombre': p['nombre'], 'logo': p['logo'], 'url': '', 'estado': 'derivado',
+                'visible': True, 'caido': False, 'pendiente': False, 'ajena': False,
+                'etiqueta': 'Publicado según el código del inmueble; falta guardar el enlace', 'verificado_en': '',
+                'fuente': 'código del inmueble', 'nota': '',
+            })
+            continue
         estado = (r or {}).get('estado') or ''
         out.append({
             'key': p['key'], 'nombre': p['nombre'], 'logo': p['logo'],

@@ -557,3 +557,71 @@ def test_captaciones_equipo_mismo_formato():
     assert 'class="inv-list"' in h or 'Sin captaciones' in h or 'No hay captaciones' in h
     if 'class="inv-list"' in h:
         assert 'class="inv-row"' in h
+
+
+# ---------------------------------------------------------------- auditoría 28-nov-2026
+def _item(cod, fu, precio='US$ 1.100', m2='136', hab='4', zona='La Boyera', **kw):
+    return {'titulo': f'Apto {cod}', 'operacion': 'Alquiler', 'tipo': 'Apartamento', 'zona': zona, 'precio': precio,
+            'codigo': cod, 'origen': 'propio', 'fuente_codigo': fu, 'm2': m2, 'habitaciones': hab, **kw}
+
+
+def test_fusiona_wasi_y_rex_del_mismo_inmueble():
+    w, r = _item('10597559', 'wasi', fotos=[FOTO]), _item('2051293926', 'rex')
+    out, alias = inmuebles.fusionar_duplicados([w, r])
+    assert [x['codigo'] for x in out] == ['10597559']
+    assert alias == {'2051293926': '10597559'}
+    assert out[0]['codigos_alt'] == ['2051293926'] and out[0]['en_rex'] is True
+
+
+def test_dos_unidades_del_mismo_edificio_no_son_duplicados():
+    a = _item('10617849', 'wasi', precio='US$ 106.817', m2='102', zona='La Lagunita')
+    b = _item('10617850', 'wasi', precio='US$ 147.544', m2='141', zona='La Lagunita')
+    out, alias = inmuebles.fusionar_duplicados([a, b])
+    assert len(out) == 2 and alias == {}
+    # mismo precio pero distinto m²: tampoco
+    out, alias = inmuebles.fusionar_duplicados([_item('1', 'wasi'), _item('2', 'rex', m2='90')])
+    assert len(out) == 2 and not alias
+    # alianza o sin m²: no se adivina
+    out, _ = inmuebles.fusionar_duplicados([_item('1', 'wasi', m2=''), _item('2', 'rex', m2='')])
+    assert len(out) == 2
+
+
+def test_portales_cuenta_wasi_por_codigo_propio_sin_inventar_enlace():
+    import portales
+    it = _item('10617849', 'wasi', estado_pub='Active')
+    cas = portales.casillas(None, appmod._portales_derivados(it))
+    assert sum(c['visible'] for c in cas) == 1
+    w = next(c for c in cas if c['key'] == 'wasi')
+    assert w['visible'] and w['url'] == ''
+    # alianza con código de otra empresa o Wasi inactivo: no cuenta
+    assert appmod._portales_derivados({**it, 'origen': 'alianza'}) == ()
+    assert appmod._portales_derivados({**it, 'estado_pub': 'Inactive'}) == ()
+    # un enlace guardado manda sobre el derivado
+    row = {'wasi': {'url': 'https://grupoinmobiliarioforrent.com/x/1', 'estado': 'ok'}}
+    assert next(c for c in portales.casillas(row, ('wasi',)) if c['key'] == 'wasi')['url']
+
+
+def test_fusionar_links_une_los_del_codigo_rex(monkeypatch):
+    import portales
+    links = {'c:2051293926': {'mercadolibre': {'url': 'u', 'estado': 'ok'}}, 'c:10597559': {'wasi': {'url': 'w', 'estado': 'ok'}}}
+    out = portales.fusionar_links(links, {'2051293926': '10597559'})
+    assert set(out['c:10597559']) == {'wasi', 'mercadolibre'}
+
+
+def test_inventario_sin_red_deduplica_y_oculta_captacion(monkeypatch):
+    inv = {'grupos': {'propio': [_item('10597559', 'wasi', estado_pub='Active'), _item('2051293926', 'rex')], 'alianza': []}}
+    d = appmod._inventario_sin_red(inv)
+    assert d['conteos']['propio'] == 1 and d['alias_codigos'] == {'2051293926': '10597559'}
+
+
+def test_ficha_pinta_wasi_sin_enlace_y_ambos_codigos(monkeypatch):
+    it = _item('10597559', 'wasi', estado_pub='Active', codigos_alt=['2051293926'], en_rex=True, titulo='Alquiler de apartamento en la Boyera Cigarral',
+               fotos=[FOTO])
+    d = {'actualizado': '', 'grupos': {'propio': [it], 'alianza': []}, 'conteos': {'propio': 1, 'alianza': 0}, 'alias_codigos': {'2051293926': '10597559'}}
+    monkeypatch.setattr(appmod, '_inventario', lambda: json.loads(json.dumps(d)))
+    r = cliente('ana').get('/inventario/ver?k=' + quote('c:10597559'))
+    h = html(r)
+    assert 'wz-pn">2/10' in h  # Wasi y Rex por código propio
+    assert 'Código Rex 2051293926' in h and 'Código Wasi 10597559' in h
+    r = cliente('ana').get('/inventario/ver?k=' + quote('c:2051293926'))
+    assert r.status_code == 302 and 'c%3A10597559' in r.headers['Location']

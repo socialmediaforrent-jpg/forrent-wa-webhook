@@ -587,8 +587,24 @@ def can_edit_propio(user, asesor_slug):
     return user['user'] == asesor_slug
 
 
+_FUSIONADOS_LOADER = None
+
+
+def set_codigos_fusionados(fn):
+    """app.py registra quién dice qué códigos (Rex) ya se muestran bajo el código de Wasi del mismo inmueble."""
+    global _FUSIONADOS_LOADER
+    _FUSIONADOS_LOADER = fn
+
+
 def load_captaciones(slug=None, slugs=None):
     items = _load('captaciones.json', {}).get('items') or []
+    if _FUSIONADOS_LOADER is not None:
+        try:
+            ocultos = _FUSIONADOS_LOADER() or set()
+        except Exception:
+            ocultos = set()
+        if ocultos:
+            items = [x for x in items if str(x.get('codigo') or '') not in ocultos]
     allow = {slug} if slug else set(slugs or [])
     if allow:
         items = [x for x in items if x.get('asesor') in allow]

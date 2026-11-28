@@ -8,7 +8,11 @@
     {% if portales_err %}<p class="wz-errmsg" style="margin-top:10px">{{ portales_err }}</p>{% endif %}
     <div class="mk-grid" role="list" aria-label="Portales de {{ f.titulo }}">
       {% for c in portales_casillas %}
-        {% if c.visible %}
+        {% if c.visible and not c.url %}
+        <span role="listitem" class="pl" tabindex="0" title="{{ c.nombre }}: publicado. {{ c.etiqueta }}">
+          <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: publicado (sin enlace guardado)</span>
+        </span>
+        {% elif c.visible %}
         <a role="listitem" class="pl" href="{{ c.url }}" target="_blank" rel="noopener noreferrer"
            data-url="{{ c.url }}" data-portal="{{ c.nombre }}" data-logo="/static/{{ c.logo }}" data-title="{{ f.titulo }}"
            title="{{ c.nombre }}: publicado. {{ c.etiqueta }}{% if c.verificado_en %} ({{ fmt(c.verificado_en) }}){% endif %}">

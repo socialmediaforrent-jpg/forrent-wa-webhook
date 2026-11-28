@@ -50,6 +50,69 @@ def texto_plano(h, limite=4000):
     return s[:limite]
 
 
+# ---------------------------------------------------------------- auditoría 28-nov-2026
+# 1) Un inmueble propio publicado en Wasi y también cargado con su código de Rex es UN solo inmueble:
+#    se muestra una vez (con el código de Wasi) y el código de Rex queda como alterno.
+# 2) Wasi/Rex cuentan como portal publicado cuando el código es nuestro, aunque no haya enlace guardado.
+def _zona_n(z):
+    return _norm(str(z or '').split(',')[0])
+
+
+def _firma_dup(it):
+    """Misma operación, tipo, zona, precio, m² y habitaciones. Sin m² no se compara (no se adivina)."""
+    m2, hab, precio = _num(it.get('m2')), _num(it.get('habitaciones')), precio_num(it.get('precio'))
+    if not (m2 and precio):
+        return None
+    return (_norm(it.get('operacion')), _norm(it.get('tipo')), _zona_n(it.get('zona')), precio, m2, hab or 0)
+
+
+def fusionar_duplicados(items):
+    """(items_sin_duplicados, {codigo_quitado: codigo_conservado}).
+
+    Solo fusiona propios con el mismo código en dos fuentes (uno de Wasi y otro de Rex) y la misma firma.
+    Dos unidades del mismo edificio con precio, m² o habitaciones distintos NO son duplicados.
+    """
+    por_firma = {}
+    for it in items:
+        if (it.get('origen') or '') != 'propio' or it.get('fuente_codigo') not in ('wasi', 'rex'):
+            continue
+        f = _firma_dup(it)
+        if f:
+            por_firma.setdefault(f, []).append(it)
+    quitar, alias = set(), {}
+    for grupo in por_firma.values():
+        wasi = [x for x in grupo if x.get('fuente_codigo') == 'wasi']
+        rex = [x for x in grupo if x.get('fuente_codigo') == 'rex']
+        if len(wasi) != 1 or not rex:
+            continue
+        for r in rex:
+            if str(r.get('codigo') or '') == str(wasi[0].get('codigo') or ''):
+                continue
+            quitar.add(id(r))
+            alias[str(r.get('codigo') or '')] = str(wasi[0].get('codigo') or '')
+            alt = list(wasi[0].get('codigos_alt') or [])
+            if r.get('codigo') and r['codigo'] not in alt:
+                alt.append(r['codigo'])
+            wasi[0]['codigos_alt'] = alt
+            wasi[0]['en_rex'] = True
+            if not wasi[0].get('fotos') and r.get('fotos'):
+                wasi[0]['fotos'] = r['fotos']
+    return [it for it in items if id(it) not in quitar], alias
+
+
+def en_wasi(it):
+    """Publicado en Wasi (nuestro): lo dice el empuje (en_wasi) o es propio con código de Wasi y estado activo."""
+    if it.get('en_wasi'):
+        return True
+    return ((it.get('origen') or '') == 'propio' and it.get('fuente_codigo') == 'wasi'
+            and (it.get('estado_pub') or 'Active') in ('Active', 'Outstanding'))
+
+
+def en_rex(it):
+    """Publicado en Rex (nuestro): propio cuyo código es de Rex. En alianza la ficha de Rex es del aliado."""
+    return bool(it.get('en_rex')) or ((it.get('origen') or '') == 'propio' and it.get('fuente_codigo') == 'rex')
+
+
 def ficha(it, ficha_publica, *, encargado=''):
     """Une la ficha pública (título, precio, fotos…) con los campos extra opcionales del inventario."""
     hab, ban, gar = _num(it.get('habitaciones')), _num(it.get('banos')), _num(it.get('garajes'))
@@ -61,6 +124,7 @@ def ficha(it, ficha_publica, *, encargado=''):
     return {
         **ficha_publica,
         'key': portales.key_de(it), 'origen': it.get('origen') or '',
+        'en_wasi': en_wasi(it), 'en_rex': en_rex(it), 'codigos_alt': list(it.get('codigos_alt') or []),
         'fuente_codigo': it.get('fuente_codigo') or '',
         'tipo_negocio': f"{ficha_publica.get('tipo') or 'Inmueble'} para {op}".strip() if op else (ficha_publica.get('tipo') or ''),
         'lugar': lugar, 'ciudad': ciudad, 'region': region,

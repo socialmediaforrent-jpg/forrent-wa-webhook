@@ -2327,8 +2327,34 @@ def _inventario_sin_red(data):
             o = it.get('origen') or ''
             if o in grupos:
                 grupos[o].append(it)
+    # Auditoría 28-nov: el mismo inmueble propio con código de Wasi y de Rex sale una sola vez.
+    alias = {}
+    if grupos.get('propio'):
+        grupos['propio'], alias = inmuebles.fusionar_duplicados(grupos['propio'])
     conteos = {k: len(v) for k, v in grupos.items()}
-    return {**data, 'grupos': grupos, 'conteos': conteos}
+    return {**data, 'grupos': grupos, 'conteos': conteos, 'alias_codigos': alias}
+
+
+def _codigos_fusionados():
+    """Códigos alternos (Rex) que ya se muestran bajo el código de Wasi del mismo inmueble."""
+    try:
+        return set((_inventario().get('alias_codigos') or {}).keys())
+    except Exception:
+        return set()
+
+
+portal_lib.set_codigos_fusionados(_codigos_fusionados)
+
+
+def _links_portales(inv=None):
+    """Enlaces de portales por inmueble, con los del código alterno unidos al inmueble que se conserva."""
+    inv = inv if inv is not None else _inventario()
+    return portales.fusionar_links(portales.links_por_key(q), (inv or {}).get('alias_codigos') or {})
+
+
+def _portales_derivados(x):
+    """Portales que se saben publicados por el código propio del inmueble (sin inventar enlaces)."""
+    return tuple(k for k, f in (('wasi', inmuebles.en_wasi), ('rex', inmuebles.en_rex)) if f(x))
 
 
 def _inventario():
@@ -3544,9 +3570,13 @@ def inventario_ver():
     _, fichas = _inmuebles_fichas(g.user)
     k = request.args.get('k') or ''
     f = next((x for x in fichas if x['key'] == k), None)
+    if not f and k.startswith('c:'):
+        nuevo = ((_inventario().get('alias_codigos') or {}).get(k[2:]))
+        if nuevo:  # enlace viejo al código de Rex de un inmueble que ahora se muestra con su código de Wasi
+            return redirect('/inventario/ver?k=' + quote('c:' + nuevo, safe=''))
     if not f:
         return _hdr(render_template('inmueble.html', f=None), 404)
-    ctx = _portales_ficha_ctx(g.user, k)
+    ctx = _portales_ficha_ctx(g.user, k, f)
     ok_code = request.args.get('ok') or ''
     ok = _MERCADEO_OK.get(ok_code, '')
     portales_err = (request.args.get('portales_err') or '').strip()
@@ -3619,15 +3649,16 @@ def _inmuebles_n_filtros(args):
 _MERCADEO_VUELTAS = frozenset({'/mercadeo', '/mercadeo/forrent'})
 
 
-def _portales_ficha_ctx(user, key):
+def _portales_ficha_ctx(user, key, ficha=None):
     """Datos de portales y Marketplace para la barra de la ficha (misma lógica que la tarjeta de Mercadeo)."""
     es_admin = user['role'] in ROLES_MERCADEO
     puede_mp = user['role'] == 'admin'
+    deriv = _portales_derivados(ficha) if ficha else ()
     try:
-        cas = portales.casillas(portales.links_por_key(q).get(key))
+        cas = portales.casillas(_links_portales().get(key), deriv)
     except Exception:
         log.exception('inmueble portales')
-        cas = portales.casillas(None)
+        cas = portales.casillas(None, deriv)
     mp = None
     mp_hist = []
     try:
@@ -3736,7 +3767,7 @@ def _mercadeo_render(user, *, alcance=None, ok='', err='', status=200):
     if f not in ('propias', 'aliados', 'todos'):
         f = 'todos'
     try:
-        links = portales.links_por_key(q)
+        links = _links_portales(inv)
     except Exception:
         log.exception('mercadeo links')
         links = {}
@@ -3756,7 +3787,7 @@ def _mercadeo_render(user, *, alcance=None, ok='', err='', status=200):
         if f == 'propias' and origen != 'propio' or f == 'aliados' and origen != 'alianza':
             continue
         key = portales.key_de(it)
-        cas = portales.casillas(links.get(key))
+        cas = portales.casillas(links.get(key), _portales_derivados(it))
         for c in cas:
             conteo[c['key']] += c['visible']
         slug = it.get('asesor') or asesor_de.get(key) or ''
