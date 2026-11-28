@@ -1,7 +1,9 @@
 {% set first_name = (viewer.name.split(' ')[0] if viewer else '') %}
-<header class="cool-hero{% if cool_welcome and not cool_compact %} cool-hero-full{% endif %}" style="--cool-foto:url('{{ static_v('caracas-hero.webp') }}')" aria-label="{{ cool_title or 'Bienvenida' }}">
+{% set foto = cool_foto if cool_foto is defined else 'caracas-hero.webp' %}
+{% set credito = cool_credito if cool_credito is defined else ('Foto: Periodismodepaz · CC BY 4.0' if foto == 'caracas-hero.webp' else '') %}
+<header class="cool-hero{% if cool_welcome and not cool_compact %} cool-hero-full{% endif %}" style="--cool-foto:url('{{ static_v(foto) }}')" aria-label="{{ cool_title or 'Bienvenida' }}">
   <div class="cool-hero-copy">
-    {% if viewer %}
+    {% if viewer and not cool_hide_greet %}
     <p class="cool-hi">Hola, {{ first_name }}</p>
     <p class="cool-role">{{ role_label }}</p>
     {% endif %}
@@ -21,5 +23,5 @@
     {% if cool_sub %}<p class="cool-sub">{{ cool_sub }}</p>{% endif %}
     {% endif %}
   </div>
-  <p class="cool-credito">Foto: Periodismodepaz · CC BY 4.0</p>
+  {% if credito %}<p class="cool-credito">{{ credito }}</p>{% endif %}
 </header>

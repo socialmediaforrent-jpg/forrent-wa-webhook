@@ -46,7 +46,7 @@ def test_inicio_asesora_tiene_estilo_cool():
     html = cliente('ana').get('/portal').get_data(as_text=True)
     main = re.search(r'<main\b.*?</main>', html, re.S).group(0)
     assert 'theme-cool' in html
-    assert 'caracas-hero.webp' in html
+    assert 'inicio-equipo.webp' in html
     assert 'logo-blanco.webp' in html
     assert 'Hola, Ana' in html
     assert '<em>Ana</em>, bienvenida a For Rent Online.' in main
@@ -78,7 +78,9 @@ def test_modulos_tiene_estilo_cool():
     assert 'caracas-hero.webp' in html
     assert 'logo-blanco.webp' in html
     assert '>Módulos</h1>' in html
-    assert 'Gestiona tu negocio inmobiliario de forma simple, rápida y en un solo lugar.' in html
+    assert 'Gestiona tu negocio inmobiliario' not in html
+    assert 'class="cool-hi"' not in html
+    assert 'class="cool-role"' not in html
     assert 'mod-inventario.webp' in html and 'mod-rendimiento.webp' in html
     assert 'mod-cool-sum' in html
     assert _botones(_bottomnav(html)) == ['Inicio', 'Módulos', 'Mensajes', 'Más']

@@ -8,7 +8,7 @@
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
 </head>
-<body{% if cool_hero %} class="theme-cool"{% endif %}>
+<body class="{% if cool_hero %}theme-cool{% endif %}{% if page_class %} {{ page_class }}{% endif %}">
 {% from '_icons.html' import icon %}
 {% include '_top.html' %}
 {% if cool_hero %}

@@ -33,7 +33,7 @@ def test_inicio_presidencia_solo_bienvenida():
     assert 'RIF J-50475755-1' not in main
     assert 'Bienvenido, <em>José</em>' not in main
     assert 'For Rent Online · For Rent Grupo Inmobiliario' not in main
-    assert 'caracas-hero.webp' in main
+    assert 'inicio-equipo.webp' in main
     assert 'Resumen de operación' not in main
     assert 'Mis Asignaciones' not in main
     assert 'Clientes por fase' not in main
@@ -57,7 +57,7 @@ def test_luz_admin_tambien_ve_bienvenida():
     assert 'Bienvenido, <em>Luz</em>' not in main
     assert 'bienvenido a For Rent Online' not in main
     assert 'For Rent Online · For Rent Grupo Inmobiliario' not in main
-    assert 'caracas-hero.webp' in main
+    assert 'inicio-equipo.webp' in main
     assert 'Mis Asignaciones' not in main
     assert 'Hola, Luz' in html
 
@@ -78,9 +78,9 @@ def test_inicio_lider_y_asesora_tienen_bienvenida_y_resumen():
         html = cliente(slug).get('/').get_data(as_text=True)
         main = _main(html)
         assert f'<em>{nombre}</em>, {saludo} a For Rent Online.' in main, slug
-        assert 'caracas-hero.webp' in main, slug
+        assert 'inicio-equipo.webp' in main, slug
         # El resumen sigue debajo del encabezado.
-        assert main.find('caracas-hero.webp') < main.find('Tu resumen'), slug
+        assert main.find('inicio-equipo.webp') < main.find('Tu resumen'), slug
         assert 'Tu resumen' in main, slug
         assert 'Mis Clientes' in main and 'Mis Asignaciones' not in main, slug
         assert 'Clientes por fase' not in main, slug
@@ -120,15 +120,15 @@ def test_inicio_mercadeo_e_inventario_tambien_saludan():
     html = cliente('mercadeo').get('/').get_data(as_text=True)
     main = _main(html)
     assert '<em>Mercadeo</em>, bienvenido a For Rent Online.' in main
-    assert 'caracas-hero.webp' in main
-    assert main.find('caracas-hero.webp') < main.find('Tu resumen')
+    assert 'inicio-equipo.webp' in main
+    assert main.find('inicio-equipo.webp') < main.find('Tu resumen')
     assert 'href="/mercadeo"' in main
     assert _botones(_bottomnav(html)) == ['Inicio', 'Mercadeo', 'Planificador', 'Más']
 
     html = cliente('inventario').get('/portal').get_data(as_text=True)
     main = _main(html)
     assert '<em>Inventario</em>, bienvenido a For Rent Online.' in main
-    assert 'caracas-hero.webp' in main
+    assert 'inicio-equipo.webp' in main
     assert 'Tu resumen' in main
     assert 'href="/inventario"' in main
     assert _botones(_bottomnav(html)) == ['Inicio', 'Inmuebles', 'Por revisar', 'Más']

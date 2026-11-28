@@ -1,5 +1,5 @@
 {% from '_icons.html' import icon %}
-{% macro embudo_tiles(embudo, tile, base='/mis-clientes', interactivo=true) %}
+{% macro embudo_tiles(embudo, tile, base='/mis-clientes', interactivo=true, modo='todo') %}
   {% set ns = namespace(nuevas=0, sin=0, proceso=0, neg=0) %}
   {% for f in embudo.fases %}
     {% if f.id == 'nuevas' %}{% set ns.nuevas = f.n_total %}
@@ -26,6 +26,7 @@
       <span class="cool-kpi-n">{{ ns.neg }}</span>
     </a>
   </div>
+  {% if modo != 'kpis' %}
   <div class="embudo"{% if interactivo %} data-embudo-root{% endif %} aria-label="Embudo comercial">
     {% for f in embudo.fases %}
     {% if f.id == 'otros' and f.n_total == 0 %}
@@ -63,5 +64,6 @@
     {% endif %}
     {% endfor %}
   </div>
+  {% endif %}
 
 {% endmacro %}

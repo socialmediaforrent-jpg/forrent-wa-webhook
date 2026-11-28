@@ -640,3 +640,52 @@ body.theme-cool .mod-cards{padding:8px 0 4px;gap:6px}
   .mod-cool-img{width:80px;height:80px}
   .mod-cool-sum{min-height:96px;padding:14px 14px}
 }
+
+
+
+/* Inicio: foto del equipo, una sola pantalla sin scroll (27-nov-2026, José). */
+body.page-inicio,body.page-modulos{height:100dvh;max-height:100dvh;overflow:hidden;padding-bottom:calc(var(--bottom) + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column}
+body.page-inicio > .appbar,body.page-inicio > .ver-como-stack,
+body.page-modulos > .appbar,body.page-modulos > .ver-como-stack{flex:none;position:relative;top:auto}
+body.page-inicio > main{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+body.page-inicio main.welcome-only{padding:0}
+body.page-inicio .welcome-only .cool-hero,body.page-inicio .cool-hero-full{min-height:0;flex:1 1 auto;height:auto;margin-top:0;padding:12px 20px 18px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.82) 0%,rgba(10,8,12,.22) 26%,rgba(10,8,12,.05) 52%,rgba(10,8,12,.12) 100%),var(--cool-foto);background-size:contain;background-position:center top;background-repeat:no-repeat;background-color:#1a1410}
+body.page-inicio .cool-hero:not(.cool-hero-full){flex:none;min-height:0;height:148px;margin-top:0;padding:8px 16px 22px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.88) 0%,rgba(10,8,12,.4) 50%,rgba(10,8,12,.15) 100%),var(--cool-foto);background-size:cover;background-position:center 18%;background-repeat:no-repeat}
+body.page-inicio .cool-hi{font-size:13px}
+body.page-inicio .cool-role{margin:0 0 4px;font-size:12px}
+body.page-inicio .cool-hero:not(.cool-hero-full) .welcome-title{font-size:18px;margin:0}
+body.page-inicio .cool-hero-full .welcome-title,body.page-inicio .welcome-only .welcome-title{font-size:24px}
+body.page-inicio .cool-sheet{flex:1 1 auto;min-height:0;overflow:hidden;margin-top:-16px;padding:12px 14px 8px;display:flex;flex-direction:column;gap:8px}
+body.page-inicio .cool-sheet .page{font-size:18px;margin:0}
+body.page-inicio .cool-kpis{margin:0;gap:8px}
+body.page-inicio .cool-kpi{min-height:64px;padding:8px 10px 10px;border-radius:14px}
+body.page-inicio .cool-kpi-n{font-size:22px;margin-top:6px}
+body.page-inicio .cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0}
+body.page-inicio .cards-inicio{grid-template-columns:1fr}
+body.page-inicio .cards .card{margin:0;padding:8px 10px;min-height:0;box-shadow:0 1px 2px rgba(17,17,17,.05)}
+body.page-inicio .cards .card h2{font-size:13.5px;margin:0}
+body.page-inicio .cards .card p{font-size:11.5px;margin:2px 0 0;line-height:1.25}
+body.page-inicio .dash-sec{margin:0}
+body.page-inicio .dash-embudo{margin:0}
+body.page-inicio .dash-sec>h2{display:none}
+
+/* Módulos: solo el título «Módulos»; las 5 tarjetas caben sin scroll. */
+body.page-modulos .cool-hero{flex:none;min-height:0;height:52px;margin-top:0;padding:6px 20px 8px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.78) 0%,rgba(10,8,12,.45) 100%),var(--cool-foto);background-size:cover;background-position:center 35%}
+body.page-modulos .cool-hero h1.page{font-size:22px;margin:0}
+body.page-modulos .cool-hero .page-row.asig-titulo{margin:0}
+body.page-modulos > main{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;margin-top:-10px;padding:10px 14px 6px;border-radius:18px 18px 0 0}
+body.page-modulos .sec.mod{margin:0 0 0;flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+body.page-modulos .mod-cool-sum{min-height:0;flex:1 1 auto;padding:8px 10px;gap:8px}
+body.page-modulos .mod-cool-ico{width:34px;height:34px;border-radius:10px}
+body.page-modulos .mod-cool-ico .i{width:18px;height:18px}
+body.page-modulos .mod-cool-txt b{font-size:14px}
+body.page-modulos .mod-cool-desc{font-size:11px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+body.page-modulos .mod-cool-img{width:52px;height:52px;border-radius:10px}
+body.page-modulos .sec.mod[open]{flex:1 1 auto;overflow:auto}
+body.page-modulos .mod-cards{padding:6px 0 2px}
+@media (min-width:960px){
+  body.page-inicio,body.page-modulos{height:auto;max-height:none;overflow:auto;display:block;padding-bottom:0}
+  body.page-inicio > main,body.page-modulos > main{height:auto;overflow:visible;display:block}
+  body.page-inicio .cool-hero-full,body.page-inicio .welcome-only .cool-hero{min-height:70vh}
+  body.page-inicio .cool-hero:not(.cool-hero-full){height:200px}
+}

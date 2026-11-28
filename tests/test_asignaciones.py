@@ -158,7 +158,7 @@ def test_inicio_primer_boton_admin():
     assert '<em>José</em>, bienvenido a For Rent Online.' in main
     assert 'de For Rent Grupo Inmobiliario' not in main
     assert 'RIF J-50475755-1' not in main
-    assert 'caracas-hero.webp' in main
+    assert 'inicio-equipo.webp' in main
     assert 'Mis Asignaciones' not in main
     assert 'Resumen de operación' not in main
     assert 'Clientes por fase' not in main

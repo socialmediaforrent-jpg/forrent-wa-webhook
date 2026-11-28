@@ -2,7 +2,7 @@
 {% if embudo %}
 {% from '_embudo.html' import embudo_tiles %}
 <div class="dash-sec dash-embudo" aria-label="Embudo de Mis Clientes">
-  {{ embudo_tiles(embudo, none, '/mis-clientes', interactivo=false) }}
+  {{ embudo_tiles(embudo, none, '/mis-clientes', interactivo=false, modo=mostrar_embudo|default('todo')) }}
 </div>
 {% endif %}
 {% for titulo, ic, kpis in dash %}
