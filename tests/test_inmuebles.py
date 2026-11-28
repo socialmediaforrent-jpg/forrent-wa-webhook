@@ -513,3 +513,13 @@ def test_ficha_pestanas_clientes_ocultas():
     """Detalles / Clientes enlazados / Clientes potenciales siguen en el código pero ocultas."""
     h = html(cliente('ana').get('/inventario/ver?k=' + quote('c:10542820')))
     assert '<div class="wz-tabs" role="tablist" hidden>' in h
+
+
+def test_ficha_acciones_abajo():
+    """Generar PDF, Compartir y Retirar captación van al final, debajo de Redes Sociales."""
+    f = html(cliente('ana').get('/inventario/ver?k=' + quote('c:10542820')))
+    assert 'class="wz-acts"' not in f
+    i = f.index('wz-redes')
+    assert f.index('class="wz-sec wz-acciones"') > i
+    bloque = f.split('class="wz-sec wz-acciones"')[1].split('</div>\n')[0]
+    assert 'Generar PDF' in bloque and 'Compartir' in bloque and 'Retirar captación' in bloque

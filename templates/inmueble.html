@@ -24,23 +24,7 @@
     {% if fotos %}<img src="{{ fotos[0].thumb or fotos[0].full }}" alt="" referrerpolicy="no-referrer">{% else %}<span class="ph"></span>{% endif %}
     <div><div class="tt">{{ f.titulo }}</div><div class="cd">{% if f.codigo %}Código {{ f.codigo }} · {% endif %}{{ 'Propia' if f.origen == 'propio' else 'Aliado' }}</div></div>
   </div>
-  <div class="wz-acts">
-    <a href="/inventario/ver/pdf?k={{ f.key|urlencode }}&amp;auto=1" target="_blank" rel="noopener">Generar PDF</a>
-    <button type="button" id="wz-comp">Compartir</button>
-  </div>
   {% if f.codigo %}<p class="wz-codcopy"><span>Código {{ f.codigo }}</span> <button type="button" data-copiar="{{ f.codigo }}">Copiar código</button></p>{% endif %}
-  {% if puede_retirar %}
-  <details class="wz-retirar">
-    <summary>Retirar captación</summary>
-    <form method="post" action="/mis-captaciones">
-      <input type="hidden" name="csrf" value="{{ retiro_csrf }}"><input type="hidden" name="idem" value="{{ idem_token() }}">
-      <input type="hidden" name="accion" value="baja"><input type="hidden" name="codigo" value="{{ f.codigo }}">
-      <input type="hidden" name="titulo" value="{{ f.titulo }}">{% if f.origen %}<input type="hidden" name="origen" value="{{ f.origen }}">{% endif %}
-      <label>Motivo <textarea name="nota" maxlength="400" rows="3" placeholder="¿Por qué se retira?"></textarea></label>
-      <button type="submit">Solicitar retiro</button>
-    </form>
-  </details>
-  {% endif %}
   {# Pestañas ocultas por decisión de José (27-nov): aún no hay datos de clientes por inmueble. #}
   <div class="wz-tabs" role="tablist" hidden><span class="on" role="tab" aria-selected="true">Detalles</span><span role="tab" aria-disabled="true" title="Todavía no enlazamos clientes con inmuebles por código">Clientes enlazados (—)</span><span role="tab" aria-disabled="true">Clientes potenciales (—)</span></div>
 
@@ -84,6 +68,23 @@
 
   {% include '_portales_ficha.html' %}
   {% include '_redes_ficha.html' %}
+
+  <div class="wz-sec wz-acciones">
+    <a class="wz-accbar" href="/inventario/ver/pdf?k={{ f.key|urlencode }}&amp;auto=1" target="_blank" rel="noopener"><span class="ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 15h6M9 18h4"/></svg></span>Generar PDF <span class="ch" aria-hidden="true">›</span></a>
+    <button type="button" class="wz-accbar" id="wz-comp"><span class="ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg></span>Compartir <span class="ch" aria-hidden="true">›</span></button>
+  {% if puede_retirar %}
+  <details class="wz-retirar">
+    <summary><span class="ic" aria-hidden="true">⚠</span>Retirar captación <span class="ch" aria-hidden="true">›</span></summary>
+    <form method="post" action="/mis-captaciones">
+      <input type="hidden" name="csrf" value="{{ retiro_csrf }}"><input type="hidden" name="idem" value="{{ idem_token() }}">
+      <input type="hidden" name="accion" value="baja"><input type="hidden" name="codigo" value="{{ f.codigo }}">
+      <input type="hidden" name="titulo" value="{{ f.titulo }}">{% if f.origen %}<input type="hidden" name="origen" value="{{ f.origen }}">{% endif %}
+      <label>Motivo <textarea name="nota" maxlength="400" rows="3" placeholder="¿Por qué se retira?"></textarea></label>
+      <button type="submit">Solicitar retiro</button>
+    </form>
+  </details>
+  {% endif %}
+  </div>
 
   {% if ver_encargado %}
   <div class="wz-sec">
