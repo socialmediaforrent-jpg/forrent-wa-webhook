@@ -118,8 +118,9 @@ def test_captaciones_agrupadas():
         assert 'Mis Captaciones ›' not in main and 'Captaciones For Rent ›' not in main
         assert not re.search(r'<details class="card mod-group"[^>]*\sopen', main)
         assert re.search(
-            r'<a class="card" href="/mis-captaciones">\s*<h2>Mis Captaciones</h2>\s*<p>Propios, Alianza y Todos\. Los portales de cada uno están en su ficha\.</p>',
+            r'<a class="card" href="/mis-captaciones">\s*<h2>Mis Captaciones</h2>\s*</a>',
             main, re.S), slug
+        assert 'Propios, Alianza y Todos' not in main
         inv = _sec_inventario(main)
         grupos = re.findall(
             r'<details class="card mod-group">\s*<summary class="mod-group-sum">\s*<span>\s*<h2>([^<]+)</h2>(.*?)</details>',

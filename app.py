@@ -1122,8 +1122,8 @@ def _modulos_para(user_or_role):
 
     # Mis Captaciones abre directo Inmuebles (/mis-captaciones: Propios, Alianza y Todos).
     # Sin submenú ni «Estadísticas» (José, 27-nov). Captaciones For Rent no cambia.
-    inv = [s('Mis Captaciones', '/mis-captaciones',
-             'Propios, Alianza y Todos. Los portales de cada uno están en su ficha.')]
+    # Solo el título, sin texto explicativo (José, 27-nov 10:48 PM).
+    inv = [s('Mis Captaciones', '/mis-captaciones')]
     # Líder (y admin): nombres del equipo que puede supervisar. La asesora no ve este menú.
     miembros = _filas_captaciones_equipo(user)
     if miembros:
