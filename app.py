@@ -1137,20 +1137,23 @@ def _modulos_para(user_or_role):
               f"Propios ({a['n_prop']}), Alianza ({a['n_ali']}).")
             for a in miembros
         ]))
+    # «Estadísticas» se oculta del menú en Captaciones For Rent (José, 27-nov 11:41 PM).
+    # Era un ítem «En preparación», sin ruta: no se borra pantalla ni código.
     inv.append(s('Captaciones For Rent', hijos=[
                s('Inmuebles', '/inventario', 'Todo el inventario de For Rent. Los portales de cada uno están en su ficha.'),
-               s('Estadísticas', None, 'Llega en la etapa 8, solo con datos reales.'),
            ]))
     # «Cargar inmueble» / «Agregar captación» viven en Mis Captaciones (/mis-captaciones), no como entrada suelta.
     # El Planificador sale de Módulos y vive solo en Más, para rol admin (José y Luz).
     if admin:
         inv.append(s('Por revisar (carga)', '/inventario/cola'))
 
-    cli = [s('Mis Clientes', '/mis-clientes', 'Embudo y listas por fase de tus clientes.')]
+    # Solo el título, del mismo alto que «Clientes de Mi Equipo» (José, 27-nov 11:42 PM).
+    cli = [s('Mis Clientes', '/mis-clientes')]
     if admin or lider:
         cli.append(s('Clientes propios', '/clientes-propios') if admin else s('Clientes de Mi Equipo', '/mis-clientes/equipo'))
-    cli += [s('Seguimiento', None, 'Llega en la etapa 6.'),
-            s('Estadísticas de Clientes', None, 'Llega en la etapa 3.')]
+    # Seguimiento y Estadísticas de Clientes se ocultan del menú para todos los roles:
+    # el seguimiento ya vive en cada cliente de Mis Clientes (José, 27-nov 11:41 PM).
+    # Eran ítems «En preparación», sin ruta: no se borra pantalla ni código.
 
     # Visitas (y la Agenda, que hoy solo cubriría visitas) se ocultan de Operaciones:
     # Operaciones es de oferta en adelante (José, 27-nov 11:08 PM). La ruta /visitas y su
@@ -1161,8 +1164,9 @@ def _modulos_para(user_or_role):
            s('Mis Entregas', None, 'Llega en la etapa 4.'),
            s('Actividades For Rent', '/admin/actividades' if admin else '/actividades')]
 
-    com = [s('Mis Comisiones', '/cierres', 'Por ahora es la pantalla de Cierres; se ordena en la etapa 5.'),
-           s('Estadísticas de Comisiones', None, 'Llega en la etapa 5.')]
+    # «Estadísticas de Comisiones» se oculta del menú (José, 27-nov 11:41 PM).
+    # Era un ítem «En preparación», sin ruta: no se borra pantalla ni código.
+    com = [s('Mis Comisiones', '/cierres', 'Por ahora es la pantalla de Cierres; se ordena en la etapa 5.')]
 
     ren = [s('Estatus Activo / Inactivo', None, 'Llega en la etapa 7.'),
            s('Puntaje por Captaciones', None, 'Llega en la etapa 7.'),

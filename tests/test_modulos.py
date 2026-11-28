@@ -130,9 +130,8 @@ def test_captaciones_agrupadas():
         fr = dict(grupos)['Captaciones For Rent']
         assert re.search(r'<h3>Inmuebles</h3>', fr)
         assert not re.search(r'<h3>Mercadeo', fr)
-        assert re.search(r'<h3>Estadísticas', fr)
-        assert 'En preparación' in fr
-        assert 'Llega en la etapa 8, solo con datos reales.' in fr
+        assert not re.search(r'<h3>Estadísticas', fr)
+        assert 'Llega en la etapa 8, solo con datos reales.' not in fr
         mc_card = re.search(r'<a class="card mod-inv-row" href="/mis-captaciones">.*?</a>', main, re.S).group(0)
         assert 'Estadísticas' not in mc_card
         assert '<h3>Inmuebles</h3>' not in inv.split('Captaciones For Rent')[0]
@@ -407,7 +406,57 @@ def test_clientes_de_mi_equipo():
 
 
 
+
+def _sec_clientes(html):
+    m = re.search(r'2\. Clientes.*?(?=3\. Operaciones|$)', html, re.S)
+    assert m, 'no aparece la tarjeta Clientes'
+    return m.group(0)
+
+
+def test_clientes_sin_seguimiento_ni_estadisticas():
+    """Seguimiento y Estadística(s) se ocultan del menú; el seguimiento sigue en Mis Clientes."""
+    for slug in ('jose', 'ana', 'herlinda', 'antonio'):
+        h = cliente(slug).get('/modulos').get_data(as_text=True)
+        cli = _sec_clientes(h)
+        assert '>Seguimiento<' not in cli and 'Seguimiento' not in cli
+        assert 'Estadísticas de Clientes' not in cli
+        assert 'Llega en la etapa 6.' not in h
+        assert 'Llega en la etapa 3.' not in h
+        # Estadísticas también sale de Inventario (Captaciones For Rent) y Comisiones.
+        inv = re.search(r'1\. Inventario.*?(?=2\. Clientes|$)', h, re.S).group(0)
+        assert not re.search(r'<h3>Estadísticas', inv)
+        assert 'Estadísticas de Comisiones' not in h
+        assert 'Llega en la etapa 8, solo con datos reales.' not in h
+        assert 'Llega en la etapa 5.' not in h
+        # No reaparece en Más.
+        nav = _bottomnav(h)
+        assert 'Seguimiento' not in nav and 'Estadísticas' not in nav
+        # Mis Clientes: solo el título, mismo chrome que Clientes de Mi Equipo / Mis Captaciones.
+        mc = re.search(r'<a class="card mod-inv-row" href="/mis-clientes">.*?</a>', h, re.S)
+        assert mc, slug
+        card = mc.group(0)
+        assert 'Embudo y listas por fase de tus clientes.' not in card
+        assert '<p>' not in card
+        assert re.search(
+            r'<a class="card mod-inv-row" href="/mis-clientes">\s*<span class="mod-group-sum">\s*<span>\s*<h2>Mis Clientes</h2>',
+            card, re.S), slug
+        if slug in ('ana', 'jose'):
+            # Líder ve Clientes de Mi Equipo; admin ve Clientes propios. Ambos son fila título.
+            if slug == 'ana':
+                eq = re.search(r'<a class="card mod-inv-row" href="/mis-clientes/equipo">.*?</a>', h, re.S)
+                assert eq and '<p>' not in eq.group(0)
+            # Descripción de la tarjeta de Clientes sigue coherente (seguimiento en cada cliente).
+        assert 'Tu embudo comercial y el seguimiento de cada cliente.' in h
+        # El sistema de clientes y el seguimiento dentro de cada ficha siguen.
+        r = cliente(slug).get('/mis-clientes')
+        assert r.status_code == 200, slug
+        body = r.get_data(as_text=True)
+        assert 'Mis Clientes' in body
+        assert 'cli-ficha' in body or 'Embudo' in body or 'cool-kpi' in body or 'En Proceso' in body
+
+
 def test_operaciones_sin_visitas():
+
     """Operaciones es de oferta en adelante: sin Visitas ni Agenda; la ruta /visitas sigue."""
     import portal_lib
     h = cliente('ana').get('/modulos').get_data(as_text=True)
