@@ -1,5 +1,5 @@
 {% from '_icons.html' import icon %}
-{% macro embudo_tiles(embudo, tile, base='/mis-clientes', interactivo=true, modo='todo') %}
+{% macro embudo_tiles(embudo, tile, base='/mis-clientes', interactivo=true, modo='todo', ver_kpis=true) %}
   {% set ns = namespace(nuevas=0, sin=0, proceso=0, neg=0) %}
   {% for f in embudo.fases %}
     {% if f.id == 'nuevas' %}{% set ns.nuevas = f.n_total %}
@@ -8,7 +8,7 @@
     {% elif f.id == 'negociacion' %}{% set ns.neg = f.n_total %}
     {% endif %}
   {% endfor %}
-  <div class="cool-kpis" aria-label="Resumen del embudo">
+  <div class="cool-kpis" aria-label="Resumen del embudo"{% if not ver_kpis %} hidden{% endif %}>
     <a class="cool-kpi kpi-nuevas" href="{{ base }}?e=nuevas"{% if interactivo %} data-embudo-kpi="nuevas"{% endif %}>
       <span class="cool-kpi-lab">Nuevas Asignaciones</span>
       <span class="cool-kpi-n">{{ ns.nuevas }}</span>

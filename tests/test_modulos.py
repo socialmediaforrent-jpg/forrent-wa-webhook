@@ -370,3 +370,10 @@ def test_captaciones_de_asesor_misma_vista():
     # Atrás desde la ficha del asesor cae a la lista del equipo.
     assert _atras(h) and _atras(h).group(1) == '/mis-captaciones/equipo'
     assert _atras(lh) and _atras(lh).group(1) == '/modulos'
+
+
+def test_mis_clientes_sin_cuadros_de_colores():
+    """Mis Clientes: los 4 cuadros de arriba quedan ocultos; las filas del embudo siguen."""
+    h = cliente('ana').get('/mis-clientes').get_data(as_text=True)
+    assert '<div class="cool-kpis" aria-label="Resumen del embudo" hidden>' in h
+    assert 'embudo-fase' in h and 'Nuevas Asignaciones' in h

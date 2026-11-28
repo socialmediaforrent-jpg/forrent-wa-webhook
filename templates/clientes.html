@@ -50,7 +50,8 @@
     </form>
   </details>
   {% endif %}
-  {{ embudo_tiles(embudo, tile, '/mis-clientes') }}
+  {# Sin los 4 cuadros de colores de arriba (José, 27-nov 10:50 PM); el código sigue, oculto. #}
+  {{ embudo_tiles(embudo, tile, '/mis-clientes', ver_kpis=false) }}
   {% for f in embudo.fases %}
   {% if f.id == 'otros' and f.n_total == 0 %}
   {% else %}
