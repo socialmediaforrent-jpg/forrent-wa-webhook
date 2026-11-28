@@ -81,10 +81,11 @@ def test_encargado_solo_presidencia_y_mercadeo():
 
 
 def test_sin_enlaces_de_portales_ni_ajenos():
+    """La lista de inmuebles no lleva URLs de Rex, Mercado Libre ni Wasi. En la ficha sí pueden
+    aparecer, pero solo dentro de la barra Portales Inmobiliarios (enlaces verificados)."""
     for u in ('ana', 'jose'):
-        for path in ('/inventario', '/inventario/ver?k=' + quote('c:2327223429')):
-            h = html(cliente(u).get(path))
-            assert 'rexup.net' not in h and 'mercadolibre.com.ve' not in h and 'grupoinmobiliarioforrent' not in h
+        h = html(cliente(u).get('/inventario'))
+        assert 'rexup.net' not in h and 'mercadolibre.com.ve' not in h and 'grupoinmobiliarioforrent' not in h
 
 
 @pytest.mark.parametrize('qs,esperados,no', [
@@ -138,6 +139,42 @@ def test_ficha_detalles_plegable():
     assert 'Local Comercial En Alquiler' in fuera
     assert 'US$ 300' in fuera
     assert 'Estado físico' not in fuera
+
+
+def test_ficha_portales_plegable():
+    """La barra Portales Inmobiliarios va cerrada, con las 10 casillas, el contador y Marketplace."""
+    key = 'c:10542820'
+    # Enlace verificado de prueba (solo en esta ficha).
+    it = next((x for xs in (INV['grupos']['propio'], INV['grupos']['alianza']) for x in xs
+               if appmod.portales.key_de(x) == key), None)
+    assert it, 'falta el inmueble de prueba'
+    appmod.portales.guardar(
+        appmod.q, it=it, portal='mercadolibre',
+        url='https://www.mercadolibre.com.ve/inmueble-de-prueba-10542820',
+        estado='ok', http_status=200, fuente='test', por='jose')
+    h = html(cliente('ana').get('/inventario/ver?k=' + quote(key)))
+    m = re.search(r'<details class="wz-portales"(?P<attrs>[^>]*)>(?P<body>.*?)</details>', h, re.S)
+    assert m, 'falta la barra Portales Inmobiliarios'
+    assert 'open' not in (m.group('attrs') or '')
+    assert 'Portales Inmobiliarios' in m.group(0)
+    assert '1/10' in m.group(0)
+    assert 'Facebook Marketplace' in m.group('body')
+    assert 'mercadolibre.com.ve' in m.group('body')
+    assert 'class="pl vacia"' in m.group('body')
+    # Ana ve el logo y puede abrir/copiar/compartir; no edita enlaces.
+    assert 'Editar enlaces' not in h
+    assert 'Agregar enlace de Marketplace' not in h
+    # Título y precio siguen fuera.
+    fuera = h[:m.start()] + h[m.end():]
+    assert 'Local Comercial En Alquiler' in fuera
+    assert 'US$ 300' in fuera
+    # Presidencia sí edita desde la ficha.
+    hj = html(cliente('jose').get('/inventario/ver?k=' + quote(key)))
+    assert 'Editar enlaces' in hj
+    assert 'Agregar enlace de Marketplace' in hj or 'Editar enlace de Marketplace' in hj
+    # La lista sigue sin llevar esas URLs.
+    lista = html(cliente('ana').get('/inventario'))
+    assert 'mercadolibre.com.ve' not in lista
 
 
 # JPEG mínimo (1×1) para no depender de archivos grandes en el test.

@@ -1,0 +1,129 @@
+{% from '_icons.html' import icon %}
+{% set n_pub = portales_casillas|selectattr('visible')|list|length %}
+{% set abierta = portales_ok or portales_err %}
+<div class="wz-sec">
+  <details class="wz-portales"{% if abierta %} open{% endif %}>
+    <summary>Portales Inmobiliarios <span class="wz-pn">{{ n_pub }}/10</span> <span class="ch" aria-hidden="true">›</span></summary>
+    {% if portales_ok %}<p class="wz-okmsg" style="margin-top:10px">{{ portales_ok }}</p>{% endif %}
+    {% if portales_err %}<p class="wz-errmsg" style="margin-top:10px">{{ portales_err }}</p>{% endif %}
+    <div class="mk-grid" role="list" aria-label="Portales de {{ f.titulo }}">
+      {% for c in portales_casillas %}
+        {% if c.visible %}
+        <a role="listitem" class="pl" href="{{ c.url }}" target="_blank" rel="noopener noreferrer"
+           data-url="{{ c.url }}" data-portal="{{ c.nombre }}" data-logo="/static/{{ c.logo }}" data-title="{{ f.titulo }}"
+           title="{{ c.nombre }}: publicado. {{ c.etiqueta }}{% if c.verificado_en %} ({{ fmt(c.verificado_en) }}){% endif %}">
+          <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: publicado. Abrir opciones</span>
+        </a>
+        {% elif c.caido %}
+        <span role="listitem" class="pl caido" tabindex="0" title="{{ c.nombre }}: el enlace dejó de responder{% if c.verificado_en %} ({{ fmt(c.verificado_en) }}){% endif %}">
+          <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: el enlace dejó de responder</span>
+        </span>
+        {% elif c.ajena and es_admin %}
+        <span role="listitem" class="pl ajena" tabindex="0" title="{{ c.nombre }}: el enlace cargado es una ficha de otro captador; no se muestra a asesoras">
+          <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: ficha de otro captador, oculta</span>
+        </span>
+        {% elif c.pendiente and es_admin %}
+        <span role="listitem" class="pl pend" title="{{ c.nombre }}: enlace sin verificar">
+          <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: enlace sin verificar</span>
+        </span>
+        {% else %}
+        <span role="listitem" class="pl vacia" title="{{ c.nombre }}: no publicado"><span class="sr">{{ c.nombre }}: no publicado</span></span>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <div class="mk-mp">
+      {% if portales_mp %}
+      <a class="pl" href="{{ portales_mp.url }}" target="_blank" rel="noopener noreferrer" data-url="{{ portales_mp.url }}" data-portal="Facebook Marketplace"
+         data-logo="/static/{{ mp_logo }}" data-title="{{ f.titulo }}" title="Facebook Marketplace: publicado">
+        <img src="/static/{{ mp_logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">Facebook Marketplace: publicado. Abrir opciones</span>
+      </a>
+      {% else %}
+      <span class="pl vacia" title="Facebook Marketplace: sin enlace"><span class="sr">Facebook Marketplace: sin enlace</span></span>
+      {% endif %}
+      <span>Facebook Marketplace</span>
+    </div>
+    {% if puede_mp %}
+    <details class="mk-edit">
+      <summary>{{ 'Editar' if portales_mp else 'Agregar' }} enlace de Marketplace</summary>
+      <form method="post" action="/mercadeo/marketplace">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="vuelta" value="{{ portales_vuelta }}"><input type="hidden" name="key" value="{{ f.key }}">
+        <input type="url" name="url" value="{{ portales_mp.url if portales_mp else '' }}" placeholder="https://www.facebook.com/marketplace/item/…" aria-label="Enlace de Marketplace" inputmode="url" style="grid-column:1/3">
+        <button type="submit" name="accion" value="guardar">Guardar</button>
+        {% if portales_mp %}<button type="submit" name="accion" value="quitar" class="sec" formnovalidate>Quitar</button>{% endif %}
+      </form>
+      {% if portales_mp_hist %}
+      <table><tbody>
+        {% for h in portales_mp_hist %}<tr><td><b>{{ {'alta':'Agregado','reemplazo':'Cambiado','baja':'Quitado'}.get(h.accion, h.accion) }}</b></td><td>{{ h.por }} · {{ fmt(h.at) }}</td><td>{{ h.url_despues or h.url_antes }}</td></tr>{% endfor %}
+      </tbody></table>
+      {% endif %}
+    </details>
+    {% endif %}
+    {% if es_admin %}
+    <details class="mk-edit">
+      <summary>Editar enlaces</summary>
+      <form method="post" action="/mercadeo/link">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="vuelta" value="{{ portales_vuelta }}"><input type="hidden" name="key" value="{{ f.key }}">
+        <select name="portal" aria-label="Portal">{% for p in portales_lista %}<option value="{{ p.key }}">{{ p.nombre }}</option>{% endfor %}</select>
+        <input type="url" name="url" placeholder="https://… (ficha del inmueble en ese portal)" aria-label="Enlace" inputmode="url">
+        <button type="submit" name="accion" value="guardar">Guardar</button>
+        <button type="submit" name="accion" value="quitar" class="sec" formnovalidate>Quitar</button>
+      </form>
+      {% set con = portales_casillas|selectattr('url')|list %}
+      {% if con %}
+      <table><tbody>
+        {% for c in con %}<tr><td><b>{{ c.nombre }}</b></td><td>{{ c.etiqueta or c.estado }}{% if c.verificado_en %} · {{ fmt(c.verificado_en) }}{% endif %}{% if c.fuente %}<br><span class="muted">Fuente: {{ c.fuente }}</span>{% endif %}{% if c.nota %}<br><span class="muted">{{ c.nota }}</span>{% endif %}</td><td><a href="{{ c.url }}" target="_blank" rel="noopener noreferrer">{{ c.url }}</a></td></tr>{% endfor %}
+      </tbody></table>
+      {% endif %}
+    </details>
+    {% endif %}
+  </details>
+</div>
+
+<dialog class="mk-dlg" id="dlg" aria-labelledby="dlg-t">
+  <h3 id="dlg-t"><img id="dlg-logo" src="" alt=""><span id="dlg-p"></span></h3>
+  <p class="u" id="dlg-u"></p>
+  <div class="mk-acts">
+    <a id="dlg-go" class="go" href="#" target="_blank" rel="noopener noreferrer">{{ icon('external') }}Ir</a>
+    <button type="button" id="dlg-copy">{{ icon('copy') }}Copiar</button>
+    <button type="button" id="dlg-share">{{ icon('share') }}Compartir</button>
+  </div>
+  <div class="mk-alt" id="dlg-alt">
+    <a id="dlg-wa" href="#" target="_blank" rel="noopener noreferrer">{{ icon('chat') }}WhatsApp</a>
+    <button type="button" id="dlg-copy2">{{ icon('copy') }}Copiar enlace</button>
+  </div>
+  <div class="mk-msg" id="dlg-msg" role="status" aria-live="polite"></div>
+  <button type="button" class="mk-close" id="dlg-x">Cerrar</button>
+</dialog>
+<script>
+(function(){
+  var d=document.getElementById('dlg'); if(!d||typeof d.showModal!=='function')return;
+  var cur=null, msg=document.getElementById('dlg-msg'), alt=document.getElementById('dlg-alt');
+  function say(t){msg.textContent=t;}
+  function copiar(u){
+    if(navigator.clipboard&&window.isSecureContext){return navigator.clipboard.writeText(u).then(function(){say('Enlace copiado.');},function(){fallback(u);});}
+    fallback(u);
+  }
+  function fallback(u){var ta=document.createElement('textarea');ta.value=u;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';d.appendChild(ta);ta.select();
+    var ok=false;try{ok=document.execCommand('copy');}catch(e){}d.removeChild(ta);say(ok?'Enlace copiado.':'No se pudo copiar; mantén presionado el enlace de arriba para copiarlo.');}
+  document.addEventListener('click',function(e){
+    var a=e.target.closest('a.pl[data-url]'); if(!a||!a.closest('.wz-portales'))return;
+    e.preventDefault(); cur=a;
+    document.getElementById('dlg-p').textContent=a.dataset.portal;
+    document.getElementById('dlg-logo').src=a.dataset.logo;
+    document.getElementById('dlg-u').textContent=a.dataset.url;
+    document.getElementById('dlg-go').href=a.dataset.url;
+    document.getElementById('dlg-wa').href='https://wa.me/?text='+encodeURIComponent(a.dataset.title+' '+a.dataset.url);
+    alt.classList.remove('on'); say(''); d.showModal();
+  });
+  document.getElementById('dlg-copy').onclick=function(){if(cur)copiar(cur.dataset.url);};
+  document.getElementById('dlg-copy2').onclick=function(){if(cur)copiar(cur.dataset.url);};
+  document.getElementById('dlg-share').onclick=function(){
+    if(!cur)return; var data={title:cur.dataset.title,text:cur.dataset.title,url:cur.dataset.url};
+    if(navigator.share&&(!navigator.canShare||navigator.canShare(data))){
+      navigator.share(data).then(function(){say('Compartido.');},function(err){if(err&&err.name==='AbortError')return;alt.classList.add('on');say('Elige cómo compartir.');});
+    }else{alt.classList.add('on');say('Elige cómo compartir.');}
+  };
+  document.getElementById('dlg-x').onclick=function(){d.close();};
+  d.addEventListener('click',function(e){if(e.target===d)d.close();});
+})();
+</script>

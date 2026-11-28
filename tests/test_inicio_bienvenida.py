@@ -127,7 +127,7 @@ def test_inicio_mercadeo_e_inventario_tambien_saludan():
     assert 'inicio-equipo.webp' in main
     assert 'cool-hero-full' in main
     assert 'Tu resumen' not in main
-    assert _botones(_bottomnav(html)) == ['Inicio', 'Mercadeo', 'Planificador', 'Más']
+    assert _botones(_bottomnav(html)) == ['Inicio', 'Inmuebles', 'Planificador', 'Más']
 
     html = cliente('inventario').get('/portal').get_data(as_text=True)
     main = _main(html)

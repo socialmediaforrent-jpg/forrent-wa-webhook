@@ -48,7 +48,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from functools import wraps
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 from flask import Flask, Response, abort, g, jsonify, make_response, redirect, render_template, request, session
 
@@ -856,7 +856,9 @@ INVENTARIO_ENDPOINTS = {'portal', 'inventario', 'inventario_ver', 'carga_cola', 
 ROLES_VER_ENCARGADO = ('admin', 'mercadeo', 'inventario')
 
 # Rutas con sesión que el usuario de Mercadeo puede abrir. Todo lo demás le responde 403 (en el servidor).
-MERCADEO_ENDPOINTS = {'portal', 'mercadeo', 'mercadeo_link', 'mercadeo_verificar', 'mercadeo_planificador',
+MERCADEO_ENDPOINTS = {'portal', 'mercadeo', 'mercadeo_forrent', 'mercadeo_link', 'mercadeo_verificar',
+                      'mercadeo_marketplace', 'mercadeo_planificador',
+                      'inventario', 'inventario_ver',
                       'planif_nuevo', 'planif_editar', 'planif_guardar', 'planif_duplicar', 'planif_borrar',
                       'planif_media'}
 ROLES_MERCADEO = ('admin', 'mercadeo')
@@ -905,7 +907,7 @@ def _portal_nav():
     role = u['role']
     if role == 'mercadeo':
         main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'},
-                {'href': '/mercadeo', 'label': 'Mercadeo', 'key': 'mercadeo', 'icon': 'megaphone'},
+                {'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'},
                 {'href': '/mercadeo/planificador', 'label': 'Planificador de anuncios', 'short': 'Planificador',
                  'key': 'planificador', 'icon': 'calendar'}]
         return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['mercadeo'], **_ver_como_ctx()}
@@ -938,7 +940,6 @@ def _portal_nav():
         more.append({'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'key': 'captaciones', 'icon': 'key'})
     else:
         more.append({'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'})
-    more.append({'href': '/mercadeo', 'label': 'Mercadeo', 'key': 'mercadeo', 'icon': 'megaphone'})
     if role == 'admin':
         more.append({'href': '/mercadeo/planificador', 'label': 'Planificador de anuncios', 'key': 'planificador', 'icon': 'calendar'})
     more.append({'href': '/ofertas', 'label': 'Ofertas', 'key': 'ofertas', 'icon': 'tag'})
@@ -973,7 +974,7 @@ _ATRAS_RAICES = {
     'admin': frozenset({'/', '/portal', '/panel'}),
     'lider': frozenset({'/', '/portal', '/panel'}),
     'asesor': frozenset({'/', '/portal', '/panel'}),
-    'mercadeo': frozenset({'/', '/portal', '/mercadeo', '/mercadeo/planificador'}),
+    'mercadeo': frozenset({'/', '/portal', '/inventario', '/mercadeo/planificador'}),
     'inventario': frozenset({'/', '/portal', '/inventario', '/inventario/cola'}),
 }
 
@@ -1007,13 +1008,13 @@ def _atras_fallback(path, role):
     if path.startswith('/mercadeo/planificador/') or path == '/mercadeo/planificador/nuevo':
         return '/mercadeo/planificador'
     if path == '/mercadeo/planificador':
-        return '/mercadeo' if role == 'mercadeo' else '/modulos'
+        return '/inventario' if role == 'mercadeo' else '/modulos'
     if path == '/panel' or path.startswith('/panel/'):
         return '/panel'
     if role in ('admin', 'lider', 'asesor'):
         return '/modulos'
     if role == 'mercadeo':
-        return '/mercadeo'
+        return '/inventario'
     if role == 'inventario':
         return '/inventario'
     return '/portal'
@@ -1102,14 +1103,11 @@ def _modulos_para(role):
         return item
 
     inv = [s('Mis Captaciones', hijos=[
-               s('Inmuebles', '/mis-captaciones', 'Propios, Alianza y Todos.'),
-               s('Mercadeo', '/mercadeo', 'Tus enlaces en los 10 portales y las 6 redes.'),
+               s('Inmuebles', '/mis-captaciones', 'Propios, Alianza y Todos. Los portales de cada uno están en su ficha.'),
                s('Estadísticas', None, 'Llega en la etapa 8, solo con datos reales.'),
            ]),
            s('Captaciones For Rent', hijos=[
-               s('Inmuebles', '/inventario', 'Todo el inventario de For Rent.'),
-               s('Mercadeo', '/mercadeo/forrent' if admin else None,
-                 '' if admin else 'Llega en la etapa 2.'),
+               s('Inmuebles', '/inventario', 'Todo el inventario de For Rent. Los portales de cada uno están en su ficha.'),
                s('Estadísticas', None, 'Llega en la etapa 8, solo con datos reales.'),
            ])]
     # «Cargar inmueble» vive dentro de Mis Captaciones › Inmuebles (/mis-captaciones), no como entrada suelta.
@@ -3391,15 +3389,15 @@ def inventario_ver():
     f = next((x for x in fichas if x['key'] == k), None)
     if not f:
         return _hdr(render_template('inmueble.html', f=None), 404)
-    cas = []
-    if g.user['role'] in ROLES_VER_ENCARGADO:   # Presidencia e Inventario (solo lectura); Mercadeo ya los ve en su sección
-        try:
-            cas = [c for c in portales.casillas(portales.links_por_key(q).get(k)) if c['visible']]
-        except Exception:
-            log.exception('inmueble portales')
-    return _hdr(render_template('inmueble.html', f=f, portales_pub=cas, compartir=inmuebles.compartir_texto(f),
+    ctx = _portales_ficha_ctx(g.user, k)
+    ok = _MERCADEO_OK.get(request.args.get('ok') or '', '')
+    err = (request.args.get('portales_err') or '').strip()
+    if err and len(err) > 280:
+        err = err[:280]
+    return _hdr(render_template('inmueble.html', f=f, compartir=inmuebles.compartir_texto(f),
                                 ver_encargado=g.user['role'] in ROLES_VER_ENCARGADO,
-                                volver=_volver_inv(request.args.get('volver'))))
+                                volver=_volver_inv(request.args.get('volver')),
+                                portales_ok=ok, portales_err=err, **ctx))
 
 
 def _volver_inv(v):
@@ -3440,6 +3438,64 @@ def _inmuebles_n_filtros(args):
 
 # ---------------------------------------------------------------- Mercadeo: 10 portales por inmueble
 _MERCADEO_VUELTAS = frozenset({'/mercadeo', '/mercadeo/forrent'})
+
+
+def _portales_ficha_ctx(user, key):
+    """Datos de portales y Marketplace para la barra de la ficha (misma lógica que la tarjeta de Mercadeo)."""
+    es_admin = user['role'] in ROLES_MERCADEO
+    puede_mp = user['role'] == 'admin'
+    try:
+        cas = portales.casillas(portales.links_por_key(q).get(key))
+    except Exception:
+        log.exception('inmueble portales')
+        cas = portales.casillas(None)
+    mp = None
+    mp_hist = []
+    try:
+        mp = (marketplace.links_por_key(q) or {}).get(key)
+        if puede_mp and mp:
+            mp_hist = marketplace.historial(q, key)
+    except Exception:
+        log.exception('inmueble marketplace')
+    return {
+        'portales_casillas': cas,
+        'portales_mp': mp,
+        'portales_mp_hist': mp_hist,
+        'mp_logo': marketplace.LOGO,
+        'es_admin': es_admin,
+        'puede_mp': puede_mp,
+        'portales_lista': portales.PORTALES,
+        'portales_vuelta': '/inventario/ver?k=' + quote(key or '', safe=''),
+        'csrf': portal_lib.csrf_token(user) if (es_admin or puede_mp) else '',
+        'fmt': _fmt_actualizado,
+    }
+
+
+def _destino_portales(default='/inventario'):
+    """Tras editar un enlace, volver a la ficha si el formulario lo pidió; si no, a la lista de inmuebles."""
+    v = (request.form.get('vuelta') or request.args.get('vuelta') or default or '').strip()
+    if '//' in v or '\\' in v or not v.startswith('/'):
+        return default
+    parts = urlparse(v)
+    if parts.scheme or parts.netloc:
+        return default
+    if parts.path == '/inventario/ver':
+        k = (parse_qs(parts.query).get('k') or [''])[0].strip()
+        if k and len(k) <= 120:
+            return '/inventario/ver?k=' + quote(k, safe='')
+        return default
+    if v in _MERCADEO_VUELTAS or parts.path == '/inventario':
+        return '/inventario'
+    return default
+
+
+def _redir_portales(dest, ok='', err=''):
+    sep = '&' if '?' in dest else '?'
+    if err:
+        return redirect(dest + sep + 'portales_err=' + quote(err, safe=''))
+    if ok:
+        return redirect(dest + sep + 'ok=' + ok)
+    return redirect(dest)
 
 
 def _mercadeo_alcance_defecto(user):
@@ -3548,80 +3604,79 @@ _MERCADEO_OK = {
 @app.get('/mercadeo')
 @require_login
 def mercadeo():
-    ok = _MERCADEO_OK.get(request.args.get('ok') or '', '')
-    return _mercadeo_render(g.user, alcance=_mercadeo_alcance_defecto(g.user), ok=ok)
+    """El submenú Mercadeo se eliminó; los portales viven en cada ficha. La ruta queda como redirección."""
+    return redirect('/inventario')
 
 
 @app.get('/mercadeo/forrent')
-@require_roles(*ROLES_MERCADEO)
+@require_login
 def mercadeo_forrent():
-    ok = _MERCADEO_OK.get(request.args.get('ok') or '', '')
-    return _mercadeo_render(g.user, alcance='forrent', ok=ok)
+    return redirect('/inventario')
 
 
 @app.post('/mercadeo/link')
 @require_roles(*ROLES_MERCADEO)
 def mercadeo_link():
     """Solo Presidencia y Mercadeo agregan, cambian o quitan enlaces. Se verifica antes de guardar."""
-    vuelta, alcance = _mercadeo_ctx(g.user)
+    dest = _destino_portales()
     if not _csrf_ok():
-        return _mercadeo_render(g.user, alcance=alcance, err='La sesión expiró. Vuelve a intentar.', status=400)
+        return _redir_portales(dest, err='La sesión expiró. Vuelve a intentar.')
     f = request.form
     key, portal, accion = (f.get('key') or '').strip(), (f.get('portal') or '').strip(), f.get('accion') or 'guardar'
     if portal not in portales.PORTAL_KEYS:
-        return _mercadeo_render(g.user, alcance=alcance, err='Portal no válido.', status=400)
+        return _redir_portales(dest, err='Portal no válido.')
     _, items, _ = _mercadeo_items(g.user, alcance='forrent')
     it = next((x for x in items if portales.key_de(x) == key), None)
     if not it:
-        return _mercadeo_render(g.user, alcance=alcance, err='No encontramos ese inmueble en el inventario.', status=400)
+        return _redir_portales(dest, err='No encontramos ese inmueble en el inventario.')
     nombre = portales.POR_KEY[portal]['nombre']
     if accion == 'quitar':
         portales.quitar(q, key=key, portal=portal, por=g.user['user'])
-        return redirect(vuelta + '?ok=quitado')
+        return _redir_portales(dest, ok='quitado')
     url, e = portales.url_valida(portal, f.get('url'))
     if e:
-        return _mercadeo_render(g.user, alcance=alcance, err=e, status=400)
+        return _redir_portales(dest, err=e)
     estado, http_status, detalle = portales.verificar(portal, url, timeout=8)
     if estado == 'caido':
-        return _mercadeo_render(g.user, alcance=alcance, err=f'No se guardó: el enlace de {nombre} no responde ({detalle or "sin respuesta"}). '
-                                             'Revisa que sea la ficha publicada del inmueble.', status=400)
+        return _redir_portales(dest, err=f'No se guardó: el enlace de {nombre} no responde ({detalle or "sin respuesta"}). '
+                             'Revisa que sea la ficha publicada del inmueble.')
     portales.guardar(q, it=it, portal=portal, url=url, estado=estado, http_status=http_status,
                      fuente='manual (Mercadeo)' if g.user['role'] == 'mercadeo' else 'manual (Presidencia)',
                      nota=detalle or None, por=g.user['user'])
-    return redirect(vuelta + '?ok=1')
+    return _redir_portales(dest, ok='1')
 
 
 @app.post('/mercadeo/verificar')
 @require_roles(*ROLES_MERCADEO)
 def mercadeo_verificar():
-    vuelta, alcance = _mercadeo_ctx(g.user)
+    dest = _destino_portales()
     if not _csrf_ok():
-        return _mercadeo_render(g.user, alcance=alcance, err='La sesión expiró. Vuelve a intentar.', status=400)
+        return _redir_portales(dest, err='La sesión expiró. Vuelve a intentar.')
     portales.reverificar_todo(q)
-    return redirect(vuelta + '?ok=verificando')
+    return _redir_portales(dest, ok='verificando')
 
 
 @app.post('/mercadeo/marketplace')
 @require_admin
 def mercadeo_marketplace():
     """Facebook Marketplace por inmueble: solo rol admin (José y Luz). Valida URL y deja bitácora (quién/cuándo)."""
-    vuelta, alcance = _mercadeo_ctx(g.user)
+    dest = _destino_portales()
     if not _csrf_ok():
-        return _mercadeo_render(g.user, alcance=alcance, err='La sesión expiró. Vuelve a intentar.', status=400)
+        return _redir_portales(dest, err='La sesión expiró. Vuelve a intentar.')
     f = request.form
     key, accion = (f.get('key') or '').strip(), f.get('accion') or 'guardar'
     _, items, _ = _mercadeo_items(g.user, alcance='forrent')
     it = next((x for x in items if portales.key_de(x) == key), None)
     if not it:
-        return _mercadeo_render(g.user, alcance=alcance, err='No encontramos ese inmueble en el inventario.', status=400)
+        return _redir_portales(dest, err='No encontramos ese inmueble en el inventario.')
     if accion == 'quitar':
         marketplace.quitar(q, key=key, por=g.user['user'])
-        return redirect(vuelta + '?ok=mp_quitado')
+        return _redir_portales(dest, ok='mp_quitado')
     url, e = marketplace.url_valida(f.get('url'))
     if e:
-        return _mercadeo_render(g.user, alcance=alcance, err=e, status=400)
+        return _redir_portales(dest, err=e)
     res = marketplace.guardar(q, key=key, codigo=portales.codigo_de(it), url=url, por=g.user['user'], is_pg=IS_PG)
-    return redirect(vuelta + '?ok=' + ('mp_igual' if res == 'sin_cambio' else 'mp'))
+    return _redir_portales(dest, ok=('mp_igual' if res == 'sin_cambio' else 'mp'))
 
 
 @app.get('/mercadeo/planificador')

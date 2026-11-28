@@ -74,6 +74,8 @@
 
   <div class="wz-pband"><span>Precio {{ f.operacion }}</span><b>{{ f.precio or 'Sin dato' }}{% if f.precio and f.operacion == 'Alquiler' %} <small style="font-size:12px">Mensual</small>{% endif %}</b></div>
 
+  {% include '_portales_ficha.html' %}
+
   {% if ver_encargado %}
   <div class="wz-sec">
     <h3>Encargado del inmueble</h3>
@@ -102,13 +104,6 @@
     {% if f.actualizado_en %}<p class="wz-loc" style="margin:8px 0 0">Actualizado: {{ f.actualizado_en[:10] }}</p>{% endif %}
   </div>
 
-  {% if portales_pub %}
-  <div class="wz-sec">
-    <h3>Publicado en</h3>
-    <div class="wz-ports">{% for c in portales_pub %}<img src="/static/{{ c.logo }}" alt="{{ c.nombre }}" title="{{ c.nombre }}">{% endfor %}</div>
-    {% if viewer and viewer.role == 'admin' %}<p class="wz-loc" style="margin:8px 0 0">Los enlaces se gestionan en <a href="/mercadeo">Mercadeo</a>.</p>{% else %}<p class="wz-loc" style="margin:8px 0 0">Portales donde está publicado y verificado.</p>{% endif %}
-  </div>
-  {% endif %}
   <script type="application/json" id="wz-txt">{{ compartir|tojson }}</script>
   <script>
   (function(){
