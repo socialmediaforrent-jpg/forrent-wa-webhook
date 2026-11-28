@@ -109,7 +109,7 @@ def test_css_saludo_queda_encima_de_la_barra():
     """El saludo de Presidencia reserva la barra inferior fija y el safe-area."""
     ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'app.css')
     css = open(ruta, encoding='utf-8').read()
-    assert 'body:has(> main.welcome-only){padding-bottom:0}' in css
+    assert 'body:has(> main.welcome-only):not(.page-inicio){padding-bottom:0}' in css
     assert '.welcome-only .cool-hero' in css or '.cool-hero-full' in css
     assert '100dvh' in css
     assert 'safe-area-inset-bottom' in css

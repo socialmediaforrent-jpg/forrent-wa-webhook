@@ -427,7 +427,7 @@ a.mod-sub:active{background:var(--naranja-suave);color:var(--naranja)}
    reserva la barra fija + safe-area + ~22dvh, para que el saludo quede en la mesa y nunca
    detrás de los botones, aunque 100dvh en Android quede un poco largo. */
 /* Presidencia: el Inicio es solo la foto. Con resumen debajo, el padding de la barra se queda. */
-body:has(> main.welcome-only){padding-bottom:0}
+body:has(> main.welcome-only):not(.page-inicio){padding-bottom:0}
 body:has(> main.welcome-inicio){padding-bottom:0}
 .welcome-inicio{max-width:none;width:100%;margin:0;height:calc(100dvh - var(--appbar));min-height:calc(100dvh - var(--appbar));display:flex;align-items:flex-end;justify-content:center;text-align:center;padding:24px 24px calc(var(--bottom) + env(safe-area-inset-bottom, 0px) + 22dvh);overflow:hidden;background-color:#1c1612;background-image:linear-gradient(to top,rgba(12,10,8,.82) 0%,rgba(12,10,8,.48) 28%,rgba(12,10,8,.18) 52%,rgba(12,10,8,.22) 100%),var(--welcome-foto);background-size:100% auto;background-position:center top;background-repeat:no-repeat}
 .welcome{max-width:20rem;position:relative;z-index:1}
@@ -649,12 +649,12 @@ body.page-inicio > .appbar,body.page-inicio > .ver-como-stack,
 body.page-modulos > .appbar,body.page-modulos > .ver-como-stack{flex:none;position:relative;top:auto}
 body.page-inicio > main{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
 body.page-inicio main.welcome-only{padding:0}
-body.page-inicio .welcome-only .cool-hero,body.page-inicio .cool-hero-full{min-height:0;flex:1 1 auto;height:auto;margin-top:0;padding:12px 20px 18px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.82) 0%,rgba(10,8,12,.22) 26%,rgba(10,8,12,.05) 52%,rgba(10,8,12,.12) 100%),var(--cool-foto);background-size:contain;background-position:center top;background-repeat:no-repeat;background-color:#1a1410}
-body.page-inicio .cool-hero:not(.cool-hero-full){flex:none;min-height:0;height:148px;margin-top:0;padding:8px 16px 22px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.88) 0%,rgba(10,8,12,.4) 50%,rgba(10,8,12,.15) 100%),var(--cool-foto);background-size:cover;background-position:center 18%;background-repeat:no-repeat}
+body.page-inicio .welcome-only .cool-hero,body.page-inicio .cool-hero-full{min-height:0;flex:1 1 auto;height:auto;margin-top:0;padding:12px 20px 16px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.82) 0%,rgba(10,8,12,.22) 26%,rgba(10,8,12,.05) 52%,rgba(10,8,12,.12) 100%),var(--cool-foto);background-size:contain;background-position:center top;background-repeat:no-repeat;background-color:#1a1410}
+body.page-inicio .cool-hero:not(.cool-hero-full){flex:none;min-height:0;height:200px;margin-top:0;padding:8px 16px 22px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.9) 0%,rgba(10,8,12,.45) 42%,rgba(10,8,12,.12) 100%),var(--cool-foto);background-size:cover;background-position:center 30%;background-repeat:no-repeat}
 body.page-inicio .cool-hi{font-size:13px}
 body.page-inicio .cool-role{margin:0 0 4px;font-size:12px}
 body.page-inicio .cool-hero:not(.cool-hero-full) .welcome-title{font-size:18px;margin:0}
-body.page-inicio .cool-hero-full .welcome-title,body.page-inicio .welcome-only .welcome-title{font-size:24px}
+body.page-inicio .cool-hero-full .welcome-title,body.page-inicio .welcome-only .welcome-title{font-size:22px;line-height:1.25}
 body.page-inicio .cool-sheet{flex:1 1 auto;min-height:0;overflow:hidden;margin-top:-16px;padding:12px 14px 8px;display:flex;flex-direction:column;gap:8px}
 body.page-inicio .cool-sheet .page{font-size:18px;margin:0}
 body.page-inicio .cool-kpis{margin:0;gap:8px}
@@ -667,11 +667,12 @@ body.page-inicio .cards .card h2{font-size:13.5px;margin:0}
 body.page-inicio .cards .card p{font-size:11.5px;margin:2px 0 0;line-height:1.25}
 body.page-inicio .dash-sec{margin:0}
 body.page-inicio .dash-embudo{margin:0}
-body.page-inicio .dash-sec>h2{display:none}
+body.page-inicio .dash-sec:not(.dash-embudo){display:none}
 
 /* Módulos: solo el título «Módulos»; las 5 tarjetas caben sin scroll. */
 body.page-modulos .cool-hero{flex:none;min-height:0;height:52px;margin-top:0;padding:6px 20px 8px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.78) 0%,rgba(10,8,12,.45) 100%),var(--cool-foto);background-size:cover;background-position:center 35%}
 body.page-modulos .cool-hero h1.page{font-size:22px;margin:0}
+body.page-modulos .cool-credito{display:none}
 body.page-modulos .cool-hero .page-row.asig-titulo{margin:0}
 body.page-modulos > main{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;margin-top:-10px;padding:10px 14px 6px;border-radius:18px 18px 0 0}
 body.page-modulos .sec.mod{margin:0 0 0;flex:1 1 0;min-height:0;display:flex;flex-direction:column}
