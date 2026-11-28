@@ -673,12 +673,12 @@ body.page-inicio .dash-sec{margin:0}
 body.page-inicio .dash-embudo{margin:0}
 body.page-inicio .dash-sec:not(.dash-embudo){display:none}
 
-/* Módulos: título con aire; tarjetas compactas, sin estirarse, sin scroll. */
-body.page-modulos .cool-hero{flex:none;min-height:0;height:56px;margin-top:0;padding:8px 20px 12px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.78) 0%,rgba(10,8,12,.45) 100%),var(--cool-foto);background-size:cover;background-position:center 35%}
+/* Módulos: 20px de aire bajo el título; el módulo abierto no se estira. */
+body.page-modulos .cool-hero{flex:none;min-height:0;height:68px;margin-top:0;padding:8px 20px 20px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;background-image:linear-gradient(to top,rgba(10,8,12,.78) 0%,rgba(10,8,12,.45) 100%),var(--cool-foto);background-size:cover;background-position:center 35%}
 body.page-modulos .cool-hero h1.page{font-size:22px;margin:0}
 body.page-modulos .cool-credito{display:none}
 body.page-modulos .cool-hero .page-row.asig-titulo{margin:0}
-body.page-modulos > main{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:8px;margin-top:-8px;padding:24px 16px calc(10px + var(--bottom) + env(safe-area-inset-bottom, 0px));border-radius:18px 18px 0 0}
+body.page-modulos > main{flex:1 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;margin-top:0;padding:24px 16px calc(10px + var(--bottom) + env(safe-area-inset-bottom, 0px));border-radius:18px 18px 0 0}
 body.page-modulos .sec.mod{margin:0;flex:none;min-height:0;display:flex;flex-direction:column}
 body.page-modulos .mod-cool-sum{min-height:64px;flex:none;padding:6px 10px;gap:8px;border-radius:14px;box-shadow:0 2px 10px rgba(17,17,17,.05)}
 body.page-modulos .mod-cool-ico{width:32px;height:32px;border-radius:9px}
@@ -686,9 +686,10 @@ body.page-modulos .mod-cool-ico .i{width:16px;height:16px}
 body.page-modulos .mod-cool-txt b{font-size:14px}
 body.page-modulos .mod-cool-desc{font-size:11px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 body.page-modulos .mod-cool-img{width:44px;height:44px;border-radius:9px}
-body.page-modulos .sec.mod[open]{flex:1 1 auto;min-height:0;overflow:auto}
+/* Abierto: solo el alto de su contenido. No llena el hueco hasta el siguiente módulo. */
+body.page-modulos .sec.mod[open]{flex:none;overflow:visible}
 body.page-modulos .mod-cards{padding:2px 0 0;gap:3px}
-body.page-modulos > main{gap:4px;padding:8px 16px calc(8px + var(--bottom) + env(safe-area-inset-bottom, 0px))}
+body.page-modulos > main{gap:4px;padding:8px 16px calc(8px + var(--bottom) + env(safe-area-inset-bottom, 0px));overflow:auto}
 /* Las tarjetas cerradas ceden un poco de alto para que Inventario abierto no se corte. */
 body.page-modulos .mod-cool-sum{min-height:56px}
 body.page-modulos .mod-cool-img{width:40px;height:40px}

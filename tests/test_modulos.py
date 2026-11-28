@@ -251,6 +251,19 @@ def test_mercadeo_info_y_sin_planificador():
     assert cliente('jose').get('/mercadeo/planificador').status_code == 200
 
 
+
+def test_modulo_abierto_no_estira():
+    """Inventario abierto mide su contenido; no se estira con flex:1 dejando un hueco blanco."""
+    import os
+    css = open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static/app.css'), encoding='utf-8').read()
+    assert 'body.page-modulos .sec.mod[open]{flex:1 1 auto' not in css
+    assert 'body.page-modulos .sec.mod[open]{flex:none' in css
+    # Si Captaciones For Rent se abre y no cabe, la lista de módulos puede desplazarse.
+    assert 'body.page-modulos > main{flex:1 1 auto;min-height:0;overflow:auto' in css
+    # El panel blanco no se solapa con el título: 20px bajo «Módulos», sin margin-top negativo.
+    assert 'body.page-modulos .cool-hero{flex:none;min-height:0;height:68px;margin-top:0;padding:8px 20px 20px;' in css
+    assert 'body.page-modulos > main{flex:1 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;margin-top:0;' in css
+
 def test_grupos_inventario_compactos():
     """Mis Captaciones y Captaciones For Rent son más delgados en Módulos (móvil)."""
     import os
