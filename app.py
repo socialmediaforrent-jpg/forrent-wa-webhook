@@ -2233,6 +2233,29 @@ def _inventario_raw():
         return _inventario_vacio()
 
 
+def _fuentes_codigo():
+    """{codigo: 'wasi'|'rex'} según el inventario empujado (id_wasi → Wasi; solo id_rex → Rex)."""
+    out = {}
+    for filas in ((_inventario_raw() or {}).get('grupos') or {}).values():
+        for it in filas or []:
+            c, fu = str(it.get('codigo') or '').strip(), it.get('fuente_codigo') or ''
+            if c and fu in ('wasi', 'rex'):
+                out[c] = fu
+    return out
+
+
+def cod_lbl(x):
+    """«Código Wasi», «Código Rex» o «Código» si no se sabe de dónde viene."""
+    fu = (x or {}).get('fuente_codigo') if hasattr(x, 'get') else ''
+    if fu not in ('wasi', 'rex'):
+        c = str((x or {}).get('codigo') or '').strip() if hasattr(x, 'get') else ''
+        fu = _fuentes_codigo().get(c, '') if c else ''
+    return {'wasi': 'Código Wasi', 'rex': 'Código Rex'}.get(fu, 'Código')
+
+
+app.jinja_env.globals['cod_lbl'] = cod_lbl
+
+
 def _inventario_sin_red(data):
     """Copia con solo propios y alianza, filtrados por origen. Recalcula conteos."""
     if not isinstance(data, dict):

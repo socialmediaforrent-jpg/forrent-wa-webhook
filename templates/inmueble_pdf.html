@@ -42,7 +42,7 @@ h2{margin:6mm 14mm 2mm;font-size:12pt;color:#E55B01;text-transform:uppercase;let
 <div class="hoja">
   <div class="cab">
     <img src="/static/logo.png" alt="For Rent Grupo Inmobiliario">
-    <div class="ref"><b>Ficha del inmueble</b>{% if f.codigo %}Código {{ f.codigo }}{% endif %}{% if f.tipo_negocio %}<br>{{ f.tipo_negocio }}{% endif %}</div>
+    <div class="ref"><b>Ficha del inmueble</b>{% if f.codigo %}{{ cod_lbl(f) }} {{ f.codigo }}{% endif %}{% if f.tipo_negocio %}<br>{{ f.tipo_negocio }}{% endif %}</div>
   </div>
   <div class="tit">
     <h1>{{ f.titulo }}</h1>

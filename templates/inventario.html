@@ -54,7 +54,7 @@
           </span>
           <span class="wz-sum-body">
             <span class="wz-sum-title">{{ it.titulo or it.zona or it.codigo or 'Inmueble' }}</span>
-            <span class="wz-sum-meta">{% if it.codigo %}<span class="wz-sum-cod">{{ it.codigo }}</span>{% endif %}{% if it.operacion %}{% if it.codigo %}<span class="wz-sum-dot">·</span>{% endif %}<span>{{ it.operacion }}</span>{% endif %}{% if it.precio %}<span class="wz-sum-dot">·</span><span class="wz-sum-precio">{{ it.precio }}</span>{% endif %}{% if it.estado %}<span class="wz-sum-dot">·</span><span class="wz-st {{ 'dest' if it.destacado else ('disp' if it.estado == 'Disponible' else '') }}">{{ it.estado }}</span>{% endif %}</span>
+            <span class="wz-sum-meta">{% if it.codigo %}<span class="wz-sum-cod">{{ cod_lbl(it) }} {{ it.codigo }}</span>{% endif %}{% if it.operacion %}{% if it.codigo %}<span class="wz-sum-dot">·</span>{% endif %}<span>{{ it.operacion }}</span>{% endif %}{% if it.precio %}<span class="wz-sum-dot">·</span><span class="wz-sum-precio">{{ it.precio }}</span>{% endif %}{% if it.estado %}<span class="wz-sum-dot">·</span><span class="wz-st {{ 'dest' if it.destacado else ('disp' if it.estado == 'Disponible' else '') }}">{{ it.estado }}</span>{% endif %}</span>
           </span>
         </a>
         <button type="button" class="wz-share" data-compartir="{{ loop.index0 }}" aria-label="Compartir">
@@ -85,7 +85,7 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg></button>
         </div>
         <div class="wz-row">
-          {% if it.codigo %}<span class="wz-code"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg>{{ it.codigo }}</span><span class="wz-sep">|</span>{% endif %}
+          {% if it.codigo %}<span class="wz-code"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg>{{ cod_lbl(it) }} {{ it.codigo }}</span><span class="wz-sep">|</span>{% endif %}
           <span class="wz-st {{ 'dest' if it.destacado else ('disp' if it.estado == 'Disponible' else '') }}">{{ it.estado }}</span>
         </div>
         <div class="wz-tn">{{ it.tipo_negocio }}</div>

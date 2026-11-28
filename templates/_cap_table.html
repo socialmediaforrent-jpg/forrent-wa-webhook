@@ -16,7 +16,7 @@
       </span>
       <span class="inv-body">
         <span class="inv-title">{{ it.titulo or it.zona or it.codigo or 'Inmueble' }}{% if it.solo_cliente_directo %} <span class="badge">Solo cliente directo</span>{% endif %}</span>
-        <span class="inv-meta">{% if it.codigo %}<span class="inv-cod">{{ it.codigo }}</span>{% endif %}{% if it.operacion %}{% if it.codigo %}<span class="inv-dot">·</span>{% endif %}<span class="op{{ ' alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span>{% endif %}{% if it.precio %}<span class="inv-dot">·</span><span class="inv-price">{{ it.precio }}</span>{% endif %}{% if it.estado %}<span class="inv-dot">·</span><span>{{ it.estado }}</span>{% endif %}</span>
+        <span class="inv-meta">{% if it.codigo %}<span class="inv-cod">{{ cod_lbl(it) }} {{ it.codigo }}</span>{% endif %}{% if it.operacion %}{% if it.codigo %}<span class="inv-dot">·</span>{% endif %}<span class="op{{ ' alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span>{% endif %}{% if it.precio %}<span class="inv-dot">·</span><span class="inv-price">{{ it.precio }}</span>{% endif %}{% if it.estado %}<span class="inv-dot">·</span><span>{{ it.estado }}</span>{% endif %}</span>
       </span>
     {% if it.key %}</a>{% else %}</button>{% endif %}
     <div class="inv-ficha-exp" id="{{ sid }}-ficha-{{ loop.index0 }}" hidden>
@@ -41,7 +41,7 @@
           <div><dt>Operación</dt><dd>{{ it.operacion or '—' }}</dd></div>
           <div><dt>Tipo</dt><dd>{{ it.tipo or '—' }}</dd></div>
           <div><dt>Zona</dt><dd>{{ it.zona or '—' }}</dd></div>
-          <div><dt>Código</dt><dd>{{ it.codigo or '—' }}</dd></div>
+          <div><dt>{{ cod_lbl(it) }}</dt><dd>{{ it.codigo or '—' }}</dd></div>
         </dl>
         {% if it.solo_cliente_directo %}<p class="inv-badge-wrap"><span class="badge">Solo cliente directo</span></p>{% endif %}
         {% if it.key or (puede_retirar and it.codigo) %}

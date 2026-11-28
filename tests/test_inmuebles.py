@@ -523,3 +523,14 @@ def test_ficha_acciones_abajo():
     assert f.index('class="wz-sec wz-acciones"') > i
     bloque = f.split('class="wz-sec wz-acciones"')[1].split('</div>\n')[0]
     assert 'Generar PDF' in bloque and 'Compartir' in bloque and 'Retirar captación' in bloque
+
+
+def test_codigo_wasi_o_rex():
+    """El código dice de dónde viene: Wasi (id_wasi), Rex (solo Rex) o «Código» si no se sabe."""
+    assert appmod.cod_lbl({'codigo': '1', 'fuente_codigo': 'wasi'}) == 'Código Wasi'
+    assert appmod.cod_lbl({'codigo': '2', 'fuente_codigo': 'rex'}) == 'Código Rex'
+    assert appmod.cod_lbl({'codigo': 'no-existe-999'}) == 'Código'
+    import os
+    raiz = os.path.dirname(os.path.dirname(__file__))
+    for t in ('inmueble.html', 'inmueble_pdf.html', '_cap_table.html', 'inventario.html'):
+        assert 'cod_lbl(' in open(os.path.join(raiz, 'templates', t), encoding='utf-8').read(), t

@@ -61,6 +61,7 @@ def ficha(it, ficha_publica, *, encargado=''):
     return {
         **ficha_publica,
         'key': portales.key_de(it), 'origen': it.get('origen') or '',
+        'fuente_codigo': it.get('fuente_codigo') or '',
         'tipo_negocio': f"{ficha_publica.get('tipo') or 'Inmueble'} para {op}".strip() if op else (ficha_publica.get('tipo') or ''),
         'lugar': lugar, 'ciudad': ciudad, 'region': region,
         'estado': estado, 'destacado': it.get('estado_pub') == 'Outstanding',

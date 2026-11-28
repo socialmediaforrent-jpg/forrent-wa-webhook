@@ -22,9 +22,9 @@
   {% set fotos = f.fotos or [] %}
   <div class="wz-sticky">
     {% if fotos %}<img src="{{ fotos[0].thumb or fotos[0].full }}" alt="" referrerpolicy="no-referrer">{% else %}<span class="ph"></span>{% endif %}
-    <div><div class="tt">{{ f.titulo }}</div><div class="cd">{% if f.codigo %}Código {{ f.codigo }} · {% endif %}{{ 'Propia' if f.origen == 'propio' else 'Aliado' }}</div></div>
+    <div><div class="tt">{{ f.titulo }}</div><div class="cd">{% if f.codigo %}{{ cod_lbl(f) }} {{ f.codigo }} · {% endif %}{{ 'Propia' if f.origen == 'propio' else 'Aliado' }}</div></div>
   </div>
-  {% if f.codigo %}<p class="wz-codcopy"><span>Código {{ f.codigo }}</span> <button type="button" data-copiar="{{ f.codigo }}">Copiar código</button></p>{% endif %}
+  {% if f.codigo %}<p class="wz-codcopy"><span>{{ cod_lbl(f) }} {{ f.codigo }}</span> <button type="button" data-copiar="{{ f.codigo }}">Copiar código</button></p>{% endif %}
   {# Pestañas ocultas por decisión de José (27-nov): aún no hay datos de clientes por inmueble. #}
   <div class="wz-tabs" role="tablist" hidden><span class="on" role="tab" aria-selected="true">Detalles</span><span role="tab" aria-disabled="true" title="Todavía no enlazamos clientes con inmuebles por código">Clientes enlazados (—)</span><span role="tab" aria-disabled="true">Clientes potenciales (—)</span></div>
 
@@ -59,7 +59,7 @@
         {{ tile('Área privada', ('%.1f'|format(f.area_privada)) if f.area_privada else '', ' m²') }}{{ tile('Área construida', ('%.1f'|format(f.m2)) if f.m2 else '', ' m²') }}
         {{ tile('Área terreno', ('%.1f'|format(f.area_total)) if f.area_total else '', ' m²') }}{{ tile('Alcobas', f.habitaciones) }}
         {{ tile('Baños', f.banos) }}{{ tile('Pisos', f.piso) }}
-        {{ tile('Estacionamiento', f.garajes) }}{{ tile('Código', f.codigo) }}
+        {{ tile('Estacionamiento', f.garajes) }}{{ tile(cod_lbl(f), f.codigo) }}
       </div>
     </details>
   </div>
