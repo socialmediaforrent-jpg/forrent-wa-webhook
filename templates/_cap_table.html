@@ -4,7 +4,8 @@
 {% for it in items %}
   {% set fotos = it.fotos or [] %}
   <li class="inv-item">
-    <button type="button" class="inv-row" data-inm-toggle data-sid="{{ sid }}" data-i="{{ loop.index0 }}" aria-expanded="false" aria-controls="{{ sid }}-ficha-{{ loop.index0 }}">
+    {% if it.key %}<a class="inv-row" href="/inventario/ver?k={{ it.key|urlencode }}{% if volver %}&amp;volver={{ volver|urlencode }}{% endif %}">{% else %}
+    <button type="button" class="inv-row" data-inm-toggle data-sid="{{ sid }}" data-i="{{ loop.index0 }}" aria-expanded="false" aria-controls="{{ sid }}-ficha-{{ loop.index0 }}">{% endif %}
       <span class="inv-n" aria-hidden="true">{{ loop.index }}</span>
       <span class="inv-thumb">
         {% if fotos %}
@@ -17,7 +18,7 @@
         <span class="inv-title">{{ it.titulo or it.zona or it.codigo or 'Inmueble' }}{% if it.solo_cliente_directo %} <span class="badge">Solo cliente directo</span>{% endif %}</span>
         <span class="inv-meta">{% if it.codigo %}<span class="inv-cod">{{ it.codigo }}</span>{% endif %}{% if it.operacion %}{% if it.codigo %}<span class="inv-dot">·</span>{% endif %}<span class="op{{ ' alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span>{% endif %}{% if it.precio %}<span class="inv-dot">·</span><span class="inv-price">{{ it.precio }}</span>{% endif %}{% if it.estado %}<span class="inv-dot">·</span><span>{{ it.estado }}</span>{% endif %}</span>
       </span>
-    </button>
+    {% if it.key %}</a>{% else %}</button>{% endif %}
     <div class="inv-ficha-exp" id="{{ sid }}-ficha-{{ loop.index0 }}" hidden>
       {% if fotos %}
       <div class="inv-gal">

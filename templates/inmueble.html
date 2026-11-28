@@ -28,6 +28,19 @@
     <a href="/inventario/ver/pdf?k={{ f.key|urlencode }}&amp;auto=1" target="_blank" rel="noopener">Generar PDF</a>
     <button type="button" id="wz-comp">Compartir</button>
   </div>
+  {% if f.codigo %}<p class="wz-codcopy"><span>Código {{ f.codigo }}</span> <button type="button" data-copiar="{{ f.codigo }}">Copiar código</button></p>{% endif %}
+  {% if puede_retirar %}
+  <details class="wz-retirar">
+    <summary>Retirar captación</summary>
+    <form method="post" action="/mis-captaciones">
+      <input type="hidden" name="csrf" value="{{ retiro_csrf }}"><input type="hidden" name="idem" value="{{ idem_token() }}">
+      <input type="hidden" name="accion" value="baja"><input type="hidden" name="codigo" value="{{ f.codigo }}">
+      <input type="hidden" name="titulo" value="{{ f.titulo }}">{% if f.origen %}<input type="hidden" name="origen" value="{{ f.origen }}">{% endif %}
+      <label>Motivo <textarea name="nota" maxlength="400" rows="3" placeholder="¿Por qué se retira?"></textarea></label>
+      <button type="submit">Solicitar retiro</button>
+    </form>
+  </details>
+  {% endif %}
   {# Pestañas ocultas por decisión de José (27-nov): aún no hay datos de clientes por inmueble. #}
   <div class="wz-tabs" role="tablist" hidden><span class="on" role="tab" aria-selected="true">Detalles</span><span role="tab" aria-disabled="true" title="Todavía no enlazamos clientes con inmuebles por código">Clientes enlazados (—)</span><span role="tab" aria-disabled="true">Clientes potenciales (—)</span></div>
 
@@ -111,6 +124,7 @@
       fs.addEventListener('click', function(){ var i = Math.round(t.scrollLeft / t.clientWidth), img = t.children[i]; (img.requestFullscreen || img.webkitRequestFullscreen || function(){ window.open(img.src, '_blank', 'noopener'); }).call(img); });
     }
     var txt = JSON.parse(document.getElementById('wz-txt').textContent || '""');
+    document.querySelectorAll('[data-copiar]').forEach(function(b){ b.addEventListener('click', function(){ if (navigator.clipboard) navigator.clipboard.writeText(b.dataset.copiar).then(function(){ b.textContent = 'Copiado'; setTimeout(function(){ b.textContent = 'Copiar código'; }, 1500); }); }); });
     document.getElementById('wz-comp').addEventListener('click', function(){
       if (navigator.share) navigator.share({text: txt}).catch(function(){});
       else if (navigator.clipboard) navigator.clipboard.writeText(txt);

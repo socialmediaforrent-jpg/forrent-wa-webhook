@@ -712,3 +712,5 @@ body.page-modulos .mod-sub .pill,body.page-modulos .mod-cards .pill{font-size:10
   body.page-inicio .cool-hero-full,body.page-inicio .welcome-only .cool-hero{min-height:70vh}
   body.page-inicio .cool-hero:not(.cool-hero-full){height:200px}
 }
+
+a.inv-row{text-decoration:none;color:inherit}

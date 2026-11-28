@@ -3404,10 +3404,13 @@ def inventario_ver():
     if redes_err and len(redes_err) > 280:
         redes_err = redes_err[:280]
     es_red = ok_code in ('red', 'red_quitado', 'red_igual')
+    puede_retirar = bool(g.user['role'] != 'admin' and f.get('codigo') and f['codigo'] in
+                         {x.get('codigo') for x in portal_lib.load_captaciones(slug=g.user['user'])})
     return _hdr(render_template('inmueble.html', f=f, compartir=inmuebles.compartir_texto(f),
                                 ver_encargado=g.user['role'] in ROLES_VER_ENCARGADO,
                                 volver=_volver_inv(request.args.get('volver')),
-                                back_fallback=_volver_inv(request.args.get('volver')),
+                                back_fallback=_volver_inv(request.args.get('volver')), puede_retirar=puede_retirar,
+                                retiro_csrf=portal_lib.csrf_token(g.user) if puede_retirar else '',
                                 portales_ok='' if es_red else ok, portales_err=portales_err,
                                 redes_ok=ok if es_red else '', redes_err=redes_err, **ctx))
 

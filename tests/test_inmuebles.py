@@ -346,7 +346,9 @@ def test_lista_compacta_numerada_empieza_cerrada():
     h = html(cliente('ana').get('/inventario'))
     lista = h.split('id="wz-lista"')[1].split('id="wz-mapa"')[0]
     assert 'class="wz-list"' in lista
-    assert 'data-inm-toggle' in lista
+    # Tocar la fila abre la ficha directamente (sin panel intermedio).
+    assert 'data-inm-toggle' not in lista
+    assert re.search(r'<a class="wz-sum" href="/inventario/ver\?k=', lista)
     assert 'data-compartir' in lista
     cards = re.findall(r'<div class="wz-card"[^>]*>', lista)
     assert len(cards) == 3 and all('hidden' in c for c in cards)
@@ -377,7 +379,7 @@ def test_mis_captaciones_lista_numerada_cerrada():
     exp = re.findall(r'<div class="inv-ficha-exp"[^>]*>', h)
     assert exp and all('hidden' in e for e in exp)
     assert 'inv-modal' not in h
-    assert 'data-inm-toggle' in h
+    assert re.search(r'<a class="inv-row" href="/inventario/ver\?k=[^"]*volver=/mis-captaciones', h)
 
 
 def test_mis_captaciones_retiro_en_la_ficha_no_en_bloque_grande():
@@ -387,25 +389,19 @@ def test_mis_captaciones_retiro_en_la_ficha_no_en_bloque_grande():
     assert 'Agregar captación' in h
     assert '+ Solicitar agregar' not in h
     assert 'Cargar inmueble' not in h
-    assert 'Retirar captación' in h
-    assert 'name="accion" value="baja"' in h
-    assert 'value="10542820"' in h
-    assert 'Ver inmueble' in h
-    assert 'href="/inventario/ver?k=' in h
-    assert 'volver=/mis-captaciones' in h
-    # El formulario de retiro vive dentro de la ficha, que arranca cerrada.
-    ficha = re.search(r'<div class="inv-ficha-exp"[^>]*>.*?</li>', h, re.S).group(0)
-    assert 'hidden' in ficha[:80]
-    assert 'Retirar captación' in ficha
-    assert 'Solicitar retiro' in ficha
-    assert 'name="nota"' in ficha
-    # En la vista de equipo no se pide el retiro (es de la asesora, en Mis Captaciones).
-    # José (admin) no tiene el bloque de solicitar.
+    assert 'href="/inventario/ver?k=' in h and 'volver=/mis-captaciones' in h
+    # El retiro pasa a la ficha del inmueble (solo para la captadora, no para Presidencia).
+    k = quote('c:10542820')
+    f = html(cliente('ana').get('/inventario/ver?k=' + k))
+    assert 'Retirar captación' in f and 'Solicitar retiro' in f
+    assert 'name="accion" value="baja"' in f and 'value="10542820"' in f and 'name="nota"' in f
+    assert re.search(r'name="csrf" value="[^"]+"', f.split('wz-retirar')[1])
+    assert 'Copiar código' in f
+    fj = html(cliente('jose').get('/inventario/ver?k=' + k))
+    assert 'Retirar captación' not in fj
     hj = html(cliente('jose').get('/mis-captaciones'))
-    assert 'inv-accion-retiro' not in hj
-    assert 'Retirar captación' not in hj
-    assert '+ Solicitar agregar' not in hj
-    assert 'Cargar inmueble' not in hj
+    assert 'inv-accion-retiro' not in hj and 'Retirar captación' not in hj
+    assert '+ Solicitar agregar' not in hj and 'Cargar inmueble' not in hj
     assert 'Agregar captación' in hj
 
 
