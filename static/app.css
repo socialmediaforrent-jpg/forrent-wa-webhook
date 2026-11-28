@@ -14,7 +14,9 @@ body{min-height:100%;font-size:15px}
 .btn-atras span{display:block;line-height:1;font-weight:600}
 .btn-atras:hover,.btn-atras:focus-visible{background:var(--naranja-suave);color:var(--naranja-2);outline:none}
 .btn-atras:active,.btn-atras.is-pressed{background:var(--naranja-suave);color:var(--naranja)}
-.appbar:has(.btn-atras) .logo{max-width:72px}
+.appbar:has(.btn-atras) .logo{max-width:80px}
+.appbar:has(.btn-atras) .avatar{display:none}
+.appbar:has(.btn-atras) .profile summary{padding:4px 8px 4px 10px}
 .brand{display:inline-flex;align-items:center;line-height:0;text-decoration:none}
 .logo{display:block;height:34px;width:auto;max-width:46vw}
 .profile{position:relative}
