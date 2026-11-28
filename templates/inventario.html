@@ -1,118 +1,49 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex, nofollow">
-<title>Inmuebles · For Rent Online</title>
-{% include '_head_icons.html' %}
-{% include '_brand.css.html' %}
-<link rel="stylesheet" href="{{ static_v('inmuebles.css') }}">
-</head>
-<body>
+{% extends 'base.html' %}
 {% set nav='inventario' %}
-{% include '_top.html' %}
+{% block title %}Captaciones For Rent{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ static_v('inmuebles.css') }}">
+<style>
+/* Misma familia visual que Mis Captaciones: el filtrar no usa el azul Wasi. */
+.wz-filtrar{color:var(--naranja)}
+.wz-filtrar .ico{background:var(--naranja-suave);color:var(--naranja)}
+.wz-search input:focus{outline:3px solid var(--naranja-suave);border-color:var(--naranja)}
+</style>
+{% endblock %}
+{% block body %}
+{% from '_cap_table.html' import cap_table %}
 {% macro sel_txt(vals) %}{{ vals|join(', ') }}{% endmacro %}
 {% set qs_sin = request.query_string.decode() %}
-<main class="wrap-page">
-<div class="wz">
-  <div class="wz-bar">
-    <h1>Inmuebles</h1>
-    <div class="wz-seg" role="tablist" aria-label="Vista">
-      <button type="button" class="on" data-vista="lista" role="tab" aria-selected="true">Lista</button>
-      <button type="button" data-vista="mapa" role="tab" aria-selected="false">Mapa</button>
-    </div>
-    {% if viewer.role != 'inventario' %}<a class="wz-plus" href="/mis-captaciones" title="Nueva captación (la revisa la líder; el inventario no cambia hasta que se apruebe)" aria-label="Nueva captación">+</a>{% else %}<span style="width:38px"></span>{% endif %}
-  </div>
-  {% if copia_prueba %}<div class="wz-proto">{{ copia_prueba }}</div>{% endif %}
-  <form class="wz-search" method="get" action="/inventario" role="search">
-    {% for k, v in args.items(multi=True) if k != 'q' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
-    <input type="search" name="q" value="{{ args.get('q', '') }}" placeholder="Buscar" aria-label="Buscar por título, código, zona o tipo" autocomplete="off">
-  </form>
-  <nav class="tabs" aria-label="Filtro" style="margin:8px 0 4px">
-    {% for k in ('propias', 'aliados', 'empresa') %}<a href="/inventario?lista={{ k }}" class="{{ 'on' if lista==k else '' }}">{{ listas[k] }}</a>{% endfor %}
-  </nav>
-  <div class="wz-res">
-    <span><b>{{ filas|length }}</b> resultados <span style="color:#8a93a3">· {{ listas[lista] }}</span></span>
-    <button type="button" class="wz-filtrar" id="wz-abrir">Filtrar <span class="ico" aria-hidden="true">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span>
-      {% if n_activos %}<span class="n">{{ n_activos }}</span>{% endif %}</button>
-  </div>
+{% set volver = '/inventario' + ('?' + qs_sin if qs_sin else '') %}
 
-  <div id="wz-lista">
-  {% if not filas %}<div class="wz-empty">No hay inmuebles con estos filtros. <a href="/inventario">Limpiar</a></div>{% else %}
-  <ul class="wz-list">
-  {% for it in filas %}
-    {% set fotos = it.fotos or [] %}
-    {% set ver = '/inventario/ver?k=' ~ (it.key|urlencode) ~ '&volver=' ~ (('/inventario?' ~ qs_sin)|urlencode) %}
-    <li class="wz-item" data-share="{{ loop.index0 }}">
-      <div class="wz-sum-bar">
-        <a class="wz-sum" href="{{ ver }}">
-          <span class="wz-n" aria-hidden="true">{{ loop.index }}</span>
-          <span class="wz-minithumb">
-            {% if fotos %}<img src="{{ fotos[0].thumb or fotos[0].full }}" alt="" width="48" height="48" loading="lazy" referrerpolicy="no-referrer">{% else %}<span class="wz-minipho" aria-hidden="true"></span>{% endif %}
-          </span>
-          <span class="wz-sum-body">
-            <span class="wz-sum-title">{{ it.titulo or it.zona or it.codigo or 'Inmueble' }}</span>
-            <span class="wz-sum-meta">{% if it.codigo %}<span class="wz-sum-cod">{{ cod_lbl(it) }} {{ it.codigo }}</span>{% endif %}{% if it.operacion %}{% if it.codigo %}<span class="wz-sum-dot">·</span>{% endif %}<span>{{ it.operacion }}</span>{% endif %}{% if it.precio %}<span class="wz-sum-dot">·</span><span class="wz-sum-precio">{{ it.precio }}</span>{% endif %}{% if it.estado %}<span class="wz-sum-dot">·</span><span class="wz-st {{ 'dest' if it.destacado else ('disp' if it.estado == 'Disponible' else '') }}">{{ it.estado }}</span>{% endif %}</span>
-          </span>
-        </a>
-        <button type="button" class="wz-share" data-compartir="{{ loop.index0 }}" aria-label="Compartir">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg></button>
-      </div>
-      <div class="wz-card" id="wz-card-{{ loop.index0 }}" hidden>
-      <div class="wz-gal">
-        {% if fotos %}
-        <div class="wz-track" data-n="{{ fotos|length }}">
-          {% for f in fotos %}<img src="{{ f.thumb or f.full }}" alt="{{ it.titulo }} · foto {{ loop.index }}" loading="lazy" referrerpolicy="no-referrer">{% endfor %}
-        </div>
-        <span class="wz-count">1/{{ fotos|length }}</span>
-        {% if fotos|length > 1 %}<span class="wz-dots" aria-hidden="true">{% for f in fotos[:8] %}<i class="{{ 'on' if loop.first else '' }}"></i>{% endfor %}</span>{% endif %}
-        {% else %}<div class="wz-noimg">Sin fotos</div>{% endif %}
-        <span class="wz-chip">{{ 'Propia' if it.origen == 'propio' else 'Aliado' }}</span>
-        {% if it.solo_cliente_directo %}<span class="wz-chip sd">Solo cliente directo</span>{% endif %}
-        <button type="button" class="wz-kebab" aria-label="Opciones" aria-haspopup="menu">⋮</button>
-        <div class="wz-menu" role="menu" hidden>
-          <a href="{{ ver }}" role="menuitem">Ver detalle</a>
-          {% if it.codigo %}<button type="button" role="menuitem" data-copiar="{{ it.codigo }}">Copiar código</button>{% endif %}
-          <button type="button" role="menuitem" data-compartir="{{ loop.index0 }}">Compartir (sin enlaces)</button>
-        </div>
-      </div>
-      <div class="wz-body">
-        <div class="wz-tl">
-          <h2 class="wz-title">{{ it.titulo }}</h2>
-          <button type="button" class="wz-share" data-compartir="{{ loop.index0 }}" aria-label="Compartir">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg></button>
-        </div>
-        <div class="wz-row">
-          {% if it.codigo %}<span class="wz-code"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg>{{ cod_lbl(it) }} {{ it.codigo }}</span><span class="wz-sep">|</span>{% endif %}
-          <span class="wz-st {{ 'dest' if it.destacado else ('disp' if it.estado == 'Disponible' else '') }}">{{ it.estado }}</span>
-        </div>
-        <div class="wz-tn">{{ it.tipo_negocio }}</div>
-        <div class="wz-loc">En {{ it.lugar or it.zona }}</div>
-        {% if ver_encargado %}
-        <div class="wz-enc"><span>Encargado del inmueble<br><b>{{ it.encargado or 'Sin dato' }}</b></span><span aria-hidden="true">›</span></div>
-        {% endif %}
-        <div class="wz-price">Precio {{ it.operacion or '' }}: <b>{{ it.precio or 'Sin dato' }}</b></div>
-        <div class="wz-foot">
-          <span class="wz-area"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h6V3M15 21v-6h6"/></svg>{% if it.m2 %}{{ '%.1f'|format(it.m2) }} m²{% else %}<span style="color:#9aa1ad">Sin m²</span>{% endif %}
-          {% if it.habitaciones %}&nbsp;· {{ it.habitaciones }} hab.{% endif %}</span>
-          <a class="wz-ver" href="{{ ver }}">Ver detalle ›</a>
-        </div>
-      </div>
-      </div>
-    </li>
-  {% endfor %}
-  </ul>
-  {% endif %}
-  </div>
-  <div id="wz-mapa" class="wz-map" hidden>
-    <b>Mapa</b><br>
-    {% if con_coord %}{{ con_coord }} de {{ total }} inmuebles tienen coordenadas.{% else %}Ninguno de los {{ total }} inmuebles tiene coordenadas cargadas (Wasi no las trae: latitud y longitud vacías). Cuando Inventario las cargue en Wasi, aquí aparecerán en el mapa.{% endif %}
-  </div>
-  <p class="lead" style="font-size:12.5px;color:#7a8396;margin-top:14px">Solo lectura. Copia del {{ actualizado }}. Propias ({{ n_propio }}) y aliados ({{ n_alianza }}); sin la red ni enlaces de Rex o Wasi.</p>
+<div class="page-row">
+  <h1 class="page">Captaciones For Rent</h1>
 </div>
-</main>
+{% if copia_prueba %}<div class="wz-proto">{{ copia_prueba }}</div>{% endif %}
+<form class="wz-search" method="get" action="/inventario" role="search">
+  {% for k, v in args.items(multi=True) if k != 'q' %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+  <input type="search" name="q" value="{{ args.get('q', '') }}" placeholder="Buscar" aria-label="Buscar por título, código, zona o tipo" autocomplete="off">
+</form>
+<nav class="tabs" aria-label="Filtro">
+  {% for k in ('propias', 'aliados', 'empresa') %}
+  <a href="/inventario?lista={{ k }}" class="{{ 'on' if lista==k else '' }}">{{ listas[k] }}{% if k=='propias' %} ({{ n_propio }}){% elif k=='aliados' %} ({{ n_alianza }}){% else %} ({{ n_propio + n_alianza }}){% endif %}</a>
+  {% endfor %}
+</nav>
+<div class="wz-res">
+  <span><b>{{ filas|length }}</b> resultados <span style="color:#8a93a3">· {{ listas[lista] }}</span></span>
+  <button type="button" class="wz-filtrar" id="wz-abrir">Filtrar <span class="ico" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg></span>
+    {% if n_activos %}<span class="n">{{ n_activos }}</span>{% endif %}</button>
+</div>
+
+<div id="inv-lista">
+{% if not filas %}
+<div class="empty">No hay inmuebles con estos filtros. <a href="/inventario">Limpiar</a></div>
+{% else %}
+{{ cap_table(filas, 'No hay inmuebles con estos filtros.', sid='inv', csrf='', puede_retirar=False, volver=volver) }}
+{% endif %}
+</div>
+<p class="lead" style="font-size:12.5px;color:#7a8396;margin-top:14px">Solo lectura. Copia del {{ actualizado }}. Propias ({{ n_propio }}) y aliados ({{ n_alianza }}); sin la red ni enlaces de Rex o Wasi.</p>
 
 <dialog class="wz-dlg" id="wz-filtros" aria-labelledby="wz-ft">
   <form method="get" action="/inventario">
@@ -159,68 +90,18 @@
     <div class="ft"><a href="/inventario">Limpiar</a><button type="submit">Aplicar</button></div>
   </form>
 </dialog>
-<script type="application/json" id="wz-share-txt">{{ compartir_textos|tojson }}</script>
 <script>
 (function(){
   var dlg = document.getElementById('wz-filtros');
-  document.getElementById('wz-abrir').addEventListener('click', function(){ if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open',''); });
-  dlg.addEventListener('click', function(e){
-    if (e.target === dlg || e.target.hasAttribute('data-cerrar')) dlg.close();
-    var x = e.target.closest('[data-limpiar]');
-    if (x){ e.preventDefault(); dlg.querySelectorAll('input[name="' + x.dataset.limpiar + '"]').forEach(function(i){ i.checked = false; }); dlg.querySelector('form').submit(); }
-  });
-  document.querySelectorAll('.wz-seg button').forEach(function(b){
-    b.addEventListener('click', function(){
-      document.querySelectorAll('.wz-seg button').forEach(function(o){ o.classList.toggle('on', o === b); o.setAttribute('aria-selected', o === b); });
-      document.getElementById('wz-lista').hidden = b.dataset.vista !== 'lista';
-      document.getElementById('wz-mapa').hidden = b.dataset.vista !== 'mapa';
-    });
-  });
-  document.querySelectorAll('.wz-track').forEach(function(t){
-    var gal = t.parentNode, cnt = gal.querySelector('.wz-count'), dots = gal.querySelectorAll('.wz-dots i'), n = +t.dataset.n;
-    t.addEventListener('scroll', function(){
-      var i = Math.round(t.scrollLeft / t.clientWidth);
-      cnt.textContent = (i + 1) + '/' + n;
-      dots.forEach(function(d, j){ d.classList.toggle('on', j === Math.min(i, dots.length - 1)); });
-    }, {passive: true});
-  });
-  var lista = document.getElementById('wz-lista');
-  if (lista) {
-    lista.addEventListener('click', function(e){
-      if (e.target.closest('.wz-share, .wz-kebab, .wz-menu, .wz-ver, .wz-track, a, [data-compartir], [data-copiar]')) return;
-      var btn = e.target.closest('[data-inm-toggle]');
-      if (!btn) return;
-      var item = btn.closest('.wz-item');
-      if (!item) return;
-      var ya = item.classList.contains('on');
-      lista.querySelectorAll('.wz-item.on').forEach(function(it){
-        it.classList.remove('on');
-        var b = it.querySelector('[data-inm-toggle]');
-        var c = it.querySelector('.wz-card');
-        if (b) b.setAttribute('aria-expanded', 'false');
-        if (c) c.hidden = true;
-      });
-      if (!ya) {
-        item.classList.add('on');
-        btn.setAttribute('aria-expanded', 'true');
-        var card = item.querySelector('.wz-card');
-        if (card) card.hidden = false;
-        try { item.scrollIntoView({block: 'nearest'}); } catch (err) {}
-      }
+  var btn = document.getElementById('wz-abrir');
+  if (btn && dlg) {
+    btn.addEventListener('click', function(){ if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open',''); });
+    dlg.addEventListener('click', function(e){
+      if (e.target === dlg || e.target.hasAttribute('data-cerrar')) dlg.close();
+      var x = e.target.closest('[data-limpiar]');
+      if (x){ e.preventDefault(); dlg.querySelectorAll('input[name="' + x.dataset.limpiar + '"]').forEach(function(i){ i.checked = false; }); dlg.querySelector('form').submit(); }
     });
   }
-  var txt = []; try { txt = JSON.parse(document.getElementById('wz-share-txt').textContent || '[]'); } catch (e) {}
-  function aviso(m){ var a = document.createElement('div'); a.textContent = m; a.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;z-index:99;font-size:14px'; document.body.appendChild(a); setTimeout(function(){ a.remove(); }, 1800); }
-  function copiar(t){ if (navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ aviso('Copiado'); }); }
-  document.addEventListener('click', function(e){
-    var k = e.target.closest('.wz-kebab');
-    document.querySelectorAll('.wz-menu').forEach(function(m){ if (!k || m !== k.nextElementSibling) m.hidden = true; });
-    if (k){ var m = k.nextElementSibling; m.hidden = !m.hidden; return; }
-    var c = e.target.closest('[data-copiar]'); if (c){ copiar(c.dataset.copiar); return; }
-    var s = e.target.closest('[data-compartir]');
-    if (s){ var t = txt[+s.dataset.compartir] || ''; if (navigator.share) navigator.share({text: t}).catch(function(){}); else copiar(t); }
-  });
 })();
 </script>
-</body>
-</html>
+{% endblock %}

@@ -7,6 +7,7 @@
 <title>{% block title %}{% endblock %} · For Rent Online</title>
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
+{% block extra_head %}{% endblock %}
 </head>
 <body class="{% if cool_hero %}theme-cool{% endif %}{% if page_class %} {{ page_class }}{% endif %}">
 {% from '_icons.html' import icon %}

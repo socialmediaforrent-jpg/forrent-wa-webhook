@@ -118,7 +118,7 @@ def test_captaciones_agrupadas():
         assert 'Mis Captaciones ›' not in main and 'Captaciones For Rent ›' not in main
         assert not re.search(r'<details class="card mod-group"[^>]*\sopen', main)
         assert re.search(
-            r'<a class="card" href="/mis-captaciones">\s*<h2>Mis Captaciones</h2>\s*</a>',
+            r'<a class="card mod-inv-row" href="/mis-captaciones">\s*<span class="mod-group-sum">\s*<span>\s*<h2>Mis Captaciones</h2>',
             main, re.S), slug
         assert 'Propios, Alianza y Todos' not in main
         inv = _sec_inventario(main)
@@ -133,7 +133,7 @@ def test_captaciones_agrupadas():
         assert re.search(r'<h3>Estadísticas', fr)
         assert 'En preparación' in fr
         assert 'Llega en la etapa 8, solo con datos reales.' in fr
-        mc_card = re.search(r'<a class="card" href="/mis-captaciones">.*?</a>', main, re.S).group(0)
+        mc_card = re.search(r'<a class="card mod-inv-row" href="/mis-captaciones">.*?</a>', main, re.S).group(0)
         assert 'Estadísticas' not in mc_card
         assert '<h3>Inmuebles</h3>' not in inv.split('Captaciones For Rent')[0]
         assert 'href="/mercadeo"' not in main.split('Captaciones For Rent')[0]
@@ -282,8 +282,9 @@ def test_grupos_inventario_compactos():
     bloque = css.split('body.page-modulos .mod-group-sum{', 1)[1].split('}', 1)[0]
     assert 'min-height:28px' in bloque
     assert 'padding:4px 8px' in bloque
-    assert 'body.page-modulos .mod-group{padding:0}' in css
+    assert 'padding:0;min-height:0;border:1px solid #eceef2' in css
     assert 'body.page-modulos .mod-sub{min-height:0;padding:3px 8px' in css
+    assert '.card.mod-inv-row' in css
     assert 'body.page-modulos .mod-sub h3{font-size:12.5px' in css
     pbloq = css.split('body.page-modulos .mod-sub p{', 1)[1].split('}', 1)[0]
     assert 'font-size:10.5px' in pbloq

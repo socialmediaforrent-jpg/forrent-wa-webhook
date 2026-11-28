@@ -695,12 +695,14 @@ body.page-modulos > main{gap:4px;padding:8px 16px calc(8px + var(--bottom) + env
 body.page-modulos .mod-cool-sum{min-height:56px}
 body.page-modulos .mod-cool-img{width:40px;height:40px}
 /* Subgrupos de Inventario (Mis Captaciones / Captaciones For Rent): compactos, para que al abrir quepan con sus hijos. */
-body.page-modulos .mod-cards > .card:not(.mod-group){padding:4px 8px;min-height:28px;justify-content:center}
-body.page-modulos .mod-cards > .card:not(.mod-group) h2{font-size:13px;line-height:1.2}
-body.page-modulos .mod-cards > .card:not(.mod-group) p{margin:1px 0 0;font-size:11px;line-height:1.25}
-body.page-modulos .mod-group{padding:0}
-body.page-modulos .mod-group-sum{padding:4px 8px;min-height:28px;gap:6px}
-body.page-modulos .mod-group-sum h2{font-size:13px;line-height:1.2}
+/* Mis Captaciones (mod-inv-row) y los grupos (mod-group) comparten el mismo alto, padding, borde y letra. */
+body.page-modulos .mod-cards > .card:not(.mod-group):not(.mod-inv-row){padding:4px 8px;min-height:28px;justify-content:center}
+body.page-modulos .mod-cards > .card:not(.mod-group):not(.mod-inv-row) h2{font-size:13px;line-height:1.2}
+body.page-modulos .mod-cards > .card:not(.mod-group):not(.mod-inv-row) p{margin:1px 0 0;font-size:11px;line-height:1.25}
+body.page-modulos .mod-cards > .card.mod-group,
+body.page-modulos .mod-cards > .card.mod-inv-row{padding:0;min-height:0;border:1px solid #eceef2;box-shadow:none;justify-content:flex-start}
+body.page-modulos .mod-group-sum{display:flex;align-items:center;padding:4px 8px;min-height:28px;gap:6px;box-sizing:border-box}
+body.page-modulos .mod-group-sum h2{margin:0;font-size:13px;line-height:1.2;font-weight:700}
 body.page-modulos .mod-group-sum .chev{width:16px;height:16px}
 body.page-modulos .mod-subs{gap:1px;padding:0 4px 4px 8px}
 body.page-modulos .mod-sub{min-height:0;padding:3px 8px;border-radius:8px}

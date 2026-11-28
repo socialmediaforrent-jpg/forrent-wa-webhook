@@ -33,7 +33,7 @@
       </div>
     </details>
     {% elif sct.href %}
-    <a class="card" href="{{ sct.href }}"><h2>{{ sct.label }}</h2>{% if sct.nota %}<p>{{ sct.nota }}</p>{% endif %}</a>
+    <a class="card mod-inv-row" href="{{ sct.href }}"><span class="mod-group-sum"><span><h2>{{ sct.label }}</h2></span></span>{% if sct.nota %}<p>{{ sct.nota }}</p>{% endif %}</a>
     {% else %}
     <div class="card mod-prox" aria-disabled="true"><h2>{{ sct.label }} <span class="pill">En preparación</span></h2>{% if sct.nota %}<p>{{ sct.nota }}</p>{% endif %}</div>
     {% endif %}

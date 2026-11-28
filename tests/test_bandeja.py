@@ -93,9 +93,9 @@ def test_asesora_solo_ve_sus_conversaciones():
 
 def test_responder_deshabilitado_sin_credenciales():
     entrante(CLI_ANA)
-    d = cliente('ana').get('/panel/data?c=' + CLI_ANA).get_json()
+    d = cliente('jose').get('/panel/data?c=' + CLI_ANA).get_json()
     assert d['reply']['puede_enviar'] is False and 'no está activado' in d['reply']['motivo']
-    r = cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'hola', 'csrf': csrf('ana')},
+    r = cliente('jose').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'hola', 'csrf': csrf('jose')},
                             headers={'Accept': 'application/json'})
     assert r.status_code == 409
 
@@ -109,13 +109,13 @@ def test_responder_envia_y_registra(monkeypatch):
         return FakeResp(json.dumps({'messages': [{'id': 'wamid.PRUEBA'}]}).encode())
     monkeypatch.setattr(bandeja.urllib.request, 'urlopen', fake_open)
     entrante(CLI_ANA)
-    r = cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'US$750 al mes', 'csrf': csrf('ana')},
+    r = cliente('jose').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'US$750 al mes', 'csrf': csrf('jose')},
                             headers={'Accept': 'application/json'})
     assert r.status_code == 200 and r.get_json()['ok']
     assert enviados[0]['to'] == CLI_ANA and enviados[0]['text']['body'] == 'US$750 al mes' and enviados[0]['type'] == 'text'
     row = appmod.q("SELECT source, wamid, data FROM wa_events WHERE kind='outbound'", fetch=True)[0]
     datos = row['data'] if isinstance(row['data'], str) else json.dumps(row['data'])  # SQLite: texto; Postgres: JSONB
-    assert row['source'] == 'portal' and row['wamid'] == 'wamid.PRUEBA' and 'ana' in datos
+    assert row['source'] == 'portal' and row['wamid'] == 'wamid.PRUEBA' and 'jose' in datos
     assert 'tok-prueba' not in r.get_data(as_text=True)
 
 
@@ -124,16 +124,14 @@ def test_responder_bloqueos(monkeypatch):
     monkeypatch.setattr(bandeja.urllib.request, 'urlopen', lambda *a, **k: pytest.fail('no debe enviar'))
     entrante(CLI_ANA); entrante(CLI_OTRO)
     h = {'Accept': 'application/json'}
-    # sin CSRF
-    assert cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x'}, headers=h).status_code == 400
-    # conversación de otra asesora
+    # Asesora y líder: 403 aunque llamen el POST directo (con o sin CSRF).
+    assert cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x'}, headers=h).status_code == 403
     assert cliente('ana').post('/panel/responder', data={'c': CLI_OTRO, 'texto': 'x', 'csrf': csrf('ana')}, headers=h).status_code == 403
-    # fuera de 24 h
+    # Presidencia: sin CSRF, fuera de 24 h, o contacto que nunca escribió.
+    assert cliente('jose').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x'}, headers=h).status_code == 400
     appmod.q('DELETE FROM wa_events'); entrante(CLI_ANA, horas_atras=30)
-    assert cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x', 'csrf': csrf('ana')}, headers=h).status_code == 409
-    # contacto que nunca escribió
+    assert cliente('jose').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x', 'csrf': csrf('jose')}, headers=h).status_code == 409
     assert cliente('jose').post('/panel/responder', data={'c': '584129999999', 'texto': 'x', 'csrf': csrf('jose')}, headers=h).status_code == 409
-    # sin sesión
     assert appmod.app.test_client().post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x'}, headers=h).status_code == 401
 
 
@@ -191,7 +189,7 @@ def test_responder_via_ghl_envia_y_registra(monkeypatch):
     import urllib.parse
     monkeypatch.setattr(bandeja.urllib.request, 'urlopen', fake_open)
     entrante(CLI_ANA)
-    r = cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'US$750 al mes', 'csrf': csrf('ana')},
+    r = cliente('jose').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'US$750 al mes', 'csrf': csrf('jose')},
                             headers={'Accept': 'application/json'})
     assert r.status_code == 200 and r.get_json()['ok']
     assert [c[0] for c in llamadas] == ['GET', 'POST']
@@ -199,7 +197,7 @@ def test_responder_via_ghl_envia_y_registra(monkeypatch):
     row = appmod.q("SELECT source, wamid, data FROM wa_events WHERE kind='outbound'", fetch=True)[0]
     datos = row['data'] if isinstance(row['data'], dict) else json.loads(row['data'])
     assert row['source'] == 'portal' and row['wamid'] == 'ghl:msg-ghl-1'
-    assert datos['ghl_message_id'] == 'msg-ghl-1' and datos['por'] == 'ana'
+    assert datos['ghl_message_id'] == 'msg-ghl-1' and datos['por'] == 'jose'
     assert 'tok-ghl-prueba' not in r.get_data(as_text=True)
     assert 'tok-ghl-prueba' not in json.dumps(datos)
 
@@ -215,7 +213,7 @@ def test_responder_ghl_sin_contacto_no_crea_ni_envia(monkeypatch):
 
     monkeypatch.setattr(bandeja.urllib.request, 'urlopen', fake_open)
     entrante(CLI_ANA)
-    r = cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'hola', 'csrf': csrf('ana')},
+    r = cliente('jose').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'hola', 'csrf': csrf('jose')},
                             headers={'Accept': 'application/json'})
     assert r.status_code == 502
     assert 'no tiene un contacto' in r.get_json()['mensaje']
@@ -229,12 +227,34 @@ def test_responder_ghl_respeta_ventana_y_permisos(monkeypatch):
     monkeypatch.setattr(bandeja.urllib.request, 'urlopen', lambda *a, **k: pytest.fail('no debe enviar'))
     entrante(CLI_ANA); entrante(CLI_OTRO)
     h = {'Accept': 'application/json'}
-    assert cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x'}, headers=h).status_code == 400
+    assert cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x'}, headers=h).status_code == 403
     assert cliente('ana').post('/panel/responder', data={'c': CLI_OTRO, 'texto': 'x', 'csrf': csrf('ana')}, headers=h).status_code == 403
+    assert cliente('jose').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x'}, headers=h).status_code == 400
     appmod.q('DELETE FROM wa_events'); entrante(CLI_ANA, horas_atras=30)
-    assert cliente('ana').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x', 'csrf': csrf('ana')}, headers=h).status_code == 409
+    assert cliente('jose').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x', 'csrf': csrf('jose')}, headers=h).status_code == 409
     assert cliente('jose').post('/panel/responder', data={'c': '584129999999', 'texto': 'x', 'csrf': csrf('jose')}, headers=h).status_code == 409
     assert cliente('luz').post('/panel/responder', data={'c': CLI_ANA, 'texto': 'x', 'csrf': csrf('luz')}, headers=h).status_code == 409
+
+
+def test_mensajes_asesor_y_lider_solo_lectura():
+    """Asesor y líder ven el hilo en solo lectura; no hay caja de respuesta ni POST de envío."""
+    entrante(CLI_ANA)
+    h = cliente('ana').get('/panel?c=' + CLI_ANA).get_data(as_text=True)
+    assert 'Solo lectura' in h and 'reply-solo' in h
+    assert 'id="reply-form"' not in h and 'id="reply-text"' not in h
+    assert '>Responder</button>' not in h
+    assert 'placeholder="Escribe una respuesta' not in h
+    d = cliente('ana').get('/panel/data?c=' + CLI_ANA).get_json()
+    assert d['puede_escribir'] is False and d['reply']['puede_enviar'] is False
+    # POST directo: líder (ana) y asesora (herlinda) reciben 403.
+    for slug in ('ana', 'herlinda'):
+        r = cliente(slug).post('/panel/responder', data={'c': CLI_ANA, 'texto': 'hola', 'csrf': csrf(slug)},
+                               headers={'Accept': 'application/json'})
+        assert r.status_code == 403 and r.get_json()['ok'] is False
+    # Presidencia sigue viendo el compositor (aunque aquí no haya credenciales de envío).
+    hj = cliente('jose').get('/panel?c=' + CLI_ANA).get_data(as_text=True)
+    assert 'id="reply-form"' in hj and 'Escribe una respuesta' in hj and '>Responder</button>' in hj
+    assert 'Solo lectura' not in hj or 'id="reply-text"' in hj
 
 
 def test_import_ghl_no_duplica_por_message_id():

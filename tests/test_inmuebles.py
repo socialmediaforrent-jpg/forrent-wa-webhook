@@ -65,18 +65,23 @@ def test_requiere_login():
 
 
 def test_lista_estilo_wasi_y_sin_red():
+    """Captaciones For Rent usa el mismo formato compacto que Mis Captaciones."""
     h = html(cliente('ana').get('/inventario'))
-    assert 'Inmuebles' in h and 'resultados' in h and 'Filtrar' in h
+    assert 'Captaciones For Rent' in h and 'resultados' in h and 'Filtrar' in h
+    assert 'class="inv-row"' in h and 'class="inv-list"' in h
     assert 'Local Comercial En Alquiler' in h and 'Cubículo en El Rosal' in h
     assert 'RED NO DEBE SALIR' not in h
-    assert 'Activo para difusión' in h and 'Destacado' in h and 'Local para Alquiler' in h
-    assert 'En Av. Urdaneta, Caracas, Miranda - Dtto. Capital, Venezuela' in h
-    assert '7.0 m²' in h and '1/2' in h
+    # El detalle largo (dirección, m², galería) vive en la ficha, como en Mis Captaciones.
+    f = html(cliente('ana').get('/inventario/ver?k=' + quote('c:10542820')))
+    assert 'Activo para difusión' in f
+    assert 'En Av. Urdaneta, Caracas, Miranda - Dtto. Capital, Venezuela' in f
+    assert '7.0 m²' in f
 
 
 def test_encargado_solo_presidencia_y_mercadeo():
-    assert 'Encargado del inmueble' not in html(cliente('ana').get('/inventario'))
-    h = html(cliente('jose').get('/inventario'))
+    k = quote('c:10542820')
+    assert 'Encargado del inmueble' not in html(cliente('ana').get('/inventario/ver?k=' + k))
+    h = html(cliente('jose').get('/inventario/ver?k=' + k))
     assert 'Encargado del inmueble' in h
 
 
@@ -103,7 +108,7 @@ def test_sin_enlaces_de_portales_ni_ajenos():
 ])
 def test_filtros(qs, esperados, no):
     h = html(cliente('ana').get('/inventario?' + qs))
-    lista = h.split('id="wz-lista"')[1].split('id="wz-mapa"')[0]
+    lista = h.split('id="inv-lista"')[1].split("<dialog")[0]
     for e in esperados:
         assert e in lista, (qs, e)
     for e in no:
@@ -306,11 +311,11 @@ def test_inventario_sin_variable_no_entra(monkeypatch):
 def test_inventario_ve_inmuebles_con_encargado_y_menu(inv_pw):
     c = cliente('inventario')
     h = html(c.get('/inventario'))
-    assert 'Encargado del inmueble' in h and 'Ana' in h and 'RED NO DEBE SALIR' not in h
-    assert '>Inmuebles<' in h and 'Inventario General' not in h
+    assert 'Captaciones For Rent' in h and 'RED NO DEBE SALIR' not in h
+    assert 'Inventario General' not in h
     assert 'href="/mis-captaciones"' not in h and 'value="mias"' not in h
     d = html(c.get('/inventario/ver?k=' + quote('c:10542820')))
-    assert 'Encargado del inmueble' in d and 'href="/mercadeo"' not in d
+    assert 'Encargado del inmueble' in d and 'Ana' in d and 'href="/mercadeo"' not in d
     r = c.get('/portal')
     assert r.status_code == 200 and 'bienvenido a For Rent Online' in r.get_data(as_text=True)
 
@@ -339,37 +344,36 @@ def test_otros_roles_sin_cambios():
     assert 'Encargado del inmueble' not in html(cliente('ana').get('/inventario'))
     assert cliente('ana').get('/mis-clientes').status_code == 200
     h = html(cliente('jose').get('/inventario'))
-    assert 'Encargado del inmueble' in h and '>Inmuebles<' in h
+    assert 'Captaciones For Rent' in html(cliente('jose').get('/inventario'))
+    k = quote('c:10542820')
+    assert 'Encargado del inmueble' in html(cliente('jose').get('/inventario/ver?k=' + k))
 
 
 def test_lista_compacta_numerada_empieza_cerrada():
     h = html(cliente('ana').get('/inventario'))
-    lista = h.split('id="wz-lista"')[1].split('id="wz-mapa"')[0]
-    assert 'class="wz-list"' in lista
+    lista = h.split('id="inv-lista"')[1].split("<dialog")[0]
+    assert 'class="inv-list"' in lista
     # Tocar la fila abre la ficha directamente (sin panel intermedio).
-    assert 'data-inm-toggle' not in lista
-    assert re.search(r'<a class="wz-sum" href="/inventario/ver\?k=', lista)
-    assert 'data-compartir' in lista
-    cards = re.findall(r'<div class="wz-card"[^>]*>', lista)
-    assert len(cards) == 3 and all('hidden' in c for c in cards)
-    nums = re.findall(r'class="wz-n"[^>]*>(\d+)</span>', lista)
+    assert re.search(r'<a class="inv-row" href="/inventario/ver\?k=', lista)
+    assert 'data-inm-toggle' not in lista or 'data-inm-toggle' not in lista.split('class="inv-row"')[1].split('</a>')[0]
+    nums = re.findall(r'class="inv-n"[^>]*>(\d+)</span>', lista)
     assert nums == ['1', '2', '3'], nums
-    # La fila compacta trae lo esencial; la tarjeta completa sigue en el HTML, oculta.
     assert '10542820' in lista and 'Alquiler' in lista and 'US$ 300' in lista
+    assert 'Código Wasi' in lista or 'Código Rex' in lista or 'Código' in lista
 
 
 def test_numeracion_sigue_filtro_y_orden():
     h = html(cliente('ana').get('/inventario?lista=propias'))
-    lista = h.split('id="wz-lista"')[1].split('id="wz-mapa"')[0]
-    assert re.findall(r'class="wz-n"[^>]*>(\d+)</span>', lista) == ['1', '2']
+    lista = h.split('id="inv-lista"')[1].split("<dialog")[0]
+    assert re.findall(r'class="inv-n"[^>]*>(\d+)</span>', lista) == ['1', '2']
     assert 'Cubículo en El Rosal' not in lista
     h = html(cliente('ana').get('/inventario?orden=mayor'))
-    lista = h.split('id="wz-lista"')[1].split('id="wz-mapa"')[0]
-    assert re.findall(r'class="wz-n"[^>]*>(\d+)</span>', lista) == ['1', '2', '3']
+    lista = h.split('id="inv-lista"')[1].split("<dialog")[0]
+    assert re.findall(r'class="inv-n"[^>]*>(\d+)</span>', lista) == ['1', '2', '3']
     assert lista.index('El Cafetal') < lista.index('El Rosal') < lista.index('Av. Urdaneta 7')
     # El 1 es el primero del orden aplicado (mayor precio).
-    first = re.search(r'class="wz-item".*?</li>', lista, re.S).group(0)
-    assert 'class="wz-n"' in first and '>1</span>' in first and 'El Cafetal' in first
+    first = re.search(r'class="inv-item".*?</li>', lista, re.S).group(0)
+    assert 'class="inv-n"' in first and '>1</span>' in first and 'El Cafetal' in first
 
 
 def test_mis_captaciones_lista_numerada_cerrada():
@@ -532,10 +536,24 @@ def test_codigo_wasi_o_rex():
     assert appmod.cod_lbl({'codigo': 'no-existe-999'}) == 'Código'
     import os
     raiz = os.path.dirname(os.path.dirname(__file__))
-    for t in ('inmueble.html', 'inmueble_pdf.html', '_cap_table.html', 'inventario.html'):
+    for t in ('inmueble.html', 'inmueble_pdf.html', '_cap_table.html'):
         assert 'cod_lbl(' in open(os.path.join(raiz, 'templates', t), encoding='utf-8').read(), t
 
 
 def test_ficha_precio_arriba_de_las_barras():
     f = html(cliente('ana').get('/inventario/ver?k=' + quote('c:10542820')))
     assert f.index('class="wz-pband"') < f.index('class="wz-detalles"') < f.index('wz-portales') < f.index('wz-redes')
+
+
+
+def test_captaciones_equipo_mismo_formato():
+    """Captaciones de mi Equipo reutiliza la misma lista compacta de Mis Captaciones."""
+    import app as appmod, portal_lib
+    ana = portal_lib.user_by_username('ana')
+    equipo = appmod._equipo_de(ana) or []
+    assert equipo
+    s = equipo[0]['user']
+    h = html(cliente('ana').get(f'/mis-captaciones/equipo/{s}'))
+    assert 'class="inv-list"' in h or 'Sin captaciones' in h or 'No hay captaciones' in h
+    if 'class="inv-list"' in h:
+        assert 'class="inv-row"' in h

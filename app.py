@@ -1910,6 +1910,11 @@ def _contacto_ghl_de(wa_id):
     return ''
 
 
+def _puede_escribir_mensajes(user):
+    """Solo presidencia/admin puede responder en Mensajes. Asesor y líder ven el hilo en solo lectura."""
+    return bool(user) and user.get('role') == 'admin'
+
+
 def _panel_payload(user, wa_id, *, marcar=False, social_cache=False):
     current = wa_id or ''
     social = _es_social(current)
@@ -1942,13 +1947,20 @@ def _panel_payload(user, wa_id, *, marcar=False, social_cache=False):
         reply = bandeja.estado_respuesta(canal, _ultimo_entrante(current)) if current else None
     if reply and reply.get('vence'):
         reply['vence_txt'] = _fmt_time(reply['vence'])
+    puede_escribir = _puede_escribir_mensajes(user)
+    if reply and not puede_escribir:
+        reply = dict(reply)
+        reply['puede_enviar'] = False
+        reply['motivo'] = 'Solo lectura'
+        reply['solo_lectura_rol'] = True
     return {
         'conversations': convos,
         'current': current,
         'messages': msgs,
         'thread_name': name,
         'thread_phone': phone,
-        'solo_lectura': not (reply and reply.get('puede_enviar')),
+        'solo_lectura': (not puede_escribir) or not (reply and reply.get('puede_enviar')),
+        'puede_escribir': puede_escribir,
         'reply': reply,
         'es_admin': user.get('role') == 'admin',
         'csrf': portal_lib.csrf_token(user),
@@ -2039,6 +2051,8 @@ def panel_responder():
         destino = '/panel?c=' + quote(wa, safe='') + ('&env=1' if ok else '&err=' + quote(msg, safe=''))
         return redirect(destino if wa else '/panel')
 
+    if not _puede_escribir_mensajes(g.user):
+        return resp(False, 'Solo lectura.', 403)
     if not portal_lib.csrf_ok(g.user, f.get('csrf') or request.headers.get('X-CSRF-Token')):
         return resp(False, 'La sesión expiró. Recarga la página.', 400)
     if not wa:
