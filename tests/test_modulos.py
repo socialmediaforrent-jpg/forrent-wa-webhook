@@ -255,8 +255,11 @@ def test_grupos_inventario_compactos():
     import os
     css = open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static/app.css'), encoding='utf-8').read()
     bloque = css.split('body.page-modulos .mod-group-sum{', 1)[1].split('}', 1)[0]
-    assert 'min-height:32px' in bloque
-    assert 'padding:6px 10px' in bloque
-    assert 'body.page-modulos .mod-sub{min-height:0;padding:5px 8px' in css
+    assert 'min-height:28px' in bloque
+    assert 'padding:4px 8px' in bloque
+    assert 'body.page-modulos .mod-group{padding:0}' in css
+    assert 'body.page-modulos .mod-sub{min-height:0;padding:3px 8px' in css
     assert 'body.page-modulos .mod-sub h3{font-size:12.5px' in css
-    assert 'body.page-modulos .mod-sub p{' in css and 'font-size:11px' in css.split('body.page-modulos .mod-sub p{', 1)[1].split('}', 1)[0]
+    pbloq = css.split('body.page-modulos .mod-sub p{', 1)[1].split('}', 1)[0]
+    assert 'font-size:10.5px' in pbloq
+    assert '-webkit-line-clamp:1' in pbloq
