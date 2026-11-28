@@ -403,3 +403,33 @@ def test_clientes_de_mi_equipo():
     otros = [a['user'] for a in portal_lib.asesores_meta() if a['user'] not in {m['user'] for m in equipo} | {'ana'}]
     if otros:
         assert cliente('ana').get(f'/mis-clientes/equipo/{otros[0]}').status_code in (403, 404)
+
+
+
+def test_operaciones_sin_visitas():
+    """Operaciones es de oferta en adelante: sin Visitas ni Agenda; la ruta /visitas sigue."""
+    import portal_lib
+    h = cliente('ana').get('/modulos').get_data(as_text=True)
+    assert 'Ofertas, reservas y cierres.' in h
+    assert 'Visitas, ofertas, reservas, cierres y la agenda del día a día' not in h
+    # Submenú de Operaciones: no lista Visitas ni Agenda; sí Ofertas, Reservas y Cierres.
+    # Extrae solo la tarjeta 3. Operaciones para no confundir con el embudo de Clientes.
+    m = re.search(r'3\. Operaciones.*?(?=4\. Comisiones|$)', h, re.S)
+    assert m, 'no aparece la tarjeta Operaciones'
+    ops = m.group(0)
+    assert '>Visitas<' not in ops and 'href="/visitas"' not in ops
+    assert '>Agenda<' not in ops
+    assert 'Ofertas' in ops and 'Reservas' in ops and 'Mis Cierres' in ops
+    # El código de visitas no se borra: la pantalla sigue respondiendo.
+    r = cliente('ana').get('/visitas')
+    assert r.status_code == 200
+    assert 'Visitas' in r.get_data(as_text=True)
+    # En Clientes, el embudo En Proceso sigue mostrando Agendado/Visitado.
+    hc = cliente('ana').get('/mis-clientes').get_data(as_text=True)
+    assert 'Agendado' in hc and 'En Proceso' in hc
+    # No reaparece en Más.
+    nav = _bottomnav(h)
+    assert 'href="/visitas"' not in nav
+    # El conteo de visitas programadas no se muestra en el bloque Operaciones de Inicio.
+    inicio = cliente('ana').get('/portal').get_data(as_text=True)
+    assert 'Visitas programadas' not in inicio

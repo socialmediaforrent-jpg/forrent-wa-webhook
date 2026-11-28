@@ -930,8 +930,8 @@ def _portal_nav():
     more = [{'href': '/mis-clientes', 'label': 'Mis Clientes', 'key': 'clientes', 'icon': 'users'}]
     if role == 'admin':
         more.append({'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'})
-    else:
-        more.append({'href': '/visitas', 'label': 'Visitas', 'key': 'visitas', 'icon': 'calendar'})
+    # Visitas ya no está en Operaciones (José, 27-nov 11:08 PM); vive en Clientes / embudo En Proceso.
+    # La ruta /visitas sigue; no la listamos en Más para que no reaparezca al ocultarla del módulo.
     more.append({'href': '/mis-captaciones/agregar', 'label': 'Agregar captación', 'key': 'carga', 'icon': 'key'})
     if role == 'admin':
         more.append({'href': '/inventario/cola', 'label': 'Por revisar (carga)', 'key': 'carga_cola', 'icon': 'clipboard'})
@@ -1152,12 +1152,13 @@ def _modulos_para(user_or_role):
     cli += [s('Seguimiento', None, 'Llega en la etapa 6.'),
             s('Estadísticas de Clientes', None, 'Llega en la etapa 3.')]
 
-    ops = [s('Visitas', '/visitas'),
-           s('Ofertas', '/ofertas'),
+    # Visitas (y la Agenda, que hoy solo cubriría visitas) se ocultan de Operaciones:
+    # Operaciones es de oferta en adelante (José, 27-nov 11:08 PM). La ruta /visitas y su
+    # código siguen; las visitas se ven en Clientes, embudo En Proceso.
+    ops = [s('Ofertas', '/ofertas'),
            s('Reservas', None, 'Llega en la etapa 4.'),
            s('Mis Cierres', None, 'Llega en la etapa 4.'),
            s('Mis Entregas', None, 'Llega en la etapa 4.'),
-           s('Agenda', None, 'Llega en la etapa 4.'),
            s('Actividades For Rent', '/admin/actividades' if admin else '/actividades')]
 
     com = [s('Mis Comisiones', '/cierres', 'Por ahora es la pantalla de Cierres; se ordena en la etapa 5.'),
@@ -1178,7 +1179,7 @@ def _modulos_para(user_or_role):
          'descripcion': 'Tu embudo comercial y el seguimiento de cada cliente.',
          'secciones': cli},
         {'n': 3, 'key': 'operaciones', 'titulo': 'Operaciones', 'icon': 'calendar',
-         'descripcion': 'Visitas, ofertas, reservas, cierres y la agenda del día a día.',
+         'descripcion': 'Ofertas, reservas y cierres.',
          'secciones': ops},
         {'n': 4, 'key': 'comisiones', 'titulo': 'Comisiones', 'icon': 'cash',
          'descripcion': 'Consulta tus comisiones y el estado de tus cierres.',
@@ -2749,7 +2750,7 @@ def _dashboard(user):
 
     nuevos = sum(1 for c in asig if es_hoy(c.get('asignado_at') or '')) + sum(1 for r in propios if es_hoy(r.get('created_at') or ''))
     est = [c.get('estatus') for c in asig] + [r.get('status') for r in propios]
-    visitas = sum(1 for s in est if s == 'Visita agendada')
+    visitas = sum(1 for s in est if s == 'Visita agendada')  # sigue calculado; el KPI se ocultó de Operaciones
     reservas = sum(1 for s in est if s in ('Reserva agendada', 'Reserva firmada'))
     mes = hoy.strftime('%Y-%m')
     cierres_mes = sum(1 for c in cierres if (c.get('fecha') or '').startswith(mes))
@@ -2798,7 +2799,7 @@ def _dashboard(user):
             _kpi('Nuevas incorporadas', None, f'Sin dato todavía · inventario del {f_inv}'),
         ]),
         ('Operaciones', 'calendar', [
-            _kpi('Visitas programadas', visitas, f'Estatus «Visita agendada» · actualizado {f_asig}'),
+            # Visitas programadas se oculta: Operaciones es de oferta en adelante (José, 27-nov 11:08 PM).
             _kpi('Negociaciones activas', None, vacio),
             _kpi('Reservas', reservas, f'Reserva agendada o firmada · actualizado {f_asig}'),
             _kpi('Cierres del mes', cierres_mes, f'{MESES[hoy.month - 1].capitalize()} · cierres actualizados {f_ci}',
