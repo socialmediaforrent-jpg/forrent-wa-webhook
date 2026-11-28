@@ -2258,6 +2258,28 @@ _FOTO_HOSTS = (
     'image.wasi.co', 'images.wasi.co',
     'http2.mlstatic.com', 'mlstatic.com',
 )
+# Fotos oficiales de inmuebles Rex (u otra fuente) que no traen URL de Wasi/ML.
+# Se sirven desde este portal; el HTML no apunta a rexup.net.
+_INV_FOTOS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'inv-fotos')
+_CODIGO_FOTO = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,40}$')
+
+
+def _fotos_estaticas(codigo):
+    """Galería local por código, para captaciones/inventario que llegaron sin URL de foto."""
+    code = str(codigo or '').strip()
+    if not _CODIGO_FOTO.match(code):
+        return []
+    root = os.path.join(_INV_FOTOS_DIR, code)
+    if not os.path.isdir(root):
+        return []
+    out = []
+    for name in sorted(os.listdir(root)):
+        low = name.lower()
+        if name.startswith('.') or not low.endswith(('.jpg', '.jpeg', '.png', '.webp')):
+            continue
+        url = static_v(f'inv-fotos/{code}/{name}')
+        out.append({'full': url, 'thumb': url})
+    return out
 
 
 def _foto_ok(url):
@@ -2295,9 +2317,11 @@ def _fotos_indice(data=None):
     for g in ('propio', 'alianza'):
         for it in (data.get('grupos') or {}).get(g) or []:
             fotos = _fotos_limpias(it.get('fotos'))
+            code = str(it.get('codigo') or '').strip()
+            if not fotos:
+                fotos = _fotos_estaticas(code)
             if not fotos:
                 continue
-            code = str(it.get('codigo') or '').strip()
             if code and code != '—':
                 by_code[code] = fotos
             key = (
@@ -2323,6 +2347,8 @@ def _ficha_publica(it, *, fotos_code=None, fotos_key=None):
                 (it.get('precio') or '').strip().lower(),
             )
             fotos = list(fotos_key.get(key) or [])
+    if not fotos and code and code != '—':
+        fotos = _fotos_estaticas(code)
     return {
         'titulo': it.get('titulo') or '',
         'operacion': it.get('operacion') or '',

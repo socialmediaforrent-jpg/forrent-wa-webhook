@@ -122,6 +122,52 @@ def test_ficha_detalle():
     assert 'Encargado del inmueble' in html(cliente('jose').get('/inventario/ver?k=' + quote('c:10542820')))
 
 
+def test_ficha_detalles_plegable():
+    """La cuadrícula de datos va en una barra «Detalles» cerrada; título, ubicación y precio siguen visibles."""
+    h = html(cliente('ana').get('/inventario/ver?k=' + quote('c:10542820')))
+    m = re.search(r'<details class="wz-detalles"(?P<attrs>[^>]*)>(?P<body>.*?)</details>', h, re.S)
+    assert m, 'falta la barra Detalles'
+    assert 'open' not in (m.group('attrs') or '')
+    assert '>Detalles' in m.group(0) and 'class="ch"' in m.group(0)
+    for lbl in ('Estado físico', 'Año construcción', 'Área privada', 'Área construida',
+                'Área terreno', 'Alcobas', 'Baños', 'Pisos', 'Estacionamiento', 'Código'):
+        assert lbl in m.group('body'), lbl
+    fuera = h[:m.start()] + h[m.end():]
+    assert 'wz-tn' in fuera and 'wz-loc' in fuera and 'wz-pband' in fuera
+    # El título de esta ficha y el precio quedan fuera de la barra.
+    assert 'Local Comercial En Alquiler' in fuera
+    assert 'US$ 300' in fuera
+    assert 'Estado físico' not in fuera
+
+
+# JPEG mínimo (1×1) para no depender de archivos grandes en el test.
+_JPEG_1 = (b'\xff\xd8\xff\xdb\x00C\x00' + b'\x03' * 64 +
+           b'\xff\xc0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00'
+           b'\xff\xc4\x00\x14\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x03'
+           b'\xff\xc4\x00\x14\x10\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+           b'\xff\xda\x00\x08\x01\x01\x00\x00?\x00\x37\xff\xd9')
+
+
+def test_fotos_locales_si_el_inventario_no_trae_url(tmp_path, monkeypatch):
+    """Inmuebles Rex (u otra fuente) sin URL de Wasi/ML usan la galería local por código."""
+    d = tmp_path / '20545795'
+    d.mkdir()
+    (d / '01.jpg').write_bytes(_JPEG_1)
+    monkeypatch.setattr(appmod, '_INV_FOTOS_DIR', str(tmp_path))
+    it = {'titulo': 'Apartamento en La Bonita (Guaicay)', 'operacion': 'Venta', 'tipo': 'Apartamento',
+          'zona': 'La Bonita (Guaicay)', 'precio': 'US$ 126.000', 'codigo': '20545795',
+          'origen': 'propio', 'fotos': []}
+    f = appmod._ficha_publica(it)
+    assert f['fotos'] and '/static/inv-fotos/20545795/01.jpg' in f['fotos'][0]['full']
+    # Si ya hay foto de Wasi, no se sustituye.
+    it['fotos'] = [FOTO]
+    f2 = appmod._ficha_publica(it)
+    assert f2['fotos'][0]['full'] == FOTO['full']
+    # No se inventa una ruta fuera del código.
+    assert appmod._fotos_estaticas('../etc') == []
+    assert appmod._fotos_estaticas('') == []
+
+
 def test_ficha_inexistente_y_red_404():
     assert cliente('ana').get('/inventario/ver?k=nada').status_code == 404
     assert cliente('ana').get('/inventario/ver?k=' + quote('c:999')).status_code == 404
