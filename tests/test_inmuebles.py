@@ -534,3 +534,8 @@ def test_codigo_wasi_o_rex():
     raiz = os.path.dirname(os.path.dirname(__file__))
     for t in ('inmueble.html', 'inmueble_pdf.html', '_cap_table.html', 'inventario.html'):
         assert 'cod_lbl(' in open(os.path.join(raiz, 'templates', t), encoding='utf-8').read(), t
+
+
+def test_ficha_precio_arriba_de_las_barras():
+    f = html(cliente('ana').get('/inventario/ver?k=' + quote('c:10542820')))
+    assert f.index('class="wz-pband"') < f.index('class="wz-detalles"') < f.index('wz-portales') < f.index('wz-redes')
