@@ -60,13 +60,16 @@
   </div>
 
   <div class="wz-sec">
-    <div class="wz-tiles">
-      {{ tile('Estado físico', f.estado_fisico) }}{{ tile('Año construcción', f.anio) }}
-      {{ tile('Área privada', ('%.1f'|format(f.area_privada)) if f.area_privada else '', ' m²') }}{{ tile('Área construida', ('%.1f'|format(f.m2)) if f.m2 else '', ' m²') }}
-      {{ tile('Área terreno', ('%.1f'|format(f.area_total)) if f.area_total else '', ' m²') }}{{ tile('Alcobas', f.habitaciones) }}
-      {{ tile('Baños', f.banos) }}{{ tile('Pisos', f.piso) }}
-      {{ tile('Estacionamiento', f.garajes) }}{{ tile('Código', f.codigo) }}
-    </div>
+    <details class="wz-detalles">
+      <summary>Detalles <span class="ch" aria-hidden="true">›</span></summary>
+      <div class="wz-tiles">
+        {{ tile('Estado físico', f.estado_fisico) }}{{ tile('Año construcción', f.anio) }}
+        {{ tile('Área privada', ('%.1f'|format(f.area_privada)) if f.area_privada else '', ' m²') }}{{ tile('Área construida', ('%.1f'|format(f.m2)) if f.m2 else '', ' m²') }}
+        {{ tile('Área terreno', ('%.1f'|format(f.area_total)) if f.area_total else '', ' m²') }}{{ tile('Alcobas', f.habitaciones) }}
+        {{ tile('Baños', f.banos) }}{{ tile('Pisos', f.piso) }}
+        {{ tile('Estacionamiento', f.garajes) }}{{ tile('Código', f.codigo) }}
+      </div>
+    </details>
   </div>
 
   <div class="wz-pband"><span>Precio {{ f.operacion }}</span><b>{{ f.precio or 'Sin dato' }}{% if f.precio and f.operacion == 'Alquiler' %} <small style="font-size:12px">Mensual</small>{% endif %}</b></div>
