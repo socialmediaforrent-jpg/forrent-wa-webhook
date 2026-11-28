@@ -109,7 +109,7 @@ def test_modulos_salen_contraidos():
 
 
 def test_captaciones_agrupadas():
-    """Inventario: Mis Captaciones y Captaciones For Rent, cada una con Inmuebles, Mercadeo y Estadísticas."""
+    """Inventario: Mis Captaciones abre directo a Inmuebles; Captaciones For Rent sigue agrupada."""
     for slug in ('jose', 'ana'):
         h = cliente(slug).get('/modulos').get_data(as_text=True)
         main = re.search(r'<main.*?</main>', h, re.S).group(0)
@@ -117,23 +117,31 @@ def test_captaciones_agrupadas():
         assert main.count('Captaciones For Rent') == 1, slug
         assert 'Mis Captaciones ›' not in main and 'Captaciones For Rent ›' not in main
         assert not re.search(r'<details class="card mod-group"[^>]*\sopen', main)
+        # Mis Captaciones ya no es un desplegable: es una tarjeta que va a /mis-captaciones.
+        assert re.search(
+            r'<a class="card" href="/mis-captaciones">\s*<h2>Mis Captaciones</h2>\s*<p>Propios, Alianza y Todos\.</p>',
+            main, re.S), slug
+        assert re.search(
+            r'<a class="card" href="/mercadeo">\s*<h2>Mercadeo</h2>\s*<p>Tus enlaces en los 10 portales y las 6 redes\.</p>',
+            main, re.S), slug
+        # No queda el submenú Inmuebles ni Estadísticas dentro de Mis Captaciones.
+        inv = re.search(r'<details class="sec mod" id="mod-inventario">.*?</details>', main, re.S).group(0)
+        # El único desplegable de Inventario es Captaciones For Rent (sigue con Inmuebles, Mercadeo y Estadísticas).
         grupos = re.findall(
             r'<details class="card mod-group">\s*<summary class="mod-group-sum">\s*<span>\s*<h2>([^<]+)</h2>(.*?)</details>',
-            main, re.S)
+            inv, re.S)
         labels = [g[0] for g in grupos]
-        assert labels[:2] == ['Mis Captaciones', 'Captaciones For Rent'], (slug, labels)
-        assert 'Mercadeo' not in labels
-        for titulo, cuerpo in grupos[:2]:
-            assert re.search(r'<h3>Inmuebles</h3>', cuerpo), titulo
-            assert re.search(r'<h3>Mercadeo', cuerpo), titulo
-            assert re.search(r'<h3>Estadísticas', cuerpo), titulo
-            assert 'En preparación' in cuerpo
-            assert 'Llega en la etapa 8, solo con datos reales.' in cuerpo
-        mc = grupos[0][1]
-        assert 'href="/mis-captaciones"' in mc and 'href="/mercadeo"' in mc
-        assert 'href="/mercadeo/forrent"' not in mc
-        assert 'Propios, Alianza y Todos.' in mc
-        fr = grupos[1][1]
+        assert labels == ['Captaciones For Rent'], (slug, labels)
+        fr = grupos[0][1]
+        assert re.search(r'<h3>Inmuebles</h3>', fr)
+        assert re.search(r'<h3>Mercadeo', fr)
+        assert re.search(r'<h3>Estadísticas', fr)
+        assert 'En preparación' in fr
+        assert 'Llega en la etapa 8, solo con datos reales.' in fr
+        # Estadísticas de etapa 8 no aparece bajo Mis Captaciones (solo en Captaciones For Rent).
+        mc_card = re.search(r'<a class="card" href="/mis-captaciones">.*?</a>', main, re.S).group(0)
+        assert 'Estadísticas' not in mc_card
+        assert '<h3>Inmuebles</h3>' not in inv.split('Captaciones For Rent')[0]
         assert 'href="/inventario"' in fr
         if slug == 'ana':
             assert 'En preparación' in fr and not re.search(r'href="/mercadeo', fr)
@@ -197,7 +205,7 @@ def test_boton_atras():
 
 
 def test_cargar_inmueble_en_mis_captaciones():
-    """La carga se abre desde Mis Captaciones › Inmuebles, no como entrada suelta en Módulos."""
+    """La carga se abre desde Mis Captaciones, no como entrada suelta en Módulos."""
     for slug in ('jose', 'ana'):
         h = cliente(slug).get('/mis-captaciones').get_data(as_text=True)
         m = re.search(r'<a class="btn-carga" href="([^"]+)">([^<]+)</a>', h)
