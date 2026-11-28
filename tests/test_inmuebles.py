@@ -511,3 +511,9 @@ def test_ficha_pdf_y_sin_correo():
     assert '+58 424-2294196' in p
     assert 'window.print' not in p
     assert 'window.print' in html(cliente('ana').get('/inventario/ver/pdf?auto=1&k=' + quote(key)))
+
+
+def test_ficha_pestanas_clientes_ocultas():
+    """Detalles / Clientes enlazados / Clientes potenciales siguen en el código pero ocultas."""
+    h = html(cliente('ana').get('/inventario/ver?k=' + quote('c:10542820')))
+    assert '<div class="wz-tabs" role="tablist" hidden>' in h
