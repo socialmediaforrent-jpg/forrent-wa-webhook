@@ -16,12 +16,14 @@
 {% set cool_hero=true %}
 {% include '_top.html' %}
 <main>
-  {% set cool_title='Mis Clientes' %}
-  {% set cool_sub='Embudo comercial de tus asignaciones' %}
+  {% set cli_base = cli_base or '/mis-clientes' %}
+  {% set cool_title = cli_titulo or 'Mis Clientes' %}
+  {% set cool_sub = 'Solo lectura: embudo y estatus del Sistema de Clientes' if solo_lectura else 'Embudo comercial de tus asignaciones' %}
   {% set cool_info=true %}
   {% set cool_agregar=true %}
   {% include '_hero.html' %}
   <div class="cool-sheet wrap-page wrap-asig">
+  {% if solo_lectura %}<p class="lead" style="margin:0 0 6px"><a class="btn-sec" href="/mis-clientes/equipo">‹ Atrás a Clientes de Mi Equipo</a></p>{% if not n_clientes %}<div class="empty">Sin clientes asignados</div>{% endif %}{% endif %}
   <div id="cli-info" class="asig-info-pop" popover>
     Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí. Nuevas Asignaciones son las de hace menos de 24 horas, contadas desde la fecha y hora de asignación, que todavía no tienen avance. Clientes sin estatus son las que ya cumplen 24 horas (o no tienen fecha) y siguen sin avance. Un avance es un estatus real: Contactado, Buscando, Esperando, Agendado, etc. ASIGNADO, No contactado o el campo vacío no cuentan como avance. También aparecen tus clientes propios. Toca una baldosa para ver su lista; tócala otra vez para volver a todas. {{ n_clientes }} en total. Actualizado: {{ cli_fecha }}.
   </div>
@@ -51,14 +53,14 @@
   </details>
   {% endif %}
   {# Sin los 4 cuadros de colores de arriba (José, 27-nov 10:50 PM); el código sigue, oculto. #}
-  {{ embudo_tiles(embudo, tile, '/mis-clientes', ver_kpis=false) }}
+  {{ embudo_tiles(embudo, tile, cli_base, ver_kpis=false) }}
   {% for f in embudo.fases %}
   {% if f.id == 'otros' and f.n_total == 0 %}
   {% else %}
   {% for t in f.tiles %}
   <section class="dash-sec embudo-lista" id="lista-{{ t.id }}" data-embudo-lista="{{ t.id }}" data-n="{{ t.n }}" {% if not tile or tile.id != t.id %}hidden{% endif %}>
     <h2>{{ t.label }} <span class="muted">({{ t.n }})</span></h2>
-    <p class="lead" style="margin-bottom:10px"><a href="/mis-clientes" data-embudo-volver>Volver</a></p>
+    <p class="lead" style="margin-bottom:10px"><a href="{{ cli_base }}" data-embudo-volver>Volver</a></p>
     {{ cli_table(t.clientes, csrf, estatus_opciones, 'No hay clientes en este estatus.', mostrar_asesor=mostrar_asesor, sid='cli-' ~ t.id, volver=volver_ficha, motivos=motivos, modo_prueba=modo_prueba) }}
   </section>
   {% endfor %}
@@ -105,7 +107,8 @@
       s.hidden = !match;
       if (match) shown = s;
     });
-    var url = id ? ("/mis-clientes?e=" + encodeURIComponent(id)) : "/mis-clientes";
+    var base = {{ cli_base|tojson }};
+    var url = id ? (base + "?e=" + encodeURIComponent(id)) : base;
     if (history.replaceState) history.replaceState(null, "", url);
     if (shown) shown.scrollIntoView({block: "start"});
   }

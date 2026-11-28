@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% set nav='clientes' %}
+{% block title %}Clientes de Mi Equipo{% endblock %}
+{% block body %}
+<h1 class="page">Clientes de Mi Equipo</h1>
+<p class="lead">Toca un asesor para ver sus clientes, con el mismo embudo y estatus del Sistema de Clientes. Solo lectura.</p>
+{% if not filas %}
+<div class="empty">No hay asesores en tu equipo.</div>
+{% else %}
+<div class="cards">
+  {% for a in filas %}
+  <a class="card" href="/mis-clientes/equipo/{{ a.user }}">
+    <h2>{{ a.name }}</h2>
+    <p>{% if a.n_cli %}{{ a.n_cli }} cliente{{ '' if a.n_cli == 1 else 's' }}{% else %}Sin clientes asignados{% endif %}</p>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

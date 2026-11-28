@@ -959,7 +959,8 @@ def _portal_nav():
     else:
         more.append({'href': '/actividades', 'label': 'Actividades', 'key': 'actividades', 'icon': 'calendar'})
     if role in ('admin', 'lider'):
-        more.append({'href': '/clientes-propios', 'label': 'Clientes propios' if role == 'admin' else 'Clientes del equipo',
+        more.append({'href': '/clientes-propios' if role == 'admin' else '/mis-clientes/equipo',
+                     'label': 'Clientes propios' if role == 'admin' else 'Clientes de Mi Equipo',
                      'key': 'propios_more', 'icon': 'users'})
     # Solo el administrador real lo ve; en modo «ver como» el rol aparente ya no es admin.
     if role == 'admin' and not getattr(g, 'view_as', None):
@@ -1004,6 +1005,10 @@ def _atras_fallback(path, role):
         return '/mis-captaciones'
     if path.startswith('/mis-captaciones/equipo/'):
         return '/mis-captaciones/equipo'
+    if path.startswith('/mis-clientes/equipo/'):
+        return '/mis-clientes/equipo'
+    if path == '/mis-clientes/equipo':
+        return '/modulos'
     if path == '/mis-captaciones/equipo':
         return '/modulos'
     if path.startswith('/mi-equipo/'):
@@ -1143,7 +1148,7 @@ def _modulos_para(user_or_role):
 
     cli = [s('Mis Clientes', '/mis-clientes', 'Embudo y listas por fase de tus clientes.')]
     if admin or lider:
-        cli.append(s('Clientes propios' if admin else 'Clientes del equipo', '/clientes-propios'))
+        cli.append(s('Clientes propios', '/clientes-propios') if admin else s('Clientes de Mi Equipo', '/mis-clientes/equipo'))
     cli += [s('Seguimiento', None, 'Llega en la etapa 6.'),
             s('Estadísticas de Clientes', None, 'Llega en la etapa 3.')]
 
@@ -2640,11 +2645,17 @@ def _render_asesor(user, flash_ok='', flash_err='', form=None):
     ))
 
 
-def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200):
-    """Mis Clientes: embudo con baldosas arriba y listas por fase. Reemplaza a Mis Asignaciones."""
+def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200, *, de=None):
+    """Mis Clientes: embudo con baldosas arriba y listas por fase. Reemplaza a Mis Asignaciones.
+    Con ``de`` (asesor del equipo) se muestra en solo lectura: mismo embudo y estatus, sin editar ni agregar."""
     clientes_sync.maybe_refresh(q, is_pg=IS_PG, invalidate=lambda: _live_cache.__setitem__('t', 0.0))
-    clientes, cli_fecha = _asesor_clientes(user)
+    clientes, cli_fecha = _asesor_clientes(de or user)
     _fichas_clientes(clientes)
+    if de:
+        for c in clientes:
+            c['editable'] = False
+            c['puede_situacion'] = False
+    base = f"/mis-clientes/equipo/{de['user']}" if de else '/mis-clientes'
     embudo = portal_lib.resumen_asignaciones(clientes)
     fases = dict(_fases_de(clientes))
     fases['grupos'] = portal_lib.grupos_lista_clientes(clientes)
@@ -2655,11 +2666,13 @@ def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200):
         clientes=clientes, n_clientes=len(clientes), fases=fases, embudo=embudo, tile=tile,
         cli_fecha=portal_lib.fmt_fecha_hora(cli_fecha) if cli_fecha else 'fecha no disponible',
         estatus_opciones=portal_lib.ESTATUS_OPCIONES,
-        csrf=portal_lib.csrf_token(user), puede_agregar=user['role'] != 'admin',
+        csrf='' if de else portal_lib.csrf_token(user), puede_agregar=(not de) and user['role'] != 'admin',
+        cli_base=base, cli_titulo=('Clientes de ' + de['name']) if de else 'Mis Clientes', solo_lectura=bool(de),
+        **({'back_fallback': '/mis-clientes/equipo'} if de else {}),
         mostrar_asesor=user.get('role') == 'admin',
         flash_ok=flash_ok, flash_err=flash_err, form=form or {},
         sit_modelo=estatus_modelo.opciones_js(), motivos=estatus_modelo.MOTIVOS,
-        volver_ficha='/mis-clientes' + (f'?e={quote(tile_id)}' if tile else ''),
+        volver_ficha=base + (f'?e={quote(tile_id)}' if tile else ''),
         abrir=(request.args.get('abrir') or '').strip(),
         modo_prueba=not clientes_sync.escritura_habilitada(),
     ))
@@ -3207,6 +3220,34 @@ def mis_clientes():
     ok = request.args.get('ok')
     flash_ok = 'Cliente guardado.' if ok == '1' else ('Estatus actualizado.' if ok == 'estatus' else _FICHA_OK.get(ok or '', ''))
     return _render_clientes(g.user, flash_ok=flash_ok, flash_err=(request.args.get('err') or '')[:200])
+
+
+@app.get('/mis-clientes/equipo')
+@require_login
+def clientes_de_mi_equipo():
+    """Clientes de Mi Equipo: nombres de los asesores del equipo real del usuario (líder: su equipo)."""
+    equipo = _equipo_de(g.user)
+    if not equipo:
+        return _forbidden()
+    asig_all, _, _ = portal_lib.load_asignados(slugs=[x['user'] for x in equipo])
+    filas = []
+    for x in equipo:
+        s = x['user']
+        filas.append({'user': s, 'name': x.get('name') or s,
+                      'n_cli': sum(1 for c in asig_all if c.get('asesor') == s) + len(_db_propios([s]))})
+    return _panel_headers(render_template('clientes_equipo.html', filas=filas))
+
+
+@app.get('/mis-clientes/equipo/<slug>')
+@require_login
+def clientes_de_asesor_equipo(slug):
+    """Clientes de un asesor del equipo, en solo lectura (mismo embudo y estatus del Sistema de Clientes)."""
+    slug = (slug or '').strip().lower()
+    equipo = _equipo_de(g.user) or []
+    m = next((x for x in equipo if x['user'] == slug), None)
+    if not m:
+        return _forbidden()
+    return _render_clientes(g.user, de={'user': slug, 'name': m.get('name') or slug})
 
 
 def _equipo_de(user):

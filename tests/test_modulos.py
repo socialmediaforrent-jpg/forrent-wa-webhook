@@ -377,3 +377,26 @@ def test_mis_clientes_sin_cuadros_de_colores():
     h = cliente('ana').get('/mis-clientes').get_data(as_text=True)
     assert '<div class="cool-kpis" aria-label="Resumen del embudo" hidden>' in h
     assert 'embudo-fase' in h and 'Nuevas Asignaciones' in h
+
+
+def test_clientes_de_mi_equipo():
+    """Líder: «Clientes de Mi Equipo» lista su equipo real; cada asesor abre sus clientes en solo lectura."""
+    import portal_lib
+    h = cliente('ana').get('/modulos').get_data(as_text=True)
+    assert 'Clientes de Mi Equipo' in h and 'Clientes del equipo' not in h
+    r = cliente('ana').get('/mis-clientes/equipo')
+    assert r.status_code == 200
+    lst = r.get_data(as_text=True)
+    ana = portal_lib.user_by_username('ana')
+    equipo = appmod._equipo_de(ana) or []
+    assert equipo, 'Ana debería tener equipo en los datos de prueba'
+    for m in equipo:
+        assert f'/mis-clientes/equipo/{m["user"]}' in lst
+    s = equipo[0]['user']
+    v = cliente('ana').get(f'/mis-clientes/equipo/{s}').get_data(as_text=True)
+    assert 'Clientes de ' in v and 'Atrás a Clientes de Mi Equipo' in v
+    assert 'action="/asesor/clientes"' not in v and '/estatus"' not in v and '/situacion"' not in v
+    # Nadie ve clientes de alguien fuera de su equipo; una asesora no ve la sección.
+    otros = [a['user'] for a in portal_lib.asesores_meta() if a['user'] not in {m['user'] for m in equipo} | {'ana'}]
+    if otros:
+        assert cliente('ana').get(f'/mis-clientes/equipo/{otros[0]}').status_code in (403, 404)
