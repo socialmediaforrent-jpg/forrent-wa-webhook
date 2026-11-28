@@ -3411,6 +3411,18 @@ def inventario_ver():
                                 redes_ok=ok if es_red else '', redes_err=redes_err, **ctx))
 
 
+@app.get('/inventario/ver/pdf')
+@require_login
+def inventario_pdf():
+    """Ficha imprimible (A4) con marca For Rent; «Generar PDF» la abre y lanza Imprimir / Guardar como PDF."""
+    _, fichas = _inmuebles_fichas(g.user)
+    k = request.args.get('k') or ''
+    f = next((x for x in fichas if x['key'] == k), None)
+    if not f:
+        return _hdr(render_template('inmueble.html', f=None), 404)
+    return _hdr(render_template('inmueble_pdf.html', f=f, auto=request.args.get('auto') == '1'))
+
+
 def _volver_inv(v):
     v = v or ''
     if '//' in v or '\\' in v or not v.startswith('/'):

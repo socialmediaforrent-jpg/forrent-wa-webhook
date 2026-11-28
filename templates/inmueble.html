@@ -30,8 +30,7 @@
     <div><div class="tt">{{ f.titulo }}</div><div class="cd">{% if f.codigo %}Código {{ f.codigo }} · {% endif %}{{ 'Propia' if f.origen == 'propio' else 'Aliado' }}</div></div>
   </div>
   <div class="wz-acts">
-    <button type="button" onclick="window.print()">Generar PDF</button>
-    <a href="mailto:?subject={{ ('Inmueble: ' ~ f.titulo)|urlencode }}&body={{ compartir|urlencode }}">Enviar correo</a>
+    <a href="/inventario/ver/pdf?k={{ f.key|urlencode }}&amp;auto=1" target="_blank" rel="noopener">Generar PDF</a>
     <button type="button" id="wz-comp">Compartir</button>
   </div>
   <div class="wz-tabs" role="tablist"><span class="on" role="tab" aria-selected="true">Detalles</span><span role="tab" aria-disabled="true" title="Todavía no enlazamos clientes con inmuebles por código">Clientes enlazados (—)</span><span role="tab" aria-disabled="true">Clientes potenciales (—)</span></div>

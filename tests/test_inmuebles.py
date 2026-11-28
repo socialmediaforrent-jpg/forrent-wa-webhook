@@ -502,3 +502,16 @@ def test_ficha_barra_naranja():
     assert '.wz-bar.wz-bar-marca a.back{color:#fff}' in css
     tpl = open(os.path.join(raiz, 'templates/inmueble.html'), encoding='utf-8').read()
     assert 'class="wz-bar wz-bar-marca"' in tpl
+
+
+def test_ficha_pdf_y_sin_correo():
+    """Generar PDF abre la ficha A4 con marca For Rent; ya no hay «Enviar correo»."""
+    key = 'c:10542820'
+    h = html(cliente('ana').get('/inventario/ver?k=' + quote(key)))
+    assert 'Enviar correo' not in h and 'mailto:' not in h
+    assert '/inventario/ver/pdf?k=' in h and 'Compartir' in h
+    p = html(cliente('ana').get('/inventario/ver/pdf?k=' + quote(key)))
+    assert '/static/logo.png' in p and 'For Rent Grupo Inmobiliario, C.A.' in p
+    assert '+58 424-2294196' in p
+    assert 'window.print' not in p
+    assert 'window.print' in html(cliente('ana').get('/inventario/ver/pdf?auto=1&k=' + quote(key)))
