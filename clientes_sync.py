@@ -26,6 +26,7 @@ INTERVALO_MAX = 900
 EXTRA_WEB_NO_AVANCE = frozenset({'', 'sin estatus', 'asignado', 'no contactado', 'nuevo'})
 
 _lock = threading.Lock()
+post_pasada = None  # callback sin argumentos que fija la app (avisos push)
 _hilo = None
 _parar = threading.Event()
 _pedir = threading.Event()
@@ -254,6 +255,11 @@ def pasada(q, *, is_pg=False, opener=None, also_crm=True):
     global _ultimo
     _ultimo = dict(resumen)
     _guardar_sello(q, is_pg, resumen)
+    if post_pasada:
+        try:
+            post_pasada()
+        except Exception:
+            log.exception('clientes_sync post_pasada')
     log.info('clientes_sync ok n=%s cambiados=%s actualizado=%s',
              resumen['n'], resumen['cambiados'], resumen['actualizado'])
     return resumen

@@ -63,6 +63,7 @@ import redes_inmueble
 import inmuebles
 import carga
 import adjuntos
+import push
 import planificador as planif
 import ghl_sync
 import clientes_sync
@@ -278,6 +279,10 @@ def init_db():
         adjuntos.init(q, IS_PG)  # Adjuntos de ofertas/reservas en la base (sobreviven al redeploy si hay Postgres)
     except Exception:
         log.exception('adjuntos.init')
+    try:
+        push.init(q, SERIAL)  # Avisos push: suscripciones por dispositivo y asignaciones ya vistas
+    except Exception:
+        log.exception('push.init')
     try:
         ghl_sync.ensure_tables(q)
     except Exception:
@@ -2934,7 +2939,8 @@ def portal_sync():
             q('INSERT OR REPLACE INTO portal_datos (nombre, datos, actualizado) VALUES (%s, %s, %s)', (n, d, act))
         guardados[n] = n_new
     _live_cache['t'] = 0.0
-    return jsonify({'ok': True, 'guardados': guardados, 'estado': _sync_resumen()})
+    res_push = _push_revisar() if 'clientes_asignados.json' in guardados else None
+    return jsonify({'ok': True, 'guardados': guardados, 'estado': _sync_resumen(), 'push': res_push})
 
 
 @app.get('/admin/portal-sync')
@@ -2959,6 +2965,8 @@ def crm_write_api():
         import crm_write
         out = crm_write.apply(q, op, data)
         _live_cache['t'] = 0.0
+        if (op or '').strip().lower() == 'assignment' and isinstance(out, dict):
+            out['push'] = _push_revisar()
         return jsonify(out), (200 if out.get('ok') else 400)
     except Exception:
         log.exception('crm-write op=%s', op)
@@ -5182,6 +5190,93 @@ def _arrancar_sync_fondo():
 
 
 _arrancar_sync_fondo()
+
+
+# ---------------------------------------------------------------- Avisos push al asesor (Web Push, PWA)
+_push_lock = threading.Lock()
+
+
+def _push_revisar():
+    """Avisa a los dispositivos del asesor de las asignaciones nuevas. Nunca rompe quien la llama."""
+    try:
+        with _push_lock:
+            asig, _, _ = portal_lib.load_asignados()
+            res = push.revisar_asignaciones(q, asig, ahora=now_iso())
+        return {k: res[k] for k in ('base', 'nuevos', 'enviados', 'codigos')}
+    except Exception:
+        log.exception('push revisar')
+        return None
+
+
+def _push_post_pasada():
+    if push.activo():
+        _live_cache['t'] = 0.0
+        _push_revisar()
+
+
+clientes_sync.post_pasada = _push_post_pasada
+
+
+def _push_puede(u):
+    """Quién ve el aviso de activación: asesores y líderes con su propia sesión. El admin que mira «como» una
+    asesora no activa sus avisos en producción (se suscribiría su propio teléfono); en la copia de prueba sí."""
+    if not u or u.get('role') in ('mercadeo', 'inventario'):
+        return False
+    if getattr(g, 'view_as', None):
+        return bool(os.environ.get('PORTAL_COPIA_PRUEBA', '').strip())
+    return u.get('role') != 'admin'
+
+
+@app.context_processor
+def _push_ctx():
+    u = getattr(g, 'user', None)
+    ok = bool(push.activo() and _push_puede(u))
+    return {'push_mostrar': ok, 'push_pub': push.public_key() if ok else '',
+            'push_csrf': portal_lib.csrf_token(u) if ok else ''}
+
+
+@app.get('/sw.js')
+def service_worker_js():
+    """Service worker solo de avisos push (sin caché ni fetch). Siempre se revalida."""
+    try:
+        with open(os.path.join(app.static_folder, 'sw.js'), 'rb') as fh:
+            cuerpo = fh.read()
+    except OSError:
+        abort(404)
+    r = Response(cuerpo, mimetype='application/javascript')
+    r.headers['Cache-Control'] = 'no-cache, max-age=0'
+    r.headers['Service-Worker-Allowed'] = '/'
+    return r
+
+
+@app.post('/push/suscribir')
+@require_login
+def push_suscribir():
+    u = g.user
+    if not push.activo() or not _push_puede(u):
+        return jsonify({'ok': False, 'error': 'no disponible'}), 403
+    if not _csrf_ok():
+        return jsonify({'ok': False, 'error': 'sesion'}), 400
+    try:
+        sub = json.loads(request.form.get('sub') or '{}')
+    except ValueError:
+        sub = None
+    if not push.suscribir(q, u['user'], sub, request.headers.get('User-Agent', ''), now_iso()):
+        return jsonify({'ok': False, 'error': 'suscripcion invalida'}), 400
+    # Primera suscripción: la base de asignaciones ya vistas queda marcada para no avisar de lo anterior.
+    _push_revisar()
+    return jsonify({'ok': True, 'dispositivos': push.n_dispositivos(q, u['user'])})
+
+
+@app.post('/push/baja')
+@require_login
+def push_baja():
+    u = g.user
+    if not _csrf_ok():
+        return jsonify({'ok': False, 'error': 'sesion'}), 400
+    push.desuscribir(q, u['user'], request.form.get('endpoint') or '')
+    return jsonify({'ok': True})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8000)))

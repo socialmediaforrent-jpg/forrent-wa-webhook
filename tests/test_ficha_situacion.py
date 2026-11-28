@@ -94,6 +94,9 @@ def test_tarjeta_asignado_tiene_campos_e_info(monkeypatch):
     assert 'name="app-build"' in html
     assert 'serviceWorker' in html
     assert "cache:'no-store'" in html or 'cache:\'no-store\'' in html
+    # Solo se permite el service worker de avisos push (/sw.js); cualquier otro se desregistra y las cachés se vacían.
+    assert "'/sw.js'" in html and 'r.unregister()' in html
+    assert 'caches.delete' in html
 
 
 def test_html_no_se_guarda_en_cache_y_app_build_publico():

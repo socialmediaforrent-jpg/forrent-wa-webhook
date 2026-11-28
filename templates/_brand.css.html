@@ -1,11 +1,12 @@
 <link rel="stylesheet" href="{{ static_v('app.css') }}">
 <meta name="app-build" content="{{ app_build }}">
 <script>
-/* Caché del teléfono (PWA): no hay service worker; si alguno quedó registrado, se quita.
+/* Caché del teléfono (PWA): no hay service worker de caché. El único permitido es /sw.js (solo avisos push,
+   sin fetch ni caché); cualquier otro que haya quedado registrado se quita, y las cachés se vacían siempre.
    Al volver a la app (desde memoria o tras un rato en segundo plano) se pide la versión y,
    si cambió desde que se pintó esta página, se recarga para no mostrar HTML viejo. */
 (function(){
-  try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister(); }); }); }
+  try{ if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ var w=r.active||r.waiting||r.installing, u=w&&w.scriptURL?new URL(w.scriptURL).pathname:''; if(u!=='/sw.js'){ r.unregister(); } }); }); }
        if(window.caches&&caches.keys){ caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); }); } }catch(e){}
   var mine=(document.querySelector('meta[name=app-build]')||{}).content||'', oculto=0;
   function revisar(){

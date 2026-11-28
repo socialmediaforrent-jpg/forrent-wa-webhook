@@ -1,0 +1,42 @@
+<div id="push-aviso" class="push-aviso" role="region" aria-label="Avisos de clientes nuevos" hidden>
+  <div class="push-txt"><b>Avisos de clientes nuevos</b><span id="push-msg">Recibe una notificación en este teléfono cada vez que te asignen un cliente.</span></div>
+  <div class="push-acc"><button type="button" id="push-act" class="push-btn">Activar notificaciones</button><button type="button" id="push-no" class="push-no">Ahora no</button></div>
+</div>
+<script>
+(function(){
+  var KEY={{ push_pub|tojson }}, CSRF={{ push_csrf|tojson }};
+  var box=document.getElementById('push-aviso'); if(!box) return;
+  var msg=document.getElementById('push-msg'), act=document.getElementById('push-act'), no=document.getElementById('push-no');
+  if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+  function b64(s){ var p='='.repeat((4-s.length%4)%4), r=(s+p).replace(/-/g,'+').replace(/_/g,'/'), raw=atob(r), o=new Uint8Array(raw.length); for(var i=0;i<raw.length;i++) o[i]=raw.charCodeAt(i); return o; }
+  function enviar(sub){
+    var f=new FormData(); f.append('csrf',CSRF); f.append('sub',JSON.stringify(sub.toJSON()));
+    return fetch('/push/suscribir',{method:'POST',body:f,credentials:'same-origin',cache:'no-store'}).then(function(r){ return r.ok; });
+  }
+  function ocultoHasta(){ try{ return parseInt(localStorage.getItem('push_no')||'0',10); }catch(e){ return 0; } }
+  function mostrar(){ box.hidden=false; box.dataset.estado=box.dataset.estado||'pendiente'; }
+  var reg=null;
+  navigator.serviceWorker.register('/sw.js',{scope:'/'}).then(function(r){ reg=r; return navigator.serviceWorker.ready; }).then(function(r){
+    reg=r||reg; return reg.pushManager.getSubscription();
+  }).then(function(sub){
+    if(sub && Notification.permission==='granted'){ box.dataset.estado='activo'; enviar(sub).catch(function(){}); return; }
+    if(Notification.permission==='denied'){
+      msg.textContent='Las notificaciones están bloqueadas para esta app. Actívalas en los ajustes del teléfono (Chrome › Configuración del sitio › Notificaciones).';
+      act.hidden=true; no.hidden=true; box.dataset.estado='bloqueado'; mostrar(); return; }
+    if(Date.now()<ocultoHasta()) return;
+    mostrar();
+  }).catch(function(){});
+  no.addEventListener('click',function(){ try{ localStorage.setItem('push_no',String(Date.now()+3*86400000)); }catch(e){} box.hidden=true; });
+  act.addEventListener('click',function(){
+    act.disabled=true;
+    Notification.requestPermission().then(function(p){
+      if(p!=='granted'){ msg.textContent='No se activaron las notificaciones. Puedes cambiarlo en los ajustes del sitio.'; act.disabled=false; return null; }
+      return reg.pushManager.getSubscription().then(function(s){ return s||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(KEY)}); })
+        .then(function(sub){ return enviar(sub).then(function(ok){
+          if(ok){ box.dataset.estado='activo'; msg.textContent='Listo: te avisaremos en este teléfono cuando te asignen un cliente.'; act.hidden=true; no.hidden=true; setTimeout(function(){ box.hidden=true; },4000); }
+          else { msg.textContent='No se pudo guardar. Intenta de nuevo.'; act.disabled=false; }
+        }); });
+    }).catch(function(){ msg.textContent='No se pudo activar en este dispositivo.'; act.disabled=false; });
+  });
+})();
+</script>

@@ -36,6 +36,7 @@
   {% endif %}
 </header>
 {% if viendo_como %}</div>{% endif %}
+{% if push_mostrar %}{% include '_push.html' %}{% endif %}
 {% if viewer %}
 <aside class="sidebar" aria-label="Secciones">
   <a class="brand side-brand" href="/portal" aria-label="For Rent Online · Inicio"><img class="logo" src="{{ static_v('logo.webp') }}" alt="For Rent Online" width="800" height="302"></a>
