@@ -30,14 +30,17 @@ def _suscribir(slug='ana', sub=SUB):
     return cliente(slug).post('/push/suscribir', data={'csrf': csrf(slug), 'sub': json.dumps(sub)})
 
 
-def test_sw_js_solo_push_sin_cache_ni_fetch():
+def test_sw_js_solo_push_y_fetch_sin_cache():
     r = appmod.app.test_client().get('/sw.js')
     assert r.status_code == 200
     assert 'javascript' in r.headers['Content-Type']
     assert 'no-cache' in r.headers['Cache-Control']
     js = r.get_data(as_text=True)
     assert "addEventListener('push'" in js and "addEventListener('notificationclick'" in js
-    assert "addEventListener('fetch'" not in js and 'caches.' not in js
+    # El fetch solo reenvía a la red (instalabilidad de Chrome); no hay caché.
+    assert "addEventListener('fetch'" in js
+    assert 'fetch(e.request)' in js or 'fetch(event.request)' in js
+    assert 'caches.' not in js and 'cache.put' not in js and 'cache.add' not in js
 
 
 def test_boton_visible_solo_con_claves_y_para_asesor():

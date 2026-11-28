@@ -3113,6 +3113,12 @@ def terminos():
     return _legal_page('terminos', 'Términos de servicio')
 
 
+@app.get('/instalar')
+def instalar():
+    """Página pública para que el asesor instale la app en el teléfono (PWA)."""
+    return _panel_headers(render_template('instalar.html'))
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     user = _current_user()

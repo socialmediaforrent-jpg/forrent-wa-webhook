@@ -735,3 +735,20 @@ a.inv-row{text-decoration:none;color:inherit}
 .push-btn[disabled]{opacity:.6}
 .push-no{background:transparent;border:0;color:#7a5a43;font-size:.9rem;padding:10px 6px;min-height:44px;text-decoration:underline}
 @media(min-width:900px){.push-aviso{margin:12px auto 0;max-width:720px}}
+
+/* Página pública para instalar la PWA en el teléfono */
+.inst-wrap{max-width:420px}
+.inst-card{padding-bottom:20px}
+.inst-panel{margin-top:18px}
+.inst-kicker{margin:0 0 10px;font-size:.95rem;font-weight:700;color:#fff}
+.inst-pasos{margin:0 0 14px;padding:0;list-style:none;counter-reset:paso;display:flex;flex-direction:column;gap:8px}
+.inst-pasos li{position:relative;padding:10px 12px 10px 46px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:rgba(255,255,255,.92);line-height:1.35;font-size:.95rem}
+.inst-pasos li::before{counter-increment:paso;content:counter(paso);position:absolute;left:10px;top:50%;transform:translateY(-50%);width:26px;height:26px;border-radius:50%;background:var(--naranja);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.inst-btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;background:var(--naranja);color:#fff;border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:800;font-size:1rem;text-decoration:none;cursor:pointer;box-sizing:border-box}
+.inst-btn:disabled{opacity:.6}
+.inst-nota{margin:12px 0 0;font-size:.88rem;line-height:1.4;color:rgba(255,255,255,.8)}
+.inst-ok{margin:0 0 14px;font-size:1.05rem;font-weight:700;color:#fff;text-align:center}
+.inst-entrar{margin:18px 0 0;text-align:center;font-size:.9rem;color:rgba(255,255,255,.7)}
+.inst-entrar a,.login-instalar a{color:#fff;font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.inst-ios-share{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:0 2px;vertical-align:-4px;color:#fff}
+.login-instalar{margin:14px 0 0;text-align:center;font-size:.9rem}

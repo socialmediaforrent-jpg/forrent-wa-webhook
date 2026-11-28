@@ -6,8 +6,27 @@
   "background_color": "#E55B01",
   "theme_color": "#E55B01",
   "icons": [
-    {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-    {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-    {"src": "/static/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
-  ]
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "/",
+  "scope": "/",
+  "lang": "es",
+  "description": "Gestiona tus inmuebles, clientes, operaciones y comisiones en un solo lugar."
 }

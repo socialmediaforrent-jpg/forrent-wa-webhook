@@ -1,7 +1,11 @@
-/* Service worker solo para avisos push. No guarda nada en caché ni intercepta peticiones:
-   las páginas siguen con Cache-Control no-store. */
+/* Service worker de avisos push e instalabilidad. El fetch solo reenvía a la red:
+   no guarda caché. Las páginas siguen con Cache-Control no-store. */
 self.addEventListener('install', function () { self.skipWaiting(); });
 self.addEventListener('activate', function (e) { e.waitUntil(self.clients.claim()); });
+self.addEventListener('fetch', function (e) {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(fetch(e.request));
+});
 self.addEventListener('push', function (e) {
   var d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : '' }; }
