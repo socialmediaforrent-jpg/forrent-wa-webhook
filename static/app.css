@@ -14,7 +14,7 @@ body{min-height:100%;font-size:15px}
 .btn-atras span{display:block;line-height:1;font-weight:600}
 .btn-atras:hover,.btn-atras:focus-visible{background:var(--naranja-suave);color:var(--naranja-2);outline:none}
 .btn-atras:active,.btn-atras.is-pressed{background:var(--naranja-suave);color:var(--naranja)}
-.appbar:has(.btn-atras) .logo{max-width:34vw}
+.appbar:has(.btn-atras) .logo{max-width:72px}
 .brand{display:inline-flex;align-items:center;line-height:0;text-decoration:none}
 .logo{display:block;height:34px;width:auto;max-width:46vw}
 .profile{position:relative}
@@ -550,7 +550,7 @@ body.theme-cool .btn-atras:hover,body.theme-cool .btn-atras:focus-visible,body.t
 body.theme-cool .profile summary{background:#fff;border-color:var(--linea);color:var(--negro)}
 body.theme-cool .profile summary:hover,body.theme-cool .profile[open] summary{box-shadow:0 0 0 3px var(--naranja-suave)}
 body.theme-cool .greet{display:inline;color:var(--negro);font-size:13px;max-width:48vw}
-body.theme-cool .appbar:has(.btn-atras) .greet{max-width:34vw}
+body.theme-cool .appbar:has(.btn-atras) .greet{max-width:42vw;font-size:12.5px}
 body.theme-cool .chev{color:var(--negro);opacity:.55}
 body.theme-cool .avatar{background:var(--negro);color:#fff}
 body.theme-cool .bottomnav{background:#16181d;border-top-color:#2a2d33}
