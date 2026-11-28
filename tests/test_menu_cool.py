@@ -84,6 +84,11 @@ def test_modulos_tiene_estilo_cool():
     assert 'class="cool-role"' not in html
     assert 'mod-inventario.webp' in html and 'mod-rendimiento.webp' in html
     assert 'mod-cool-sum' in html
+    css = cliente('ana').get('/static/app.css').get_data(as_text=True)
+    # Más aire bajo el título; las tarjetas no se estiran para llenar la pantalla.
+    assert 'body.page-modulos > main{' in css and 'padding:24px 16px 10px' in css
+    assert 'body.page-modulos .sec.mod{margin:0;flex:none' in css
+    assert 'body.page-modulos .mod-cool-sum{min-height:64px;flex:none' in css
     assert _botones(_bottomnav(html)) == ['Inicio', 'Módulos', 'Mensajes', 'Más']
     assert re.search(r'href="/modulos"[^>]*class="on"', _bottomnav(html))
     # Siguen cerrados y con las mismas subopciones.
