@@ -248,3 +248,15 @@ def test_mercadeo_info_y_sin_planificador():
     assert 'href="/mercadeo/forrent"' not in main
     assert 'Planificador de anuncios' not in main
     assert cliente('jose').get('/mercadeo/planificador').status_code == 200
+
+
+def test_grupos_inventario_compactos():
+    """Mis Captaciones y Captaciones For Rent son más delgados en Módulos (móvil)."""
+    import os
+    css = open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static/app.css'), encoding='utf-8').read()
+    bloque = css.split('body.page-modulos .mod-group-sum{', 1)[1].split('}', 1)[0]
+    assert 'min-height:32px' in bloque
+    assert 'padding:6px 10px' in bloque
+    assert 'body.page-modulos .mod-sub{min-height:0;padding:5px 8px' in css
+    assert 'body.page-modulos .mod-sub h3{font-size:12.5px' in css
+    assert 'body.page-modulos .mod-sub p{' in css and 'font-size:11px' in css.split('body.page-modulos .mod-sub p{', 1)[1].split('}', 1)[0]

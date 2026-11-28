@@ -687,7 +687,20 @@ body.page-modulos .mod-cool-txt b{font-size:14px}
 body.page-modulos .mod-cool-desc{font-size:11px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 body.page-modulos .mod-cool-img{width:44px;height:44px;border-radius:9px}
 body.page-modulos .sec.mod[open]{flex:1 1 auto;min-height:0;overflow:auto}
-body.page-modulos .mod-cards{padding:6px 0 2px}
+body.page-modulos .mod-cards{padding:4px 0 0;gap:4px}
+body.page-modulos > main{gap:6px;padding:14px 16px calc(8px + var(--bottom) + env(safe-area-inset-bottom, 0px))}
+/* Subgrupos de Inventario (Mis Captaciones / Captaciones For Rent): compactos, para que al abrir quepan con sus hijos. */
+body.page-modulos .mod-cards .card{padding:6px 10px;min-height:32px}
+body.page-modulos .mod-cards .card h2{font-size:13px;line-height:1.2}
+body.page-modulos .mod-cards .card p{margin:1px 0 0;font-size:11px;line-height:1.25}
+body.page-modulos .mod-group-sum{padding:6px 10px;min-height:32px;gap:6px}
+body.page-modulos .mod-group-sum h2{font-size:13px;line-height:1.2}
+body.page-modulos .mod-group-sum .chev{width:16px;height:16px}
+body.page-modulos .mod-subs{gap:2px;padding:0 6px 6px 10px}
+body.page-modulos .mod-sub{min-height:0;padding:5px 8px;border-radius:8px}
+body.page-modulos .mod-sub h3{font-size:12.5px;line-height:1.2}
+body.page-modulos .mod-sub p{margin:1px 0 0;font-size:11px;line-height:1.25}
+body.page-modulos .mod-sub .pill,body.page-modulos .mod-cards .pill{font-size:10px;padding:1px 6px}
 @media (min-width:960px){
   body.page-inicio,body.page-modulos{height:auto;max-height:none;overflow:auto;display:block;padding-bottom:0}
   body.page-inicio > main,body.page-modulos > main{height:auto;overflow:visible;display:block;padding-bottom:24px}
