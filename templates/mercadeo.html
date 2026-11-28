@@ -124,7 +124,7 @@ dialog.mk-dlg::backdrop{background:rgba(17,17,17,.45)}
       <div>
         <h2>{{ r.titulo }}</h2>
         <div class="mk-meta">{{ r.operacion }} · {{ r.tipo }} · {{ r.zona }}{% if r.precio %} · {{ r.precio }}{% endif %}<br>
-          {{ 'Propia' if r.origen == 'propio' else 'Alianza' }}{% if r.codigo %} · Cód. {{ r.codigo }}{% endif %}{% if ver_asesor and r.asesor %} · {{ r.asesor }}{% endif %} · {{ r.n_pub }}/10 Portales Inmobiliarios</div>
+          {{ 'Propia' if r.origen == 'propio' else 'Alianza' }}{% if r.codigo %} · {{ cod_lbl(r) }} {{ r.codigo }}{% endif %}{% if ver_asesor and r.asesor %} · {{ r.asesor }}{% endif %} · {{ r.n_pub }}/10 Portales Inmobiliarios</div>
       </div>
     </div>
     <div class="mk-grid" role="list" aria-label="Portales de {{ r.titulo }}">

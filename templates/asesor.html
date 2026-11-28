@@ -8,25 +8,32 @@
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
 </head>
-<body>
+<body class="theme-cool page-inicio">
 {% set nav='portal' %}
+{% set cool_hero=true %}
+{% set cool_welcome=true %}
+{% set cool_compact=true %}
+{% set cool_foto='inicio-equipo.webp' %}
+{% set cool_credito='' %}
 {% include '_top.html' %}
-<main class="wrap-page">
-  <p class="kicker">{{ role_label }}</p>
+<main>
+{% include '_hero.html' %}
+<div class="cool-sheet wrap-page wrap-despues-bienvenida">
   <h1 class="page">Tu resumen</h1>
-  <p class="lead">Solo tus datos. Cada tarjeta indica la fecha de su copia.</p>
   {% from '_icons.html' import icon %}
   <div class="cards cards-inicio">
-    <a class="card" href="/mis-asignaciones"><h2>{{ icon('userplus') }} Mis Asignaciones</h2><p>Embudo comercial de tus clientes asignados.</p></a>
+    <a class="card" href="/mis-clientes"><h2>{{ icon('users') }} Mis Clientes</h2><p>Tu embudo y tus clientes por fase.</p></a>
   </div>
+  {% set mostrar_embudo = 'kpis' %}
   {% include '_dash.html' %}
-  <div class="cards">
+  <div class="cards cards-accesos">
     <a class="card" href="/perfil"><h2>Mi Perfil</h2><p>Datos y foto.</p></a>
     <a class="card" href="/visitas"><h2>Visitas</h2><p>Agendadas y registradas.</p></a>
     <a class="card" href="/ofertas"><h2>Ofertas</h2><p>Recibidas y realizadas.</p></a>
     <a class="card" href="/cierres"><h2>Cierres</h2><p>Pendientes y realizados.</p></a>
     <a class="card" href="/actividades"><h2>Actividades</h2><p>Reuniones programadas.</p></a>
   </div>
+</div>
 </main>
 </body>
 </html>

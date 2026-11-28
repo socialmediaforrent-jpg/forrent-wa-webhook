@@ -8,15 +8,15 @@
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
 </head>
-<body>
+<body class="theme-cool page-inicio">
 {% set nav='portal' %}
+{% set cool_hero=true %}
+{% set cool_welcome=true %}
+{% set cool_foto='inicio-equipo.webp' %}
+{% set cool_credito='' %}
 {% include '_top.html' %}
-<main class="wrap-page welcome-inicio" style="--welcome-foto:url('{{ static_v('inicio-equipo.webp') }}')">
-  {% set first_name = (viewer.name.split(' ')[0] if viewer else '') %}
-  {% set saludo = 'bienvenida' if viewer and viewer.user == 'luz' else 'bienvenido' %}
-  <section class="welcome" aria-label="Bienvenida">
-    <h1 class="welcome-title"><em>{{ first_name }}</em>, {{ saludo }} a For Rent Online.</h1>
-  </section>
+<main class="welcome-only">
+{% include '_hero.html' %}
 </main>
 </body>
 </html>

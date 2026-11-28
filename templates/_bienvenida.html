@@ -1,0 +1,6 @@
+{% set first_name = (viewer.name.split(' ')[0] if viewer else '') %}
+<section class="welcome-inicio" style="--welcome-foto:url('{{ static_v('inicio-equipo.webp') }}')" aria-label="Bienvenida">
+  <div class="welcome">
+    <h1 class="welcome-title"><em>{{ first_name }}</em>, {{ saludo }} a For Rent Online.</h1>
+  </div>
+</section>

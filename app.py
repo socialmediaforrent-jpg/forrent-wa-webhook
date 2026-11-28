@@ -17,7 +17,7 @@ Endpoints
   GET  /panel/data                   -> JSON de la bandeja (para auto-actualizar)
   POST /panel/responder              -> responder por WhatsApp desde la bandeja (sesión + CSRF; ventana 24 h; si
                                         está configurado GHL o Meta). Mismos permisos que /panel.
-  GET  /inventario                   -> inventario propios / alianza / red (solo lectura)
+  GET  /inventario                   -> inventario propios y alianza (solo lectura; sin la red)
 
 Variables de entorno
   DATABASE_URL                Postgres (Render). Si falta, usa SQLite local (solo pruebas).
@@ -48,7 +48,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from functools import wraps
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 from flask import Flask, Response, abort, g, jsonify, make_response, redirect, render_template, request, session
 
@@ -59,6 +59,7 @@ import portales
 import bandeja
 import redes
 import marketplace
+import redes_inmueble
 import inmuebles
 import carga
 import planificador as planif
@@ -247,14 +248,23 @@ def init_db():
     q(f"""CREATE TABLE IF NOT EXISTS login_fails (
         id {SERIAL}, fail_key TEXT NOT NULL, failed_at TEXT NOT NULL)""")
     q("CREATE INDEX IF NOT EXISTS login_fails_key_at ON login_fails (fail_key, failed_at)")
+    # Bitácora de «Ver como asesora»: quién (admin real) hizo qué, sin guardar secretos.
+    q(f"""CREATE TABLE IF NOT EXISTS ver_como_audit (
+        id {SERIAL}, ts TEXT NOT NULL, admin_slug TEXT NOT NULL,
+        view_as TEXT, method TEXT NOT NULL, path TEXT NOT NULL, action TEXT NOT NULL)""")
+    q("CREATE INDEX IF NOT EXISTS ver_como_audit_ts ON ver_como_audit (ts)")
     try:
         portales.init(q, IS_PG)  # Mercadeo: crm_portal_links (aditiva)
     except Exception:
         log.exception('portales.init')
     try:
-        marketplace.init(q, IS_PG)  # Redes Sociales: crm_marketplace_links + bitácora (aditivas)
+        marketplace.init(q, IS_PG)  # Facebook Marketplace por inmueble (aditiva)
     except Exception:
         log.exception('marketplace.init')
+    try:
+        redes_inmueble.init(q, IS_PG)  # Publicaciones en redes por inmueble (aditiva)
+    except Exception:
+        log.exception('redes_inmueble.init')
     try:
         carga.init(q, IS_PG)  # Carga única (PRUEBA): carga_inmuebles/carga_fotos/carga_log (aditivas)
     except Exception:
@@ -417,7 +427,7 @@ app.jinja_env.globals['idem_token'] = idem_token
 # ---------------------------------------------------------------- F4 móvil: caché de estáticos versionados
 # Solo CSS y logos/favicons enlazados con ?v=<hash del archivo>. Al cambiar el archivo cambia el hash y la URL.
 # El HTML con datos de clientes sigue con su Cache-Control actual (private, no-store).
-STATIC_VERSIONADOS = {'app.css', 'inmuebles.css', 'logo.webp', 'logo-1200.webp', 'logo.png', 'favicon.ico', 'favicon-32.png', 'inicio-equipo.webp'}
+STATIC_VERSIONADOS = {'app.css', 'inmuebles.css', 'logo.webp', 'logo-1200.webp', 'logo.png', 'logo-blanco.webp', 'logo-blanco.png', 'caracas-hero.webp', 'mod-inventario.webp', 'mod-clientes.webp', 'mod-operaciones.webp', 'mod-comisiones.webp', 'mod-rendimiento.webp', 'favicon.ico', 'favicon-32.png', 'inicio-equipo.webp'}
 _static_hash = {}
 
 
@@ -441,6 +451,33 @@ def static_v(name):
 app.jinja_env.globals['static_v'] = static_v
 app.jinja_env.globals['copia_prueba'] = os.environ.get('PORTAL_COPIA_PRUEBA', '').strip()
 
+# Versión publicada: el teléfono (PWA) compara al volver a la app y recarga si cambió.
+# No hay service worker; el HTML ya va con no-store. Esto cubre la app restaurada desde memoria.
+def _build_local():
+    # Igual en todos los workers: hash de app.py y plantillas (sin hora, para no recargar en bucle).
+    h = hashlib.sha256()
+    base = os.path.dirname(os.path.abspath(__file__))
+    for root in (base, os.path.join(base, 'templates')):
+        try:
+            for n in sorted(os.listdir(root)):
+                if n.endswith(('.py', '.html')):
+                    with open(os.path.join(root, n), 'rb') as fh:
+                        h.update(fh.read())
+        except OSError:
+            pass
+    return h.hexdigest()[:12]
+
+
+APP_BUILD = (os.environ.get('RENDER_GIT_COMMIT') or '').strip()[:12] or _build_local()
+app.jinja_env.globals['app_build'] = APP_BUILD
+
+
+@app.get('/app-build')
+def app_build():
+    r = make_response(jsonify({'build': APP_BUILD}))
+    r.headers['Cache-Control'] = 'no-store'
+    return r
+
 
 @app.after_request
 def _cache_estaticos(resp):
@@ -449,6 +486,12 @@ def _cache_estaticos(resp):
         v = request.args.get('v') or ''
         if name in STATIC_VERSIONADOS and v and v == _hash_static(name):
             resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    # Acciones (no GET) en modo «ver como»: quedan a nombre del admin real.
+    if (getattr(g, 'view_as', None)
+            and request.method not in ('GET', 'HEAD', 'OPTIONS')
+            and request.path not in ('/ver-como', '/volver-a-mi-cuenta', '/logout')
+            and resp.status_code < 500):
+        _ver_como_audit('escribir', view_as=g.view_as.get('user') or '')
     return resp
 
 
@@ -723,8 +766,66 @@ def _safe_next(val):
     return val
 
 
-def _current_user():
+def _real_user():
+    """Usuario autenticado de verdad (el admin), sin aplicar «ver como»."""
     return portal_lib.user_by_username(session.get('uid'))
+
+
+def _view_as_slug():
+    return (session.get('view_as') or '').strip().lower()
+
+
+def _asesoras_para_ver():
+    """Asesoras y líderes. Nunca admin, Mercadeo ni Inventario."""
+    filas = []
+    for a in portal_lib.asesores_meta():
+        if (a.get('role') or 'asesor') in ('asesor', 'lider'):
+            filas.append(a)
+    return filas
+
+
+def _perfil_ver_como(slug):
+    slug = (slug or '').strip().lower()
+    if not slug or not any(a.get('user') == slug for a in _asesoras_para_ver()):
+        return None
+    return portal_lib.user_by_username(slug)
+
+
+def _ver_como_audit(action, view_as='', method=None, path=None):
+    real = getattr(g, 'real_user', None) or _real_user()
+    if not real:
+        return
+    slug = view_as or ''
+    metodo = method or (request.method if request else '')
+    ruta = path if path is not None else (request.path if request else '')
+    q("INSERT INTO ver_como_audit (ts, admin_slug, view_as, method, path, action) VALUES (%s,%s,%s,%s,%s,%s)",
+      (now_iso(), real['user'], slug, metodo, ruta, action))
+    log.info('ver-como action=%s admin=%s view_as=%s method=%s path=%s',
+             action, real['user'], slug, metodo, ruta)
+
+
+def _current_user():
+    """Perfil con el que se ve la app. Si un admin eligió «ver como», es esa asesora.
+
+    session['uid'] no cambia: sigue siendo el administrador real.
+    """
+    real = _real_user()
+    g.real_user = real
+    g.view_as = None
+    if not real:
+        return None
+    slug = _view_as_slug()
+    if not slug:
+        return real
+    if real.get('role') != 'admin':
+        session.pop('view_as', None)
+        return real
+    target = _perfil_ver_como(slug)
+    if not target:
+        session.pop('view_as', None)
+        return real
+    g.view_as = target
+    return target
 
 
 def _login_redirect(next_url=None):
@@ -744,27 +845,25 @@ def require_login(fn):
             return _login_redirect()
         g.user = user
         if user.get('role') == 'mercadeo' and request.endpoint not in MERCADEO_ENDPOINTS:
-            # Mercadeo solo entra a su sección y al planificador (clientes, mensajes, cierres, etc. quedan fuera).
-            if request.method == 'GET' and request.endpoint == 'portal':
-                return redirect('/mercadeo')
+            # Mercadeo: su Inicio (/portal) y su sección. El resto responde 403.
             return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
         if user.get('role') == 'inventario' and request.endpoint not in INVENTARIO_ENDPOINTS:
-            # Inventario: solo Inmuebles, en lectura (todo lo demás 403 en el servidor).
-            if request.method == 'GET' and request.endpoint == 'portal':
-                return redirect('/inventario')
+            # Inventario: su Inicio (/portal) e Inmuebles en lectura. El resto responde 403.
             return _panel_headers(Response('No tienes acceso a esta sección.\n', 403))
         return fn(*args, **kwargs)
     return wrapper
 
 
 # Inventario solo abre Inmuebles (lista y ficha), ambas GET de solo lectura.
-INVENTARIO_ENDPOINTS = {'inventario', 'inventario_ver', 'carga_cola', 'carga_revisar', 'carga_decidir', 'carga_foto',
+INVENTARIO_ENDPOINTS = {'portal', 'inventario', 'inventario_ver', 'carga_cola', 'carga_revisar', 'carga_decidir', 'carga_foto',
                         'carga_kit', 'carga_agentiz'}
 # Quién ve el encargado (captador) y los portales en Inmuebles.
 ROLES_VER_ENCARGADO = ('admin', 'mercadeo', 'inventario')
 
 # Rutas con sesión que el usuario de Mercadeo puede abrir. Todo lo demás le responde 403 (en el servidor).
-MERCADEO_ENDPOINTS = {'mercadeo', 'mercadeo_link', 'mercadeo_verificar', 'mercadeo_planificador',
+MERCADEO_ENDPOINTS = {'portal', 'mercadeo', 'mercadeo_forrent', 'mercadeo_link', 'mercadeo_verificar',
+                      'mercadeo_marketplace', 'mercadeo_redes', 'mercadeo_planificador',
+                      'inventario', 'inventario_ver',
                       'planif_nuevo', 'planif_editar', 'planif_guardar', 'planif_duplicar', 'planif_borrar',
                       'planif_media'}
 ROLES_MERCADEO = ('admin', 'mercadeo')
@@ -792,23 +891,36 @@ def require_admin(fn):
 
 
 ROLE_LABEL = {'admin': 'Presidencia', 'lider': 'Líder comercial', 'asesor': 'Asesora', 'mercadeo': 'Mercadeo', 'inventario': 'Inventario'}
+_SALUDO_BIENVENIDA = frozenset({
+    'luz', 'herlinda', 'ana', 'cristina', 'erika', 'ireida', 'maria', 'miriam',
+})
+
+
+@app.context_processor
+def _saludo_ctx():
+    u = getattr(g, 'user', None)
+    slug = (u.get('user') if u else '') or ''
+    return {'saludo': 'bienvenida' if slug in _SALUDO_BIENVENIDA else 'bienvenido'}
 
 
 @app.context_processor
 def _portal_nav():
     u = getattr(g, 'user', None)
     if not u:
-        return {'nav_main': [], 'nav_more': [], 'nav_more_keys': [], 'viewer': None, 'role_label': ''}
+        return {'nav_main': [], 'nav_more': [], 'nav_more_keys': [], 'viewer': None, 'role_label': '',
+                'viendo_como': False, 'viendo_como_nombre': '', 'csrf_real': ''}
     role = u['role']
     if role == 'mercadeo':
-        main = [{'href': '/mercadeo', 'label': 'Mercadeo', 'key': 'mercadeo', 'icon': 'megaphone'},
+        main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'},
+                {'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'},
                 {'href': '/mercadeo/planificador', 'label': 'Planificador de anuncios', 'short': 'Planificador',
                  'key': 'planificador', 'icon': 'calendar'}]
-        return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['mercadeo']}
+        return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['mercadeo'], **_ver_como_ctx()}
     if role == 'inventario':
-        main = [{'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'},
+        main = [{'href': '/portal', 'label': 'Inicio', 'key': 'portal', 'icon': 'home'},
+                {'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'},
                 {'href': '/inventario/cola', 'label': 'Por revisar', 'key': 'carga_cola', 'icon': 'clipboard'}]
-        return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['inventario']}
+        return {'nav_main': main, 'nav_more': [], 'nav_more_keys': [], 'viewer': u, 'role_label': ROLE_LABEL['inventario'], **_ver_como_ctx()}
     links = _portal_links()
     # Etapa 1 (Prompt Maestro, José 17-nov): la barra de abajo queda con 4 botones: Inicio, Módulos, Mensajes y Más.
     # Los 5 módulos viven en /modulos. «Más» solo trae lo que no está ya en Módulos (José, 22-nov).
@@ -820,7 +932,7 @@ def _portal_nav():
         more.append({'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'})
     else:
         more.append({'href': '/visitas', 'label': 'Visitas', 'key': 'visitas', 'icon': 'calendar'})
-    more.append({'href': '/mis-inmuebles', 'label': 'Cargar inmueble', 'key': 'carga', 'icon': 'key'})
+    more.append({'href': '/mis-captaciones/agregar', 'label': 'Agregar captación', 'key': 'carga', 'icon': 'key'})
     if role == 'admin':
         more.append({'href': '/inventario/cola', 'label': 'Por revisar (carga)', 'key': 'carga_cola', 'icon': 'clipboard'})
     if role != 'admin':
@@ -833,7 +945,6 @@ def _portal_nav():
         more.append({'href': '/mis-captaciones', 'label': 'Mis Captaciones', 'key': 'captaciones', 'icon': 'key'})
     else:
         more.append({'href': '/inventario', 'label': 'Inmuebles', 'key': 'inventario', 'icon': 'building'})
-    more.append({'href': '/mercadeo', 'label': 'Mercadeo', 'key': 'mercadeo', 'icon': 'megaphone'})
     if role == 'admin':
         more.append({'href': '/mercadeo/planificador', 'label': 'Planificador de anuncios', 'key': 'planificador', 'icon': 'calendar'})
     more.append({'href': '/ofertas', 'label': 'Ofertas', 'key': 'ofertas', 'icon': 'tag'})
@@ -850,9 +961,13 @@ def _portal_nav():
     if role in ('admin', 'lider'):
         more.append({'href': '/clientes-propios', 'label': 'Clientes propios' if role == 'admin' else 'Clientes del equipo',
                      'key': 'propios_more', 'icon': 'users'})
+    # Solo el administrador real lo ve; en modo «ver como» el rol aparente ya no es admin.
+    if role == 'admin' and not getattr(g, 'view_as', None):
+        more.append({'href': '/ver-como', 'label': 'Ver como asesora', 'key': 'ver-como', 'icon': 'user'})
     more = _mas_sin_redundancia(more, role)
+    ctx = _ver_como_ctx()
     return {'nav_main': main, 'nav_more': more, 'nav_more_keys': [m['key'] for m in more],
-            'viewer': u, 'role_label': ROLE_LABEL.get(role, role)}
+            'viewer': u, 'role_label': ROLE_LABEL.get(role, role), **ctx}
 
 
 # Botón «← Atrás» en el encabezado (José, 17-nov). No aparece en Inicio ni en Mensajes
@@ -864,15 +979,15 @@ _ATRAS_RAICES = {
     'admin': frozenset({'/', '/portal', '/panel'}),
     'lider': frozenset({'/', '/portal', '/panel'}),
     'asesor': frozenset({'/', '/portal', '/panel'}),
-    'mercadeo': frozenset({'/mercadeo', '/mercadeo/planificador'}),
-    'inventario': frozenset({'/inventario', '/inventario/cola'}),
+    'mercadeo': frozenset({'/', '/portal', '/inventario', '/mercadeo/planificador'}),
+    'inventario': frozenset({'/', '/portal', '/inventario', '/inventario/cola'}),
 }
 
 
 def _atras_ya_tiene(path):
     """Pantallas que ya traen su propio atrás: no se duplica en el encabezado."""
-    if path == '/inventario/ver' or path.startswith('/inventario/ver/'):
-        return True
+    if path.startswith('/inventario/ver/'):
+        return True  # la ficha PDF no lleva encabezado de la app
     if path.startswith('/mercadeo/planificador'):
         return True
     if path.startswith('/mis-inmuebles/') and '/paso/' in path:
@@ -885,6 +1000,8 @@ def _atras_ya_tiene(path):
 def _atras_fallback(path, role):
     if path == '/modulos':
         return '/portal'
+    if path == '/mis-captaciones/agregar':
+        return '/mis-captaciones'
     if path.startswith('/mi-equipo/'):
         return '/mi-equipo'
     if path.startswith('/mis-inmuebles/'):
@@ -896,13 +1013,13 @@ def _atras_fallback(path, role):
     if path.startswith('/mercadeo/planificador/') or path == '/mercadeo/planificador/nuevo':
         return '/mercadeo/planificador'
     if path == '/mercadeo/planificador':
-        return '/mercadeo' if role == 'mercadeo' else '/modulos'
+        return '/inventario' if role == 'mercadeo' else '/modulos'
     if path == '/panel' or path.startswith('/panel/'):
         return '/panel'
     if role in ('admin', 'lider', 'asesor'):
         return '/modulos'
     if role == 'mercadeo':
-        return '/mercadeo'
+        return '/inventario'
     if role == 'inventario':
         return '/inventario'
     return '/portal'
@@ -922,13 +1039,26 @@ def _portal_atras():
 
 
 # Rutas de «Más» que no aparecen como href en Módulos, pero se abren desde una sección
-# que sí está ahí (misma función). «Cargar inmueble» vive en Mis Captaciones.
+# que sí está ahí (misma función). «Agregar captación» vive en Mis Captaciones.
 _MAS_CUBIERTO_POR = {
     '/mis-inmuebles': '/mis-captaciones',
+    '/mis-captaciones/agregar': '/mis-captaciones',
 }
 
 # El perfil no se quita de «Más», aunque algún día tuviera eco en Módulos.
-_MAS_SIEMPRE = frozenset({'perfil'})
+_MAS_SIEMPRE = frozenset({'perfil', 'ver-como'})
+
+
+def _ver_como_ctx():
+    real = getattr(g, 'real_user', None)
+    visto = getattr(g, 'view_as', None)
+    if not visto or not real or real.get('role') != 'admin':
+        return {'viendo_como': False, 'viendo_como_nombre': '', 'csrf_real': ''}
+    return {
+        'viendo_como': True,
+        'viendo_como_nombre': visto.get('name') or visto.get('user'),
+        'csrf_real': portal_lib.csrf_token(real),
+    }
 
 
 def _hrefs_en_modulos(role):
@@ -979,22 +1109,18 @@ def _modulos_para(role):
 
     # Mis Captaciones abre directo Inmuebles (/mis-captaciones: Propios, Alianza y Todos).
     # Sin submenú ni «Estadísticas» (José, 27-nov). Captaciones For Rent no cambia.
-    # Mercadeo de la asesora queda como tarjeta hermana, no como hijo de Mis Captaciones.
-    inv = [s('Mis Captaciones', '/mis-captaciones', 'Propios, Alianza y Todos.'),
-           s('Mercadeo', '/mercadeo', 'Tus enlaces en los 10 portales y las 6 redes.'),
+    inv = [s('Mis Captaciones', '/mis-captaciones',
+             'Propios, Alianza y Todos. Los portales de cada uno están en su ficha.'),
            s('Captaciones For Rent', hijos=[
-               s('Inmuebles', '/inventario', 'Todo el inventario de For Rent.'),
-               s('Mercadeo', '/mercadeo/forrent' if admin else None,
-                 '' if admin else 'Llega en la etapa 2.'),
+               s('Inmuebles', '/inventario', 'Todo el inventario de For Rent. Los portales de cada uno están en su ficha.'),
                s('Estadísticas', None, 'Llega en la etapa 8, solo con datos reales.'),
            ])]
-    # «Cargar inmueble» vive dentro de Mis Captaciones (/mis-captaciones), no como entrada suelta.
+    # «Cargar inmueble» / «Agregar captación» viven en Mis Captaciones (/mis-captaciones), no como entrada suelta.
     # El Planificador sale de Módulos y vive solo en Más, para rol admin (José y Luz).
     if admin:
         inv.append(s('Por revisar (carga)', '/inventario/cola'))
 
-    cli = [s('Mis Clientes (por fases)', '/mis-clientes'),
-           s('Mis Asignaciones', '/mis-asignaciones', 'Embudo comercial de tus asignaciones.')]
+    cli = [s('Mis Clientes', '/mis-clientes', 'Embudo y listas por fase de tus clientes.')]
     if admin or lider:
         cli.append(s('Clientes propios' if admin else 'Clientes del equipo', '/clientes-propios'))
     cli += [s('Seguimiento', None, 'Llega en la etapa 6.'),
@@ -1019,11 +1145,21 @@ def _modulos_para(role):
         ren.insert(0, s('Mi Equipo' if lider else 'Equipos', '/mi-equipo'))
 
     return [
-        {'n': 1, 'key': 'inventario', 'titulo': 'Inventario', 'icon': 'building', 'secciones': inv},
-        {'n': 2, 'key': 'clientes', 'titulo': 'Clientes', 'icon': 'users', 'secciones': cli},
-        {'n': 3, 'key': 'operaciones', 'titulo': 'Operaciones', 'icon': 'calendar', 'secciones': ops},
-        {'n': 4, 'key': 'comisiones', 'titulo': 'Comisiones', 'icon': 'cash', 'secciones': com},
-        {'n': 5, 'key': 'rendimiento', 'titulo': 'Rendimiento', 'icon': 'chart', 'secciones': ren},
+        {'n': 1, 'key': 'inventario', 'titulo': 'Inventario', 'icon': 'building',
+         'descripcion': 'Administra tus captaciones, el inventario de For Rent y su mercadeo.',
+         'secciones': inv},
+        {'n': 2, 'key': 'clientes', 'titulo': 'Clientes', 'icon': 'users',
+         'descripcion': 'Tu embudo comercial y el seguimiento de cada cliente.',
+         'secciones': cli},
+        {'n': 3, 'key': 'operaciones', 'titulo': 'Operaciones', 'icon': 'calendar',
+         'descripcion': 'Visitas, ofertas, reservas, cierres y la agenda del día a día.',
+         'secciones': ops},
+        {'n': 4, 'key': 'comisiones', 'titulo': 'Comisiones', 'icon': 'cash',
+         'descripcion': 'Consulta tus comisiones y el estado de tus cierres.',
+         'secciones': com},
+        {'n': 5, 'key': 'rendimiento', 'titulo': 'Rendimiento', 'icon': 'chart',
+         'descripcion': 'El desempeño de tu equipo y tus puntajes, en un vistazo.',
+         'secciones': ren},
     ]
 
 
@@ -2076,7 +2212,17 @@ def panel_import_ghl():
 INV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'inventario.json')
 
 
-def _inventario():
+# La app solo muestra inventario propio y en alianza. La red Wasi/Rex sigue en el
+# empuje y en inventario_para_monica.csv (Mónica la ofrece a clientes), pero no entra a las pantallas.
+_INV_ORIGENES = ('propio', 'alianza')
+
+
+def _inventario_vacio():
+    return {'actualizado': '', 'grupos': {'propio': [], 'alianza': []}, 'conteos': {'propio': 0, 'alianza': 0}}
+
+
+def _inventario_raw():
+    """Datos empujados, incluyendo la red. Uso interno (p. ej. cruce de duplicados en la carga)."""
     live = portal_lib._load('inventario.json', None) if portal_lib._LIVE_LOADER else None
     if isinstance(live, dict) and isinstance(live.get('grupos'), dict):
         return live
@@ -2084,13 +2230,82 @@ def _inventario():
         with open(INV_PATH, encoding='utf-8') as f:
             return json.load(f)
     except Exception:
-        return {'actualizado': '', 'grupos': {'propio': [], 'alianza': [], 'red': []}, 'conteos': {}}
+        return _inventario_vacio()
+
+
+def _fuentes_codigo():
+    """{codigo: 'wasi'|'rex'} según el inventario empujado (id_wasi → Wasi; solo id_rex → Rex)."""
+    out = {}
+    for filas in ((_inventario_raw() or {}).get('grupos') or {}).values():
+        for it in filas or []:
+            c, fu = str(it.get('codigo') or '').strip(), it.get('fuente_codigo') or ''
+            if c and fu in ('wasi', 'rex'):
+                out[c] = fu
+    return out
+
+
+def cod_lbl(x):
+    """«Código Wasi», «Código Rex» o «Código» si no se sabe de dónde viene."""
+    fu = (x or {}).get('fuente_codigo') if hasattr(x, 'get') else ''
+    if fu not in ('wasi', 'rex'):
+        c = str((x or {}).get('codigo') or '').strip() if hasattr(x, 'get') else ''
+        fu = _fuentes_codigo().get(c, '') if c else ''
+    return {'wasi': 'Código Wasi', 'rex': 'Código Rex'}.get(fu, 'Código')
+
+
+app.jinja_env.globals['cod_lbl'] = cod_lbl
+
+
+def _inventario_sin_red(data):
+    """Copia con solo propios y alianza, filtrados por origen. Recalcula conteos."""
+    if not isinstance(data, dict):
+        return _inventario_vacio()
+    src = data.get('grupos') or {}
+    grupos = {}
+    for k in _INV_ORIGENES:
+        grupos[k] = [it for it in (src.get(k) or []) if (it.get('origen') or k) != 'red']
+    # Si un propio/alianza viniera mal archivado en otro grupo, no lo perdemos; la red sí se descarta.
+    for k, filas in src.items():
+        if k in grupos:
+            continue
+        for it in filas or []:
+            o = it.get('origen') or ''
+            if o in grupos:
+                grupos[o].append(it)
+    conteos = {k: len(v) for k, v in grupos.items()}
+    return {**data, 'grupos': grupos, 'conteos': conteos}
+
+
+def _inventario():
+    return _inventario_sin_red(_inventario_raw())
 
 
 _FOTO_HOSTS = (
     'image.wasi.co', 'images.wasi.co',
     'http2.mlstatic.com', 'mlstatic.com',
 )
+# Fotos oficiales de inmuebles Rex (u otra fuente) que no traen URL de Wasi/ML.
+# Se sirven desde este portal; el HTML no apunta a rexup.net.
+_INV_FOTOS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'inv-fotos')
+_CODIGO_FOTO = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,40}$')
+
+
+def _fotos_estaticas(codigo):
+    """Galería local por código, para captaciones/inventario que llegaron sin URL de foto."""
+    code = str(codigo or '').strip()
+    if not _CODIGO_FOTO.match(code):
+        return []
+    root = os.path.join(_INV_FOTOS_DIR, code)
+    if not os.path.isdir(root):
+        return []
+    out = []
+    for name in sorted(os.listdir(root)):
+        low = name.lower()
+        if name.startswith('.') or not low.endswith(('.jpg', '.jpeg', '.png', '.webp')):
+            continue
+        url = static_v(f'inv-fotos/{code}/{name}')
+        out.append({'full': url, 'thumb': url})
+    return out
 
 
 def _foto_ok(url):
@@ -2128,9 +2343,11 @@ def _fotos_indice(data=None):
     for g in ('propio', 'alianza'):
         for it in (data.get('grupos') or {}).get(g) or []:
             fotos = _fotos_limpias(it.get('fotos'))
+            code = str(it.get('codigo') or '').strip()
+            if not fotos:
+                fotos = _fotos_estaticas(code)
             if not fotos:
                 continue
-            code = str(it.get('codigo') or '').strip()
             if code and code != '—':
                 by_code[code] = fotos
             key = (
@@ -2156,6 +2373,8 @@ def _ficha_publica(it, *, fotos_code=None, fotos_key=None):
                 (it.get('precio') or '').strip().lower(),
             )
             fotos = list(fotos_key.get(key) or [])
+    if not fotos and code and code != '—':
+        fotos = _fotos_estaticas(code)
     return {
         'titulo': it.get('titulo') or '',
         'operacion': it.get('operacion') or '',
@@ -2163,6 +2382,8 @@ def _ficha_publica(it, *, fotos_code=None, fotos_key=None):
         'zona': it.get('zona') or '',
         'precio': it.get('precio') or '',
         'codigo': '' if (not code or code == '—') else code,
+        'origen': it.get('origen') or '',
+        'key': portales.key_de(it),
         'solo_cliente_directo': bool(it.get('solo_cliente_directo')),
         'fotos': fotos,
     }
@@ -2242,6 +2463,8 @@ def _clientes_ejercicio(user):
             'origen_nota': '', 'busca': r.get('operacion') or '',
             'inmueble': r.get('inmueble') or '', 'editable': False,
             'asignado_at': r.get('asignado_at') or '',
+            'tipo_lead': r.get('tipo_lead') or '', 'operacion': r.get('operacion') or '',
+            'asesor_slug': (r.get('asesor') or '').strip(),
         }
         if es_admin:
             slug = (r.get('asesor') or '').strip()
@@ -2264,6 +2487,117 @@ def _clientes_asignaciones(user):
     return _clientes_ejercicio(user)
 
 
+# ---------------------------------------------------------------- Tarjeta del cliente (27-nov-2026)
+# Al tocar un cliente asignado se abre su tarjeta: datos, «Información del cliente» ordenada,
+# actualizar Situación (modelo del Sistema de Clientes) e historial. Fuente única: Sistema de Clientes.
+import asignacion_info
+import estatus_modelo
+
+_MESES_CORTOS_ES = ('ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic')
+
+
+def _fmt_asignado(raw):
+    dt = portal_lib.parse_asignado_at(raw)
+    if not dt:
+        return ''
+    h = dt.hour % 12 or 12
+    ap = 'a. m.' if dt.hour < 12 else 'p. m.'
+    return f'{dt.day} {_MESES_CORTOS_ES[dt.month - 1]} {dt.year}, {h}:{dt.strftime("%M")} {ap}'
+
+
+def _fmt_at(raw):
+    """Hora de una entrada del historial, en Caracas como el resto del portal."""
+    dt = portal_lib.parse_caracas(raw) if raw else None
+    if not dt:
+        return ''
+    h = dt.hour % 12 or 12
+    ap = 'a. m.' if dt.hour < 12 else 'p. m.'
+    return f'{dt.day} {_MESES_CORTOS_ES[dt.month - 1]} {dt.year}, {h}:{dt.strftime("%M")} {ap}'
+
+
+def _wa_link(tel):
+    dig = ''.join(ch for ch in (tel or '') if ch.isdigit())
+    if dig.startswith('0') and len(dig) == 11:
+        dig = '58' + dig[1:]
+    return f'https://wa.me/{dig}' if len(dig) >= 10 else ''
+
+
+def _historial_vista(entradas):
+    out = []
+    for h in reversed(entradas or []):
+        partes = [h.get('estado') or h.get('estatus') or '']
+        if h.get('situacion'):
+            partes.append(h['situacion'])
+        out.append({
+            'titulo': ' · '.join(p for p in partes if p),
+            'fecha': portal_lib.fmt_fecha(h['fecha']) if h.get('fecha') else '',
+            'motivo': h.get('motivo') or '',
+            'comentario': h.get('comentario') or '',
+            'cuando': _fmt_at(h.get('at')),
+            'por': h.get('asesor') or '',
+        })
+    return out
+
+
+def _fichas_clientes(clientes):
+    """Completa cada cliente asignado con lo que pide la tarjeta. No toca los clientes propios."""
+    asig = [c for c in clientes if c.get('origen') != 'Propio del asesor']
+    if not asig:
+        return clientes
+    tels = {}
+    try:
+        for x in (portal_lib._load('clientes_telefonos.json', {}) or {}).get('clientes') or []:
+            k = x.get('id') or x.get('contact_id')
+            if k and x.get('telefono'):
+                tels[k] = x['telefono']
+    except Exception:
+        pass
+    hist = clientes_sync.leer_historial(q)
+    for c in asig:
+        cid = c.get('id') or ''
+        info = asignacion_info.parse_asignacion({
+            'inmueble': c.get('inmueble') or '', 'operacion': c.get('operacion') or c.get('busca') or '',
+            'tipo_lead': c.get('tipo_lead') or '',
+        })
+        c['info'] = info
+        c['resumen_corto'] = asignacion_info.resumen_corto({'inmueble': c.get('inmueble') or ''})
+        tel = tels.get(cid) or info.get('whatsapp_texto') or ''
+        c['telefono'] = tel
+        c['wa_link'] = _wa_link(tel)
+        c['asignado_fmt'] = _fmt_asignado(c.get('asignado_at'))
+        c['historial'] = _historial_vista(hist.get(cid))
+        c['puede_situacion'] = bool(cid)
+        c['estado_actual'] = c.get('estado') if c.get('estado') in estatus_modelo.ESTADOS else ''
+        c['situacion_actual'] = c.get('situacion') or ''
+        tl = (c.get('tipo_lead') or '').replace('Busqueda', 'Búsqueda')
+        c['tipo_lead_txt'] = tl
+    return clientes
+
+
+def _cliente_visible(user, cid):
+    """El cliente asignado, si este usuario lo ve en su lista (mismo criterio que Mis Asignaciones)."""
+    for c in _clientes_ejercicio(user)[0]:
+        if c.get('origen') != 'Propio del asesor' and (c.get('id') or '') == cid:
+            return c
+    return None
+
+
+def _tile_de_cliente(user, cid):
+    clientes, _ = _clientes_asignaciones(user)
+    emb = portal_lib.resumen_asignaciones(clientes)
+    for tid, tile in (emb.get('tiles') or {}).items():
+        if any((x.get('id') or '') == cid for x in tile.get('clientes') or []):
+            return tid
+    return ''
+
+
+def _volver_ficha(raw, cid, tile=''):
+    """Vuelve a la lista donde quedó el cliente y reabre su tarjeta."""
+    url = '/mis-clientes' + (f'?e={quote(tile)}' if tile else '')
+    sep = '&' if tile else '?'
+    return f'{url}{sep}abrir={quote(cid)}'
+
+
 def _cierres_vista(user, *, full):
     items = portal_lib.load_cierres(slug=user['user'], full=full)
     for c in items:
@@ -2281,24 +2615,32 @@ def _render_asesor(user, flash_ok='', flash_err='', form=None):
     clientes, _ = _asesor_clientes(user)
     return _panel_headers(render_template(
         'asesor.html', cierres=cierres, n_cierres=len(cierres), dash=_dashboard(user),
-        fases=_fases_de(clientes),
+        embudo=portal_lib.resumen_asignaciones(clientes),
     ))
 
 
 def _render_clientes(user, flash_ok='', flash_err='', form=None, status=200):
+    """Mis Clientes: embudo con baldosas arriba y listas por fase. Reemplaza a Mis Asignaciones."""
     clientes_sync.maybe_refresh(q, is_pg=IS_PG, invalidate=lambda: _live_cache.__setitem__('t', 0.0))
     clientes, cli_fecha = _asesor_clientes(user)
-    fases = _fases_de(clientes)
-    fases = dict(fases)
+    _fichas_clientes(clientes)
+    embudo = portal_lib.resumen_asignaciones(clientes)
+    fases = dict(_fases_de(clientes))
     fases['grupos'] = portal_lib.grupos_lista_clientes(clientes)
+    tile_id = (request.args.get('e') or '').strip()
+    tile = embudo['tiles'].get(tile_id) if tile_id else None
     resp = _panel_headers(render_template(
         'clientes.html',
-        clientes=clientes, n_clientes=len(clientes), fases=fases,
+        clientes=clientes, n_clientes=len(clientes), fases=fases, embudo=embudo, tile=tile,
         cli_fecha=portal_lib.fmt_fecha_hora(cli_fecha) if cli_fecha else 'fecha no disponible',
         estatus_opciones=portal_lib.ESTATUS_OPCIONES,
         csrf=portal_lib.csrf_token(user), puede_agregar=user['role'] != 'admin',
         mostrar_asesor=user.get('role') == 'admin',
         flash_ok=flash_ok, flash_err=flash_err, form=form or {},
+        sit_modelo=estatus_modelo.opciones_js(), motivos=estatus_modelo.MOTIVOS,
+        volver_ficha='/mis-clientes' + (f'?e={quote(tile_id)}' if tile else ''),
+        abrir=(request.args.get('abrir') or '').strip(),
+        modo_prueba=not clientes_sync.escritura_habilitada(),
     ))
     resp.status_code = status
     return resp
@@ -2750,14 +3092,65 @@ def logout():
     return resp
 
 
+def _exige_admin_real():
+    """Solo el administrador autenticado (no la asesora aparente)."""
+    real = getattr(g, 'real_user', None) or _real_user()
+    if not real:
+        return _login_redirect()
+    if real.get('role') != 'admin':
+        return _forbidden()
+    return None
+
+
+@app.route('/ver-como', methods=['GET', 'POST'])
+@require_login
+def ver_como():
+    denied = _exige_admin_real()
+    if denied:
+        return denied
+    real = g.real_user
+    err = ''
+    if request.method == 'POST':
+        if not portal_lib.csrf_ok(real, request.form.get('csrf')):
+            err = 'La sesión expiró. Vuelve a intentar.'
+        else:
+            target = _perfil_ver_como(request.form.get('asesora') or '')
+            if not target:
+                err = 'Elige una asesora de la lista.'
+            else:
+                session['view_as'] = target['user']
+                g.view_as = target
+                _ver_como_audit('entrar', view_as=target['user'])
+                return redirect('/portal')
+    return _hdr(render_template(
+        'ver_como.html', asesoras=_asesoras_para_ver(), err=err,
+        csrf=portal_lib.csrf_token(real)), 400 if err else 200)
+
+
+@app.route('/volver-a-mi-cuenta', methods=['POST'])
+@require_login
+def volver_a_mi_cuenta():
+    denied = _exige_admin_real()
+    if denied:
+        session.pop('view_as', None)
+        return denied
+    real = g.real_user
+    if not portal_lib.csrf_ok(real, request.form.get('csrf')):
+        return _hdr(Response('La sesión expiró. Vuelve a intentar.\n', 400))
+    visto = _view_as_slug()
+    session.pop('view_as', None)
+    if visto:
+        _ver_como_audit('volver', view_as=visto)
+    g.view_as = None
+    return redirect('/portal')
+
+
 @app.get('/')
 @app.get('/portal')
 @require_login
 def portal():
-    # Presidencia (admin): Inicio vacío con bienvenida. Cifras, embudo y accesos
-    # siguen en /modulos, /mis-asignaciones y /mis-clientes. Otros roles no cambian.
-    if g.user['role'] != 'admin':
-        return _render_asesor(g.user)
+    # Todos ven la foto completa del equipo y el saludo con su nombre.
+    # El resumen, los KPI y las tarjetas siguen en Mis Clientes y Módulos.
     return _panel_headers(render_template('portal.html'))
 
 
@@ -2782,29 +3175,17 @@ def clientes_propios():
 @app.get('/mis-asignaciones')
 @require_login
 def mis_asignaciones():
-    """Embudo comercial de asignaciones. Mercadeo queda en 403 por require_login."""
-    clientes_sync.maybe_refresh(q, is_pg=IS_PG, invalidate=lambda: _live_cache.__setitem__('t', 0.0))
-    clientes, actualizado = _clientes_asignaciones(g.user)
-    embudo = portal_lib.resumen_asignaciones(clientes)
-    tile_id = (request.args.get('e') or '').strip()
-    tile = embudo['tiles'].get(tile_id) if tile_id else None
-    listados = list(tile['clientes']) if tile else []
-    return _panel_headers(render_template(
-        'asignaciones.html',
-        embudo=embudo, tile=tile, listados=listados,
-        csrf=portal_lib.csrf_token(g.user),
-        estatus_opciones=portal_lib.ESTATUS_OPCIONES,
-        mostrar_asesor=g.user.get('role') == 'admin',
-        cli_fecha=portal_lib.fmt_fecha_hora(actualizado) if actualizado else 'fecha no disponible',
-    ))
+    """Mis Asignaciones se unió a Mis Clientes (27-nov-2026). Los enlaces viejos siguen sirviendo."""
+    qs = request.query_string.decode('utf-8', 'ignore')
+    return redirect('/mis-clientes' + (f'?{qs}' if qs else ''))
 
 
 @app.get('/mis-clientes')
 @require_login
 def mis_clientes():
     ok = request.args.get('ok')
-    flash_ok = 'Cliente guardado.' if ok == '1' else ('Estatus actualizado.' if ok == 'estatus' else '')
-    return _render_clientes(g.user, flash_ok=flash_ok)
+    flash_ok = 'Cliente guardado.' if ok == '1' else ('Estatus actualizado.' if ok == 'estatus' else _FICHA_OK.get(ok or '', ''))
+    return _render_clientes(g.user, flash_ok=flash_ok, flash_err=(request.args.get('err') or '')[:200])
 
 
 def _equipo_de(user):
@@ -2848,8 +3229,10 @@ def mi_equipo_asesora(slug):
     meta = portal_lib.asesor_by_user(slug) or {}
     cap = portal_lib.load_captaciones(slug=slug)
     clientes, cli_fecha = _asesor_clientes({'user': slug})
+    _fichas_clientes(clientes)
     for c in clientes:
         c['editable'] = False
+        c['puede_situacion'] = False
     inv = _inventario()
     visitas_r = q('SELECT * FROM asesor_visitas WHERE asesor_slug=%s ORDER BY fecha DESC, id DESC', (slug,), fetch=True) or []
     ofertas_r = q('SELECT * FROM asesor_ofertas WHERE asesor_slug=%s ORDER BY fecha DESC, id DESC', (slug,), fetch=True) or []
@@ -2935,6 +3318,76 @@ def asesor_estatus_cliente(cid):
     return redirect('/mis-clientes?ok=estatus')
 
 
+_FICHA_OK = {
+    'situacion': 'Situación actualizada. Quedó como una entrada nueva en el historial.',
+    'situacion_prueba': 'Situación actualizada en la copia de prueba (no se envió al Sistema de Clientes).',
+}
+
+
+def _ficha_redirect(volver, cid, *, err=''):
+    url = _volver_ficha(volver, cid)
+    if err:
+        url += '&err=' + quote(err, safe='')
+    return redirect(url)
+
+
+@app.post('/asesor/asignados/<cid>/situacion')
+@require_login
+def asesor_situacion_asignado(cid):
+    """Actualiza la Situación de un cliente asignado con el modelo del Sistema de Clientes.
+
+    Producción: la entrada va al Sistema de Clientes (misma fuente del seguimiento) y se refleja aquí.
+    Prueba (sin CLIENTES_ESTATUS_WRITE=1): solo en la base de prueba; la próxima sincronización
+    vuelve al valor real del Sistema.
+    En «ver como», la entrada queda a nombre del admin real.
+    """
+    cid = (cid or '').strip()[:80]
+    f = request.form
+    volver = (f.get('volver') or '').strip()
+    if not portal_lib.csrf_ok(g.user, f.get('csrf')):
+        return _ficha_redirect(volver, cid, err='La sesión expiró. Vuelve a intentar.')
+    c = _cliente_visible(g.user, cid)
+    if not c:
+        return _panel_headers(Response('No puedes actualizar este cliente.\n', 403))
+    d = {k: (f.get(k) or '').strip() for k in ('estado', 'situacion', 'fecha', 'motivo', 'comentario')}
+    if d['situacion'] in estatus_modelo.SOLO_EN_SISTEMA:
+        return _ficha_redirect(volver, cid, err='«Reserva firmada» se registra en el Sistema de Clientes, porque pide el documento.')
+    err = estatus_modelo.validar(d)
+    if err:
+        return _ficha_redirect(volver, cid, err=err)
+    if not _idem_claim(g.user['user'], f'situacion:{cid}'):
+        return redirect(_volver_ficha(volver, cid, _tile_de_cliente(g.user, cid)) + '&ok=situacion')
+    real = getattr(g, 'real_user', None) or g.user
+    viendo = getattr(g, 'view_as', None)
+    autor = real if viendo else g.user
+    at = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    rec = estatus_modelo.registro(d, asesor=_nombre_asesor(autor['user']) or autor['user'], at=at)
+    rec['via'] = 'For Rent Online' + (f' (viendo como {_nombre_asesor(viendo["user"])})' if viendo else '')
+    if viendo:
+        rec['por'] = real['user']
+    enviado = False
+    if clientes_sync.escritura_habilitada():
+        try:
+            enviado = clientes_sync.enviar_respuesta(q, cid, rec)
+        except Exception as e:
+            _idem_release()
+            log.warning('situacion: no se pudo enviar al Sistema de Clientes (%s)', type(e).__name__)
+            return _ficha_redirect(volver, cid, err='No se pudo guardar en el Sistema de Clientes. Inténtalo de nuevo.')
+    try:
+        clientes_sync.aplicar_local(q, IS_PG, cid, rec)
+    except Exception:
+        log.exception('situacion: aplicar local')
+    try:
+        import crm_write
+        crm_write.upsert_phase(q, {'ghl_id': cid, 'payload': rec, 'source': 'online'})
+    except Exception:
+        pass
+    _live_cache['t'] = 0.0
+    log.info('situacion actualizada cliente=%s por=%s enviado=%s', cid, autor['user'], enviado)
+    tile = _tile_de_cliente(g.user, cid)
+    return redirect(_volver_ficha(volver, cid, tile) + ('&ok=situacion' if enviado else '&ok=situacion_prueba'))
+
+
 
 @app.get('/inventario')
 @require_login
@@ -2964,20 +3417,47 @@ def inventario_ver():
     f = next((x for x in fichas if x['key'] == k), None)
     if not f:
         return _hdr(render_template('inmueble.html', f=None), 404)
-    cas = []
-    if g.user['role'] in ROLES_VER_ENCARGADO:   # Presidencia e Inventario (solo lectura); Mercadeo ya los ve en su sección
-        try:
-            cas = [c for c in portales.casillas(portales.links_por_key(q).get(k)) if c['visible']]
-        except Exception:
-            log.exception('inmueble portales')
-    return _hdr(render_template('inmueble.html', f=f, portales_pub=cas, compartir=inmuebles.compartir_texto(f),
+    ctx = _portales_ficha_ctx(g.user, k)
+    ok_code = request.args.get('ok') or ''
+    ok = _MERCADEO_OK.get(ok_code, '')
+    portales_err = (request.args.get('portales_err') or '').strip()
+    redes_err = (request.args.get('redes_err') or '').strip()
+    if portales_err and len(portales_err) > 280:
+        portales_err = portales_err[:280]
+    if redes_err and len(redes_err) > 280:
+        redes_err = redes_err[:280]
+    es_red = ok_code in ('red', 'red_quitado', 'red_igual')
+    puede_retirar = bool(g.user['role'] != 'admin' and f.get('codigo') and f['codigo'] in
+                         {x.get('codigo') for x in portal_lib.load_captaciones(slug=g.user['user'])})
+    return _hdr(render_template('inmueble.html', f=f, compartir=inmuebles.compartir_texto(f),
                                 ver_encargado=g.user['role'] in ROLES_VER_ENCARGADO,
-                                volver=_volver_inv(request.args.get('volver'))))
+                                volver=_volver_inv(request.args.get('volver')),
+                                back_fallback=_volver_inv(request.args.get('volver')), puede_retirar=puede_retirar,
+                                retiro_csrf=portal_lib.csrf_token(g.user) if puede_retirar else '',
+                                portales_ok='' if es_red else ok, portales_err=portales_err,
+                                redes_ok=ok if es_red else '', redes_err=redes_err, **ctx))
+
+
+@app.get('/inventario/ver/pdf')
+@require_login
+def inventario_pdf():
+    """Ficha imprimible (A4) con marca For Rent; «Generar PDF» la abre y lanza Imprimir / Guardar como PDF."""
+    _, fichas = _inmuebles_fichas(g.user)
+    k = request.args.get('k') or ''
+    f = next((x for x in fichas if x['key'] == k), None)
+    if not f:
+        return _hdr(render_template('inmueble.html', f=None), 404)
+    return _hdr(render_template('inmueble_pdf.html', f=f, auto=request.args.get('auto') == '1'))
 
 
 def _volver_inv(v):
     v = v or ''
-    return v if v.startswith('/inventario') and '//' not in v and '\\' not in v else '/inventario'
+    if '//' in v or '\\' in v or not v.startswith('/'):
+        return '/inventario'
+    path = v.split('?', 1)[0]
+    if path.startswith('/inventario') or path in ('/mis-captaciones',) or path.startswith('/mi-equipo/'):
+        return v
+    return '/inventario'
 
 
 def _inmuebles_fichas(user):
@@ -3008,6 +3488,75 @@ def _inmuebles_n_filtros(args):
 
 # ---------------------------------------------------------------- Mercadeo: 10 portales por inmueble
 _MERCADEO_VUELTAS = frozenset({'/mercadeo', '/mercadeo/forrent'})
+
+
+def _portales_ficha_ctx(user, key):
+    """Datos de portales y Marketplace para la barra de la ficha (misma lógica que la tarjeta de Mercadeo)."""
+    es_admin = user['role'] in ROLES_MERCADEO
+    puede_mp = user['role'] == 'admin'
+    try:
+        cas = portales.casillas(portales.links_por_key(q).get(key))
+    except Exception:
+        log.exception('inmueble portales')
+        cas = portales.casillas(None)
+    mp = None
+    mp_hist = []
+    try:
+        mp = (marketplace.links_por_key(q) or {}).get(key)
+        if puede_mp and mp:
+            mp_hist = marketplace.historial(q, key)
+    except Exception:
+        log.exception('inmueble marketplace')
+    puede_redes = es_admin  # Presidencia y Mercadeo editan publicaciones en redes
+    red_cas, red_hist = redes_inmueble.casillas(None), []
+    try:
+        red_cas = redes_inmueble.casillas((redes_inmueble.links_por_key(q) or {}).get(key))
+        if puede_redes:
+            red_hist = redes_inmueble.historial(q, key)
+    except Exception:
+        log.exception('inmueble redes')
+    return {
+        'portales_casillas': cas,
+        'portales_mp': mp,
+        'portales_mp_hist': mp_hist,
+        'mp_logo': marketplace.LOGO,
+        'es_admin': es_admin,
+        'puede_mp': puede_mp,
+        'puede_redes': puede_redes,
+        'redes_casillas': red_cas,
+        'redes_hist': red_hist,
+        'portales_lista': portales.PORTALES,
+        'portales_vuelta': '/inventario/ver?k=' + quote(key or '', safe=''),
+        'csrf': portal_lib.csrf_token(user) if (es_admin or puede_mp) else '',
+        'fmt': _fmt_actualizado,
+    }
+
+
+def _destino_portales(default='/inventario'):
+    """Tras editar un enlace, volver a la ficha si el formulario lo pidió; si no, a la lista de inmuebles."""
+    v = (request.form.get('vuelta') or request.args.get('vuelta') or default or '').strip()
+    if '//' in v or '\\' in v or not v.startswith('/'):
+        return default
+    parts = urlparse(v)
+    if parts.scheme or parts.netloc:
+        return default
+    if parts.path == '/inventario/ver':
+        k = (parse_qs(parts.query).get('k') or [''])[0].strip()
+        if k and len(k) <= 120:
+            return '/inventario/ver?k=' + quote(k, safe='')
+        return default
+    if v in _MERCADEO_VUELTAS or parts.path == '/inventario':
+        return '/inventario'
+    return default
+
+
+def _redir_portales(dest, ok='', err='', err_key='portales_err'):
+    sep = '&' if '?' in dest else '?'
+    if err:
+        return redirect(dest + sep + err_key + '=' + quote(err, safe=''))
+    if ok:
+        return redirect(dest + sep + 'ok=' + ok)
+    return redirect(dest)
 
 
 def _mercadeo_alcance_defecto(user):
@@ -3110,86 +3659,116 @@ _MERCADEO_OK = {
     'verificando': 'Verificando todos los enlaces en segundo plano. Recarga en un minuto.',
     'mp': 'Enlace de Marketplace guardado.', 'mp_quitado': 'Enlace de Marketplace quitado.',
     'mp_igual': 'Ese enlace de Marketplace ya estaba guardado.',
+    'red': 'Enlace de red social guardado.', 'red_quitado': 'Enlace de red social quitado.',
+    'red_igual': 'Ese enlace de red social ya estaba guardado.',
 }
 
 
 @app.get('/mercadeo')
 @require_login
 def mercadeo():
-    ok = _MERCADEO_OK.get(request.args.get('ok') or '', '')
-    return _mercadeo_render(g.user, alcance=_mercadeo_alcance_defecto(g.user), ok=ok)
+    """El submenú Mercadeo se eliminó; los portales viven en cada ficha. La ruta queda como redirección."""
+    return redirect('/inventario')
 
 
 @app.get('/mercadeo/forrent')
-@require_roles(*ROLES_MERCADEO)
+@require_login
 def mercadeo_forrent():
-    ok = _MERCADEO_OK.get(request.args.get('ok') or '', '')
-    return _mercadeo_render(g.user, alcance='forrent', ok=ok)
+    return redirect('/inventario')
 
 
 @app.post('/mercadeo/link')
 @require_roles(*ROLES_MERCADEO)
 def mercadeo_link():
     """Solo Presidencia y Mercadeo agregan, cambian o quitan enlaces. Se verifica antes de guardar."""
-    vuelta, alcance = _mercadeo_ctx(g.user)
+    dest = _destino_portales()
     if not _csrf_ok():
-        return _mercadeo_render(g.user, alcance=alcance, err='La sesión expiró. Vuelve a intentar.', status=400)
+        return _redir_portales(dest, err='La sesión expiró. Vuelve a intentar.')
     f = request.form
     key, portal, accion = (f.get('key') or '').strip(), (f.get('portal') or '').strip(), f.get('accion') or 'guardar'
     if portal not in portales.PORTAL_KEYS:
-        return _mercadeo_render(g.user, alcance=alcance, err='Portal no válido.', status=400)
+        return _redir_portales(dest, err='Portal no válido.')
     _, items, _ = _mercadeo_items(g.user, alcance='forrent')
     it = next((x for x in items if portales.key_de(x) == key), None)
     if not it:
-        return _mercadeo_render(g.user, alcance=alcance, err='No encontramos ese inmueble en el inventario.', status=400)
+        return _redir_portales(dest, err='No encontramos ese inmueble en el inventario.')
     nombre = portales.POR_KEY[portal]['nombre']
     if accion == 'quitar':
         portales.quitar(q, key=key, portal=portal, por=g.user['user'])
-        return redirect(vuelta + '?ok=quitado')
+        return _redir_portales(dest, ok='quitado')
     url, e = portales.url_valida(portal, f.get('url'))
     if e:
-        return _mercadeo_render(g.user, alcance=alcance, err=e, status=400)
+        return _redir_portales(dest, err=e)
     estado, http_status, detalle = portales.verificar(portal, url, timeout=8)
     if estado == 'caido':
-        return _mercadeo_render(g.user, alcance=alcance, err=f'No se guardó: el enlace de {nombre} no responde ({detalle or "sin respuesta"}). '
-                                             'Revisa que sea la ficha publicada del inmueble.', status=400)
+        return _redir_portales(dest, err=f'No se guardó: el enlace de {nombre} no responde ({detalle or "sin respuesta"}). '
+                             'Revisa que sea la ficha publicada del inmueble.')
     portales.guardar(q, it=it, portal=portal, url=url, estado=estado, http_status=http_status,
                      fuente='manual (Mercadeo)' if g.user['role'] == 'mercadeo' else 'manual (Presidencia)',
                      nota=detalle or None, por=g.user['user'])
-    return redirect(vuelta + '?ok=1')
+    return _redir_portales(dest, ok='1')
 
 
 @app.post('/mercadeo/verificar')
 @require_roles(*ROLES_MERCADEO)
 def mercadeo_verificar():
-    vuelta, alcance = _mercadeo_ctx(g.user)
+    dest = _destino_portales()
     if not _csrf_ok():
-        return _mercadeo_render(g.user, alcance=alcance, err='La sesión expiró. Vuelve a intentar.', status=400)
+        return _redir_portales(dest, err='La sesión expiró. Vuelve a intentar.')
     portales.reverificar_todo(q)
-    return redirect(vuelta + '?ok=verificando')
+    return _redir_portales(dest, ok='verificando')
 
 
 @app.post('/mercadeo/marketplace')
 @require_admin
 def mercadeo_marketplace():
     """Facebook Marketplace por inmueble: solo rol admin (José y Luz). Valida URL y deja bitácora (quién/cuándo)."""
-    vuelta, alcance = _mercadeo_ctx(g.user)
+    dest = _destino_portales()
     if not _csrf_ok():
-        return _mercadeo_render(g.user, alcance=alcance, err='La sesión expiró. Vuelve a intentar.', status=400)
+        return _redir_portales(dest, err='La sesión expiró. Vuelve a intentar.')
     f = request.form
     key, accion = (f.get('key') or '').strip(), f.get('accion') or 'guardar'
     _, items, _ = _mercadeo_items(g.user, alcance='forrent')
     it = next((x for x in items if portales.key_de(x) == key), None)
     if not it:
-        return _mercadeo_render(g.user, alcance=alcance, err='No encontramos ese inmueble en el inventario.', status=400)
+        return _redir_portales(dest, err='No encontramos ese inmueble en el inventario.')
     if accion == 'quitar':
         marketplace.quitar(q, key=key, por=g.user['user'])
-        return redirect(vuelta + '?ok=mp_quitado')
+        return _redir_portales(dest, ok='mp_quitado')
     url, e = marketplace.url_valida(f.get('url'))
     if e:
-        return _mercadeo_render(g.user, alcance=alcance, err=e, status=400)
+        return _redir_portales(dest, err=e)
     res = marketplace.guardar(q, key=key, codigo=portales.codigo_de(it), url=url, por=g.user['user'], is_pg=IS_PG)
-    return redirect(vuelta + '?ok=' + ('mp_igual' if res == 'sin_cambio' else 'mp'))
+    return _redir_portales(dest, ok=('mp_igual' if res == 'sin_cambio' else 'mp'))
+
+
+@app.post('/mercadeo/redes')
+@require_roles(*ROLES_MERCADEO)
+def mercadeo_redes():
+    """Presidencia y Mercadeo agregan, cambian o quitan el enlace de una publicación en redes, por inmueble."""
+    dest = _destino_portales()
+    def redir(ok='', err=''):
+        return _redir_portales(dest, ok=ok, err=err, err_key='redes_err')
+    if not _csrf_ok():
+        return redir(err='La sesión expiró. Vuelve a intentar.')
+    f = request.form
+    key, red, accion = (f.get('key') or '').strip(), (f.get('red') or '').strip(), f.get('accion') or 'guardar'
+    if red not in redes_inmueble.REDES_KEYS:
+        return redir(err='Red no válida.')
+    _, items, _ = _mercadeo_items(g.user, alcance='forrent')
+    it = next((x for x in items if portales.key_de(x) == key), None)
+    if not it:
+        return redir(err='No encontramos ese inmueble en el inventario.')
+    if accion == 'quitar':
+        redes_inmueble.quitar(q, key=key, red=red, por=g.user['user'])
+        return redir(ok='red_quitado')
+    url, e = redes_inmueble.url_valida(red, f.get('url'))
+    if e:
+        return redir(err=e)
+    fuente = 'manual (Mercadeo)' if g.user['role'] == 'mercadeo' else 'manual (Presidencia)'
+    res = redes_inmueble.guardar(q, key=key, codigo=portales.codigo_de(it), red=red, url=url,
+                                 por=g.user['user'], fuente=fuente)
+    return redir(ok=('red_igual' if res == 'sin_cambio' else 'red'))
 
 
 @app.get('/mercadeo/planificador')
@@ -3500,6 +4079,31 @@ def perfil_foto(slug):
 
 
 # --- Mis Captaciones (filtros) + solicitudes de alta/baja
+def _captaciones_agregar_render(u, *, tipo='', err='', form=None, status=200):
+    """Primera pregunta de «Agregar captación»: inmueble nuevo (carga) o ya en inventario (solicitud)."""
+    puede = u['role'] != 'admin'
+    if tipo == 'existente' and not puede:
+        return redirect('/mis-captaciones/agregar')
+    n_cargas = 0
+    try:
+        n_cargas = len(carga.de_asesor(q, u['user']) or [])
+    except Exception:
+        n_cargas = 0
+    return _hdr(render_template(
+        'captaciones_agregar.html', tipo=tipo if tipo == 'existente' else '',
+        err=err, form=form or {}, csrf=portal_lib.csrf_token(u), puede=puede, n_cargas=n_cargas,
+    ), status)
+
+
+@app.get('/mis-captaciones/agregar')
+@require_login
+def captaciones_agregar():
+    u = g.user
+    if u['role'] not in ('asesor', 'lider', 'admin'):
+        return _forbidden()
+    return _captaciones_agregar_render(u, tipo=request.args.get('tipo') or '')
+
+
 @app.route('/mis-captaciones', methods=['GET', 'POST'], endpoint='mis_captaciones2')
 @require_login
 def mis_captaciones2():
@@ -3548,6 +4152,10 @@ def mis_captaciones2():
                     else:
                         _correo(apr, f"{u['name']} pidió {que} una captación", aviso, f'captacion_{accion}_aprobador')
                     return redirect('/mis-captaciones?ok=1')
+        if err and (request.form.get('accion') == 'alta'):
+            form = {k: (request.form.get(k) or '') for k in
+                    ('titulo', 'codigo', 'operacion', 'origen', 'tipo', 'zona', 'precio', 'nota')}
+            return _captaciones_agregar_render(u, tipo='existente', err=err, form=form, status=400)
     f = request.args.get('f') or 'todas'
     if f not in ('propias', 'aliadas', 'todas'):
         f = 'todas'
@@ -4035,7 +4643,9 @@ def carga_cola():
 
 
 def _carga_inventario_items():
-    gr = _inventario().get('grupos') or {}
+    # Cruce interno de duplicados: incluye la red para no cargar de nuevo un aviso de otra inmobiliaria.
+    # No se muestra en pantallas; esas leen _inventario() (solo propio y alianza).
+    gr = _inventario_raw().get('grupos') or {}
     return list(gr.get('propio') or []) + list(gr.get('alianza') or []) + list(gr.get('red') or [])
 
 

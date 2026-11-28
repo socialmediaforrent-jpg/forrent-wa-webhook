@@ -1,0 +1,44 @@
+{% extends 'base.html' %}{% set nav='captaciones' %}{% block title %}Agregar captación{% endblock %}
+{% block body %}
+<h1 class="page">Agregar captación</h1>
+{% if err %}<div class="alert err" role="alert">{{ err }}</div>{% endif %}
+{% if tipo != 'existente' %}
+<p class="lead">¿Es un inmueble nuevo o ya está en el inventario?</p>
+<div class="cap-elige">
+  <form method="post" action="/mis-inmuebles/nuevo" class="cap-opcion">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="idem" value="{{ idem_token() }}">
+    <button type="submit" class="cap-opcion-btn">
+      <strong>Es un inmueble nuevo</strong>
+      <span>Lo cargas con fotos y datos. Inventario lo revisa y lo publica en Wasi, Mercado Libre y los demás portales.</span>
+    </button>
+  </form>
+  {% if puede %}
+  <a class="cap-opcion cap-opcion-btn" href="/mis-captaciones/agregar?tipo=existente">
+    <strong>Ya está en el inventario</strong>
+    <span>Pides que te lo asignen como captadora. Lo aprueba tu líder o José y te llega un aviso por correo.</span>
+  </a>
+  {% endif %}
+</div>
+{% if n_cargas %}
+<p class="muted"><a href="/mis-inmuebles">Ver cargas en curso ({{ n_cargas }}) →</a></p>
+{% endif %}
+{% else %}
+<p class="lead">Pide que te asignen un inmueble que ya está en el inventario. Lo aprueba tu líder o José y te llega un aviso por correo.</p>
+<form class="grid" method="post" action="/mis-captaciones">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <input type="hidden" name="idem" value="{{ idem_token() }}">
+  <input type="hidden" name="accion" value="alta">
+  <div class="wide"><label>Título o dirección <input name="titulo" required maxlength="160" value="{{ form.titulo or '' }}"></label></div>
+  <div><label>Código (Wasi o Rex, si lo tiene) <input name="codigo" maxlength="40" value="{{ form.codigo or '' }}"></label></div>
+  <div><label>Operación <select name="operacion"><option{% if form.operacion=='Venta' %} selected{% endif %}>Venta</option><option{% if form.operacion=='Alquiler' %} selected{% endif %}>Alquiler</option></select></label></div>
+  <div><label>Origen <select name="origen"><option value="propio"{% if form.origen!='alianza' %} selected{% endif %}>Propia</option><option value="alianza"{% if form.origen=='alianza' %} selected{% endif %}>Aliada</option></select></label></div>
+  <div><label>Tipo <input name="tipo" maxlength="60" value="{{ form.tipo or '' }}"></label></div>
+  <div><label>Zona <input name="zona" maxlength="120" value="{{ form.zona or '' }}"></label></div>
+  <div class="wide"><label>Precio <input name="precio" maxlength="60" placeholder="US$ …" value="{{ form.precio or '' }}"></label></div>
+  <div class="wide"><label>Nota <textarea name="nota" maxlength="400">{{ form.nota or '' }}</textarea></label></div>
+  <div><button type="submit">Enviar solicitud</button></div>
+</form>
+<p class="muted"><a href="/mis-captaciones/agregar">← Volver a la pregunta</a></p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<title>{{ f.titulo }} · For Rent Grupo Inmobiliario</title>
+<style>
+@page{size:A4;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0;background:#fff;color:#1d1d1f;font-family:"Helvetica Neue",Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hoja{width:210mm;min-height:297mm;padding:0 0 26mm;position:relative;margin:0 auto}
+.cab{display:flex;align-items:center;justify-content:space-between;padding:9mm 14mm 6mm;border-bottom:3px solid #E55B01}
+.cab img{height:16mm}
+.cab .ref{text-align:right;font-size:9.5pt;color:#5b6475;line-height:1.4}
+.cab .ref b{display:block;color:#E55B01;font-size:11pt;letter-spacing:.04em;text-transform:uppercase}
+.tit{padding:6mm 14mm 3mm}
+.tit h1{margin:0;font-size:19pt;line-height:1.2;color:#111}
+.tit .loc{margin-top:1.5mm;font-size:11pt;color:#5b6475}
+.hero{margin:2mm 14mm 0;height:88mm;border-radius:3mm;overflow:hidden;background:#f1f3f6}
+.hero img{width:100%;height:100%;object-fit:cover;display:block}
+.minis{display:grid;grid-template-columns:repeat(3,1fr);gap:2.5mm;margin:2.5mm 14mm 0}
+.minis img{width:100%;height:30mm;object-fit:cover;border-radius:2mm;display:block}
+.precio{margin:5mm 14mm 0;display:flex;justify-content:space-between;align-items:center;background:#E55B01;color:#fff;border-radius:3mm;padding:4mm 6mm}
+.precio span{font-size:10.5pt;text-transform:uppercase;letter-spacing:.06em}
+.precio b{font-size:19pt}
+.datos{margin:5mm 14mm 0;display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm}
+.datos div{border:1px solid #f0d6c4;background:#fff7f1;border-radius:2mm;padding:2.5mm 3mm;font-size:8.5pt;color:#7a5a45}
+.datos b{display:block;font-size:11.5pt;color:#111;margin-top:.6mm}
+h2{margin:6mm 14mm 2mm;font-size:12pt;color:#E55B01;text-transform:uppercase;letter-spacing:.05em}
+.desc{margin:0 14mm;font-size:10pt;line-height:1.5;color:#30343d;white-space:pre-line}
+.carac{margin:0 14mm;font-size:9.5pt;color:#30343d;line-height:1.5}
+.pie{position:absolute;left:0;right:0;bottom:0;background:#111;color:#fff;padding:5mm 14mm;display:flex;justify-content:space-between;align-items:center;font-size:8.8pt;line-height:1.45}
+.pie img{height:10mm}
+.pie .c{text-align:right}
+.pie .c b{color:#ffb27a}
+.nota{margin:4mm 14mm 0;font-size:7.8pt;color:#8a93a3}
+@media screen{body{background:#e9ebef}.hoja{box-shadow:0 2px 16px rgba(0,0,0,.15);margin:12px auto}}
+</style>
+</head>
+<body>
+{% set fotos = f.fotos or [] %}
+<div class="hoja">
+  <div class="cab">
+    <img src="/static/logo.png" alt="For Rent Grupo Inmobiliario">
+    <div class="ref"><b>Ficha del inmueble</b>{% if f.codigo %}{{ cod_lbl(f) }} {{ f.codigo }}{% endif %}{% if f.tipo_negocio %}<br>{{ f.tipo_negocio }}{% endif %}</div>
+  </div>
+  <div class="tit">
+    <h1>{{ f.titulo }}</h1>
+    <div class="loc">{{ f.lugar or f.zona or '' }}{% if f.ciudad and f.ciudad not in (f.lugar or '') %} · {{ f.ciudad }}{% endif %}</div>
+  </div>
+  {% if fotos %}
+  <div class="hero"><img src="{{ fotos[0].full or fotos[0].thumb }}" alt="" referrerpolicy="no-referrer"></div>
+  {% if fotos|length > 1 %}<div class="minis">{% for x in fotos[1:4] %}<img src="{{ x.full or x.thumb }}" alt="" referrerpolicy="no-referrer">{% endfor %}</div>{% endif %}
+  {% endif %}
+  <div class="precio"><span>Precio de {{ (f.operacion or 'venta')|lower }}</span><b>{{ f.precio or 'Consultar' }}{% if f.precio and f.operacion == 'Alquiler' %} <small style="font-size:10pt">mensual</small>{% endif %}</b></div>
+  {% set tiles = [
+    ('Área construida', ('%.0f m²'|format(f.m2)) if f.m2 else ''),
+    ('Área privada', ('%.0f m²'|format(f.area_privada)) if f.area_privada else ''),
+    ('Área terreno', ('%.0f m²'|format(f.area_total)) if f.area_total else ''),
+    ('Alcobas', f.habitaciones or ''), ('Baños', f.banos or ''),
+    ('Estacionamiento', f.garajes or ''), ('Piso', f.piso or ''),
+    ('Año', f.anio or ''), ('Estado', f.estado_fisico or '')] %}
+  <div class="datos">{% for lbl, val in tiles if val %}<div>{{ lbl }}<b>{{ val }}</b></div>{% endfor %}</div>
+  {% if f.descripcion %}<h2>Descripción</h2><div class="desc">{{ f.descripcion|truncate(1100, True, '…') }}</div>{% endif %}
+  {% if f.caracteristicas_int or f.caracteristicas_ext %}<h2>Características</h2><div class="carac">{{ ((f.caracteristicas_int or []) + (f.caracteristicas_ext or []))[:24]|join(' · ') }}</div>{% endif %}
+  <p class="nota">Información orientativa. Precio, disponibilidad y condiciones se confirman con For Rent.</p>
+  <div class="pie">
+    <img src="/static/logo-blanco.png" alt="">
+    <div class="c"><b>For Rent Grupo Inmobiliario, C.A.</b> · RIF J-50475755-1<br>
+      Av. Francisco de Miranda, Centro Seguros La Paz, piso 5, local 0-55, Boleíta Norte, Caracas<br>
+      WhatsApp +58 424-2294196 · socialmediaforrent@gmail.com · @forrent.grupoinmobiliario</div>
+  </div>
+</div>
+{% if auto %}<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},400)})</script>{% endif %}
+</body>
+</html>

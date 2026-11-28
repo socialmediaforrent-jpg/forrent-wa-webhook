@@ -290,10 +290,12 @@ def test_login_mercadeo():
 
 def test_mercadeo_solo_sus_secciones():
     c = cliente('mercadeo')
-    assert c.get('/mercadeo').status_code == 200
+    r = c.get('/mercadeo')
+    assert r.status_code in (302, 303) and r.headers['Location'].endswith('/inventario')
+    assert c.get('/inventario').status_code == 200
     assert c.get('/mercadeo/planificador').status_code == 200
-    assert c.get('/').status_code == 302 and c.get('/').headers['Location'].endswith('/mercadeo')
-    for ruta in ('/panel', '/panel/data', '/mis-clientes', '/inventario', '/cierres', '/clientes-propios', '/admin/correos'):
+    assert c.get('/').status_code == 200 and b'bienvenido a For Rent Online' in c.get('/').data
+    for ruta in ('/panel', '/panel/data', '/mis-clientes', '/cierres', '/clientes-propios', '/admin/correos'):
         assert c.get(ruta).status_code == 403, ruta
     assert c.post('/mercadeo/marketplace', data={'key': 'x', 'csrf': csrf('mercadeo')}).status_code == 403
 
@@ -306,6 +308,7 @@ def test_planificador_permisos():
 def test_asesora_sigue_sin_editar_enlaces():
     assert cliente('ana').post('/mercadeo/link', data={'csrf': csrf('ana')}).status_code == 403
     assert cliente('ana').post('/mercadeo/marketplace', data={'csrf': csrf('ana')}).status_code == 403
+    assert cliente('ana').post('/mercadeo/redes', data={'csrf': csrf('ana')}).status_code == 403
 
 
 # ------------------------------------------------------------ Redes Sociales y Marketplace
@@ -319,8 +322,13 @@ def test_redes_solo_enlaces_validos(monkeypatch):
 
 
 def test_pagina_mercadeo_secciones():
-    html = cliente('jose').get('/mercadeo').get_data(as_text=True)
-    assert 'Redes Sociales' in html and 'Portales Inmobiliarios' in html and 'Facebook Marketplace' in html
+    """ /mercadeo redirige a Inmuebles. Redes Sociales y «Verificar todos» no se borraron. """
+    r = cliente('jose').get('/mercadeo')
+    assert r.status_code in (302, 303) and r.headers['Location'].endswith('/inventario')
+    from pathlib import Path
+    mk = Path(__file__).resolve().parents[1].joinpath('templates/mercadeo.html').read_text()
+    assert 'Redes Sociales' in mk and 'Portales Inmobiliarios' in mk
+    assert 'Facebook Marketplace' in mk and 'Verificar todos los enlaces' in mk
 
 
 def test_marketplace_url_valida():
@@ -359,8 +367,9 @@ def test_marketplace_ruta_luz_y_jose():
     r = cliente('luz').post('/mercadeo/marketplace', data={'key': key, 'url': 'https://www.facebook.com/marketplace/item/42/', 'csrf': csrf('luz')})
     assert r.status_code == 302 and 'ok=mp' in r.headers['Location']
     r = cliente('luz').post('/mercadeo/marketplace', data={'key': key, 'url': 'https://www.facebook.com/forrent', 'csrf': csrf('luz')})
-    assert r.status_code == 400
+    assert r.status_code in (302, 303) and 'portales_err=' in r.headers['Location']
     r = cliente('jose').post('/mercadeo/marketplace', data={'key': key, 'accion': 'quitar', 'csrf': csrf('jose')})
     assert r.status_code == 302
     assert [h['por'] for h in marketplace.historial(appmod.q, key)] == ['jose', 'luz']
-    assert cliente('luz').post('/mercadeo/marketplace', data={'key': key, 'url': 'https://www.facebook.com/marketplace/item/1/'}).status_code == 400
+    r = cliente('luz').post('/mercadeo/marketplace', data={'key': key, 'url': 'https://www.facebook.com/marketplace/item/1/'})
+    assert r.status_code in (302, 303) and 'portales_err=' in r.headers['Location']

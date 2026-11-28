@@ -225,6 +225,7 @@ ASIGNACIONES_EMBUDO = (
     {
         'id': 'nuevas', 'n': 1, 'titulo': 'Nuevas Asignaciones', 'tono': 'peach',
         'icono': 'userplus', 'simple': True,
+        'subtitulo': 'Sin avance en las últimas 24 horas',
         'tiles': (
             {'id': 'nuevas', 'label': 'Nuevas Asignaciones', 'icono': 'userplus',
              'estatus': ('Nuevo', 'No contactado', 'ASIGNADO', 'Asignado')},
@@ -233,6 +234,7 @@ ASIGNACIONES_EMBUDO = (
     {
         'id': 'sin_estatus', 'n': None, 'titulo': 'Clientes sin estatus', 'tono': 'sand',
         'icono': 'clipboard', 'simple': True,
+        'subtitulo': 'Más de 24 horas sin un avance',
         'tiles': (
             {'id': 'sin_estatus', 'label': 'Clientes sin estatus', 'icono': 'clipboard',
              'estatus': ('Sin estatus',)},
@@ -241,6 +243,7 @@ ASIGNACIONES_EMBUDO = (
     {
         'id': 'proceso', 'n': 2, 'titulo': 'En Proceso', 'tono': 'gray',
         'icono': 'refresh', 'simple': False,
+        'subtitulo': 'Contactado, búsqueda y visitas',
         'tiles': (
             {'id': 'contactado', 'label': 'Contactado', 'icono': 'phone',
              'estatus': ('Contactado',)},
@@ -253,6 +256,7 @@ ASIGNACIONES_EMBUDO = (
     {
         'id': 'negociacion', 'n': 3, 'titulo': 'En Negociación', 'tono': 'lavender',
         'icono': 'handshake', 'simple': False,
+        'subtitulo': 'Ofertas y reservas',
         'tiles': (
             {'id': 'oferta', 'label': 'Oferta enviada/recibida', 'icono': 'send',
              'estatus': ('Oferta realizada',)},
@@ -265,6 +269,7 @@ ASIGNACIONES_EMBUDO = (
     {
         'id': 'entrega', 'n': 4, 'titulo': 'Entrega de Inmueble', 'tono': 'green',
         'icono': 'house', 'simple': False,
+        'subtitulo': 'Reserva firmada, registro y entrega',
         'tiles': (
             {'id': 'reserva_firmada', 'label': 'Reserva Firmada', 'icono': 'doc-check',
              'estatus': ('Reserva firmada',)},
@@ -277,6 +282,7 @@ ASIGNACIONES_EMBUDO = (
     {
         'id': 'otros', 'n': None, 'titulo': 'Otros', 'tono': 'stone',
         'icono': 'tag', 'simple': True,
+        'subtitulo': 'Otros estatus',
         'tiles': (
             {'id': 'otros', 'label': 'Otros', 'icono': 'tag',
              'estatus': ('Otros',)},
@@ -285,6 +291,7 @@ ASIGNACIONES_EMBUDO = (
     {
         'id': 'perdidos', 'n': None, 'titulo': 'Perdidos', 'tono': 'rose',
         'icono': 'x-circle', 'simple': True,
+        'subtitulo': 'No continuaron el proceso',
         'tiles': (
             {'id': 'perdidos', 'label': 'Perdidos', 'icono': 'x-circle',
              'estatus': ('Perdido',)},

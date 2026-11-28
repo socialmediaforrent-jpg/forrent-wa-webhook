@@ -117,16 +117,10 @@ def test_captaciones_agrupadas():
         assert main.count('Captaciones For Rent') == 1, slug
         assert 'Mis Captaciones ›' not in main and 'Captaciones For Rent ›' not in main
         assert not re.search(r'<details class="card mod-group"[^>]*\sopen', main)
-        # Mis Captaciones ya no es un desplegable: es una tarjeta que va a /mis-captaciones.
         assert re.search(
-            r'<a class="card" href="/mis-captaciones">\s*<h2>Mis Captaciones</h2>\s*<p>Propios, Alianza y Todos\.</p>',
+            r'<a class="card" href="/mis-captaciones">\s*<h2>Mis Captaciones</h2>\s*<p>Propios, Alianza y Todos\. Los portales de cada uno están en su ficha\.</p>',
             main, re.S), slug
-        assert re.search(
-            r'<a class="card" href="/mercadeo">\s*<h2>Mercadeo</h2>\s*<p>Tus enlaces en los 10 portales y las 6 redes\.</p>',
-            main, re.S), slug
-        # No queda el submenú Inmuebles ni Estadísticas dentro de Mis Captaciones.
         inv = re.search(r'<details class="sec mod" id="mod-inventario">.*?</details>', main, re.S).group(0)
-        # El único desplegable de Inventario es Captaciones For Rent (sigue con Inmuebles, Mercadeo y Estadísticas).
         grupos = re.findall(
             r'<details class="card mod-group">\s*<summary class="mod-group-sum">\s*<span>\s*<h2>([^<]+)</h2>(.*?)</details>',
             inv, re.S)
@@ -134,20 +128,16 @@ def test_captaciones_agrupadas():
         assert labels == ['Captaciones For Rent'], (slug, labels)
         fr = grupos[0][1]
         assert re.search(r'<h3>Inmuebles</h3>', fr)
-        assert re.search(r'<h3>Mercadeo', fr)
+        assert not re.search(r'<h3>Mercadeo', fr)
         assert re.search(r'<h3>Estadísticas', fr)
         assert 'En preparación' in fr
         assert 'Llega en la etapa 8, solo con datos reales.' in fr
-        # Estadísticas de etapa 8 no aparece bajo Mis Captaciones (solo en Captaciones For Rent).
         mc_card = re.search(r'<a class="card" href="/mis-captaciones">.*?</a>', main, re.S).group(0)
         assert 'Estadísticas' not in mc_card
         assert '<h3>Inmuebles</h3>' not in inv.split('Captaciones For Rent')[0]
+        assert 'href="/mercadeo"' not in main.split('Captaciones For Rent')[0]
         assert 'href="/inventario"' in fr
-        if slug == 'ana':
-            assert 'En preparación' in fr and not re.search(r'href="/mercadeo', fr)
-        else:
-            assert 'href="/mercadeo/forrent"' in fr
-            assert not re.search(r'href="/mercadeo"', fr)
+        assert not re.search(r'href="/mercadeo', fr)
         assert 'Cargar inmueble' not in main
         assert 'href="/mis-inmuebles"' not in main
         assert 'href="/mercadeo/planificador"' not in main
@@ -169,8 +159,6 @@ def test_permisos_sin_cambios():
 
 def test_pestanas_propios_alianza_todos():
     h = cliente('ana').get('/mis-captaciones').get_data(as_text=True)
-    assert re.search(r'Propios \(\d+\).*Alianza \(\d+\).*Todos \(\d+\)', h, re.S)
-    h = cliente('jose').get('/mercadeo').get_data(as_text=True)
     assert re.search(r'Propios \(\d+\).*Alianza \(\d+\).*Todos \(\d+\)', h, re.S)
 
 
@@ -194,22 +182,41 @@ def test_boton_atras():
     for slug, path in (('ana', '/portal'), ('ana', '/panel'), ('jose', '/portal'), ('jose', '/panel')):
         assert 'btn-atras' not in cliente(slug).get(path).get_data(as_text=True), (slug, path)
     # Pantallas de módulos / Más: sí, y caen a /modulos si no hay historial.
-    for path in ('/mis-clientes', '/visitas', '/inventario', '/mis-captaciones', '/ofertas', '/perfil', '/mercadeo'):
+    for path in ('/mis-clientes', '/visitas', '/inventario', '/mis-captaciones', '/ofertas', '/perfil'):
         h = cliente('ana').get(path).get_data(as_text=True)
         m = _atras(h)
         assert m and m.group(1) == '/modulos', path
-    h = cliente('jose').get('/mercadeo').get_data(as_text=True)
-    assert _atras(h) and _atras(h).group(1) == '/modulos'
-    # Mercadeo: su inicio y su planificador (raíces de su barra) no lo duplican.
-    assert 'btn-atras' not in cliente('mercadeo').get('/mercadeo').get_data(as_text=True)
+    # La vieja ruta /mercadeo redirige a la lista de inmuebles (sin links rotos).
+    r = cliente('ana').get('/mercadeo')
+    assert r.status_code in (302, 303) and r.headers['Location'].endswith('/inventario')
+    r = cliente('jose').get('/mercadeo/forrent')
+    assert r.status_code in (302, 303) and r.headers['Location'].endswith('/inventario')
+    # Rol mercadeo: Inmuebles y el planificador son raíces de su barra (sin Atrás duplicado).
+    assert 'btn-atras' not in cliente('mercadeo').get('/inventario').get_data(as_text=True)
+    assert 'btn-atras' not in cliente('mercadeo').get('/mercadeo/planificador').get_data(as_text=True)
 
 
-def test_cargar_inmueble_en_mis_captaciones():
-    """La carga se abre desde Mis Captaciones, no como entrada suelta en Módulos."""
+def test_agregar_captacion_en_mis_captaciones():
+    """Un solo botón «Agregar captación» en Mis Captaciones, no como entrada suelta en Módulos."""
     for slug in ('jose', 'ana'):
         h = cliente(slug).get('/mis-captaciones').get_data(as_text=True)
         m = re.search(r'<a class="btn-carga" href="([^"]+)">([^<]+)</a>', h)
-        assert m and m.group(1) == '/mis-inmuebles' and m.group(2) == 'Cargar inmueble', slug
+        assert m and m.group(1) == '/mis-captaciones/agregar' and m.group(2) == 'Agregar captación', slug
+        assert 'Cargar inmueble' not in h
+        assert '+ Solicitar agregar' not in h
+    h = cliente('ana').get('/mis-captaciones/agregar').get_data(as_text=True)
+    assert '¿Es un inmueble nuevo o ya está en el inventario?' in h
+    assert 'Es un inmueble nuevo' in h
+    assert 'Ya está en el inventario' in h
+    assert 'action="/mis-inmuebles/nuevo"' in h
+    h = cliente('ana').get('/mis-captaciones/agregar?tipo=existente').get_data(as_text=True)
+    assert 'name="accion" value="alta"' in h
+    assert 'Enviar solicitud' in h
+    # José carga inmuebles nuevos, no pide que se los asignen.
+    hj = cliente('jose').get('/mis-captaciones/agregar').get_data(as_text=True)
+    assert 'Es un inmueble nuevo' in hj
+    assert 'Ya está en el inventario' not in hj
+    assert cliente('jose').get('/mis-captaciones/agregar?tipo=existente').status_code in (302, 303)
 
 def test_mercadeo_mis_captaciones_solo_del_usuario():
     """Mis Captaciones › Mercadeo cuenta solo las captaciones del usuario conectado."""
@@ -224,25 +231,36 @@ def test_mercadeo_mis_captaciones_solo_del_usuario():
     assert len(mias_ana) == len(portal_lib.load_captaciones(slug='ana'))
     assert len(mias_jose) == 0
     assert len(fr_jose) > len(mias_ana)
-    h = cliente('ana').get('/mercadeo').get_data(as_text=True)
-    assert 'popovertarget="mk-info"' in h
-    assert 'Todos los inmuebles de For Rent' not in h.split('id="mk-info"', 1)[1][:800]
-    assert 'Tus inmuebles en los 10 Portales' in h
-    assert 'Planificador de anuncios' not in h
-    assert 'class="lead"' not in h
-    # No se mezclan captaciones de otras asesoras.
-    h_j = cliente('jose').get('/mercadeo').get_data(as_text=True)
-    assert 'No tienes captaciones propias todavía' in h_j
-    h_fr = cliente('jose').get('/mercadeo/forrent').get_data(as_text=True)
-    assert 'Todos los inmuebles de For Rent' in h_fr
-    assert 'No tienes captaciones propias todavía' not in h_fr
-    assert cliente('ana').get('/mercadeo/forrent').status_code == 403
+    # La página-lista de Mercadeo ya no se sirve: ambas rutas van a Inmuebles.
+    for slug, path in (('ana', '/mercadeo'), ('jose', '/mercadeo'), ('jose', '/mercadeo/forrent'),
+                       ('ana', '/mercadeo/forrent')):
+        r = cliente(slug).get(path)
+        assert r.status_code in (302, 303), (slug, path)
+        assert r.headers['Location'].endswith('/inventario'), (slug, path)
 
 
 def test_mercadeo_info_y_sin_planificador():
-    h = cliente('jose').get('/mercadeo/forrent').get_data(as_text=True)
+    """El planificador sigue existiendo en su ruta; ya no hay entrada Mercadeo en Módulos."""
+    r = cliente('jose').get('/mercadeo/forrent')
+    assert r.status_code in (302, 303) and r.headers['Location'].endswith('/inventario')
+    h = cliente('jose').get('/modulos').get_data(as_text=True)
     main = re.search(r'<main.*?</main>', h, re.S).group(0)
-    assert 'popovertarget="mk-info"' in main
-    assert 'id="mk-info"' in main
+    assert 'href="/mercadeo"' not in main
+    assert 'href="/mercadeo/forrent"' not in main
     assert 'Planificador de anuncios' not in main
-    assert 'class="lead"' not in main
+    assert cliente('jose').get('/mercadeo/planificador').status_code == 200
+
+
+def test_grupos_inventario_compactos():
+    """Mis Captaciones y Captaciones For Rent son más delgados en Módulos (móvil)."""
+    import os
+    css = open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static/app.css'), encoding='utf-8').read()
+    bloque = css.split('body.page-modulos .mod-group-sum{', 1)[1].split('}', 1)[0]
+    assert 'min-height:28px' in bloque
+    assert 'padding:4px 8px' in bloque
+    assert 'body.page-modulos .mod-group{padding:0}' in css
+    assert 'body.page-modulos .mod-sub{min-height:0;padding:3px 8px' in css
+    assert 'body.page-modulos .mod-sub h3{font-size:12.5px' in css
+    pbloq = css.split('body.page-modulos .mod-sub p{', 1)[1].split('}', 1)[0]
+    assert 'font-size:10.5px' in pbloq
+    assert '-webkit-line-clamp:1' in pbloq

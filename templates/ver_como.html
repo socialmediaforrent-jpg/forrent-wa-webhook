@@ -1,0 +1,17 @@
+{% extends 'base.html' %}{% set nav='ver-como' %}{% block title %}Ver como asesora{% endblock %}
+{% block body %}
+<h1 class="page">Ver como asesora</h1>
+<p class="lead">Entras a la app como la ves ella, sin usar su contraseña y sin avisarle. Lo que hagas queda a tu nombre. Para volver, usa la barra «Volver a mi cuenta».</p>
+<form class="card form" method="post" action="/ver-como">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Asesora
+    <select name="asesora" required>
+      <option value="" disabled selected>Elige una asesora</option>
+      {% for a in asesoras %}
+      <option value="{{ a.user }}" {% if viendo_como and a.user == viewer.user %}selected{% endif %}>{{ a.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit" class="btn">Entrar como ella</button>
+</form>
+{% endblock %}

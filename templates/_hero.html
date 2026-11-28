@@ -1,0 +1,23 @@
+{% set first_name = (viewer.name.split(' ')[0] if viewer else '') %}
+{% set foto = cool_foto if cool_foto is defined else 'caracas-hero.webp' %}
+{% set credito = cool_credito if cool_credito is defined else ('Foto: Periodismodepaz · CC BY 4.0' if foto == 'caracas-hero.webp' else '') %}
+<header class="cool-hero{% if cool_welcome and not cool_compact %} cool-hero-full{% endif %}" style="--cool-foto:url('{{ static_v(foto) }}')" aria-label="{{ cool_title or 'Bienvenida' }}">
+  <div class="cool-hero-copy">
+    {% if cool_welcome %}
+    <h1 class="welcome-title"><em>{{ first_name }}</em>, {{ saludo }} a For Rent Online.</h1>
+    {% endif %}
+    {% if cool_title %}
+    <div class="page-row asig-titulo">
+      <h1 class="page">{{ cool_title }}</h1>
+      {% if cool_info %}
+      <button type="button" class="asig-info-btn" popovertarget="cli-info" aria-label="Información de Mis Clientes">
+        {% from '_icons.html' import icon %}{{ icon('info', 'asig-info-ico') }}
+      </button>
+      {% endif %}
+      {% if cool_agregar and puede_agregar %}<a class="btn cli-agregar-btn" href="#agregar" data-agregar>+ Agregar cliente</a>{% endif %}
+    </div>
+    {% if cool_sub %}<p class="cool-sub">{{ cool_sub }}</p>{% endif %}
+    {% endif %}
+  </div>
+  {% if credito %}<p class="cool-credito">{{ credito }}</p>{% endif %}
+</header>

@@ -8,26 +8,28 @@
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
 </head>
-<body>
+<body class="theme-cool">
 {% from '_icons.html' import icon %}
-{% from '_fases.html' import cli_por_fase %}
+{% from '_cli_table.html' import cli_table, cli_js %}
+{% from '_embudo.html' import embudo_tiles %}
 {% set nav='clientes' %}
+{% set cool_hero=true %}
 {% include '_top.html' %}
-<main class="wrap-page">
-  <div class="page-row asig-titulo">
-    <h1 class="page">Mis Clientes</h1>
-    <button type="button" class="asig-info-btn" popovertarget="cli-info" aria-label="Información de Mis Clientes">
-      {{ icon('info', 'asig-info-ico') }}
-    </button>
-  </div>
+<main>
+  {% set cool_title='Mis Clientes' %}
+  {% set cool_sub='Embudo comercial de tus asignaciones' %}
+  {% set cool_info=true %}
+  {% set cool_agregar=true %}
+  {% include '_hero.html' %}
+  <div class="cool-sheet wrap-page wrap-asig">
   <div id="cli-info" class="asig-info-pop" popover>
-    {{ n_clientes }} en total. Actualizado: {{ cli_fecha }}. Los asignados vienen del Sistema de Clientes y su estatus se cambia allí. Los «Propio del asesor» se editan aquí. Solo clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí.
+    Embudo comercial de los clientes asignados desde el 31 oct 2026 (reel 19 alquileres). Los anteriores se conservan en el registro, pero no aparecen aquí. Nuevas Asignaciones son las de hace menos de 24 horas, contadas desde la fecha y hora de asignación, que todavía no tienen avance. Clientes sin estatus son las que ya cumplen 24 horas (o no tienen fecha) y siguen sin avance. Un avance es un estatus real: Contactado, Buscando, Esperando, Agendado, etc. ASIGNADO, No contactado o el campo vacío no cuentan como avance. También aparecen tus clientes propios. Toca una baldosa para ver su lista; tócala otra vez para volver a todas. {{ n_clientes }} en total. Actualizado: {{ cli_fecha }}.
   </div>
   {% if flash_ok %}<div class="alert ok">{{ flash_ok }}</div>{% endif %}
   {% if flash_err %}<div class="alert err">{{ flash_err }}</div>{% endif %}
   {% if puede_agregar %}
   <details class="sec" id="agregar" {{ 'open' if form or flash_err else '' }}>
-    <summary class="btn" style="display:inline-flex;align-items:center;cursor:pointer;list-style:none;background:var(--naranja);color:#fff;border-radius:10px;padding:10px 16px;font-weight:700;font-size:14px">+ Agregar cliente</summary>
+    <summary class="cli-agregar-sum">Agregar cliente</summary>
     <form class="grid" method="post" action="/asesor/clientes" autocomplete="on" style="margin-top:10px">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <div><label>Nombre <input name="nombre" required maxlength="120" value="{{ form.nombre if form else '' }}"></label></div>
@@ -48,7 +50,21 @@
     </form>
   </details>
   {% endif %}
-  {{ cli_por_fase(fases.grupos, csrf, estatus_opciones, 'No tienes clientes en esta lista todavía.', mostrar_asesor=mostrar_asesor|default(false), abiertas=false, mostrar_vacias=(n_clientes|default(0))>0) }}
+  {{ embudo_tiles(embudo, tile, '/mis-clientes') }}
+  {% for f in embudo.fases %}
+  {% if f.id == 'otros' and f.n_total == 0 %}
+  {% else %}
+  {% for t in f.tiles %}
+  <section class="dash-sec embudo-lista" id="lista-{{ t.id }}" data-embudo-lista="{{ t.id }}" data-n="{{ t.n }}" {% if not tile or tile.id != t.id %}hidden{% endif %}>
+    <h2>{{ t.label }} <span class="muted">({{ t.n }})</span></h2>
+    <p class="lead" style="margin-bottom:10px"><a href="/mis-clientes" data-embudo-volver>Volver</a></p>
+    {{ cli_table(t.clientes, csrf, estatus_opciones, 'No hay clientes en este estatus.', mostrar_asesor=mostrar_asesor, sid='cli-' ~ t.id, volver=volver_ficha, motivos=motivos, modo_prueba=modo_prueba) }}
+  </section>
+  {% endfor %}
+  {% endif %}
+  {% endfor %}
+  {{ cli_js(sit_modelo, abrir) }}
+  </div>
 </main>
 <script>
 (function(){
@@ -63,6 +79,69 @@
     pop.style.top = (r.bottom + 6) + "px";
     pop.style.left = left + "px";
   });
+})();
+(function(){
+  var add = document.querySelector("[data-agregar]");
+  if (add) add.addEventListener("click", function(ev){ var d=document.getElementById("agregar"); if(!d) return; ev.preventDefault(); d.open = true; d.scrollIntoView({block:"start"}); var i=d.querySelector("input[name=nombre]"); if(i) i.focus(); });
+  var root = document.querySelector("[data-embudo-root]");
+  if (!root) return;
+  var tiles = document.querySelectorAll("[data-embudo-tile]");
+  var listas = document.querySelectorAll("[data-embudo-lista]");
+
+  function abierto(){
+    var on = document.querySelector("[data-embudo-tile].on");
+    return on ? on.getAttribute("data-embudo-tile") : "";
+  }
+  function mostrar(id){
+    tiles.forEach(function(a){
+      var on = a.getAttribute("data-embudo-tile") === id;
+      a.classList.toggle("on", on);
+      a.setAttribute("aria-expanded", on ? "true" : "false");
+    });
+    var shown = null;
+    listas.forEach(function(s){
+      var match = !!id && s.getAttribute("data-embudo-lista") === id;
+      s.hidden = !match;
+      if (match) shown = s;
+    });
+    var url = id ? ("/mis-clientes?e=" + encodeURIComponent(id)) : "/mis-clientes";
+    if (history.replaceState) history.replaceState(null, "", url);
+    if (shown) shown.scrollIntoView({block: "start"});
+  }
+  root.addEventListener("click", function(ev){
+    var a = ev.target.closest("[data-embudo-tile]");
+    if (!a || !root.contains(a)) return;
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+    ev.preventDefault();
+    var id = a.getAttribute("data-embudo-tile");
+    if (abierto() === id) mostrar("");
+    else mostrar(id);
+  });
+  document.querySelectorAll("[data-embudo-volver]").forEach(function(a){
+    a.addEventListener("click", function(ev){
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+      ev.preventDefault();
+      mostrar("");
+      root.scrollIntoView({block: "start"});
+    });
+  });
+  document.querySelectorAll("[data-embudo-kpi]").forEach(function(a){
+    a.addEventListener("click", function(ev){
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+      var id = a.getAttribute("data-embudo-kpi");
+      var tile = document.querySelector("[data-embudo-tile=\"" + id + "\"]");
+      if (tile) {
+        ev.preventDefault();
+        if (abierto() === id) mostrar("");
+        else mostrar(id);
+        return;
+      }
+      var fase = document.getElementById("fase-" + id);
+      if (fase) { ev.preventDefault(); fase.scrollIntoView({block: "start"}); }
+    });
+  });
+  var inicial = document.querySelector("[data-embudo-tile].on");
+  if (inicial) { var s0 = document.getElementById("lista-" + inicial.getAttribute("data-embudo-tile")); if (s0) s0.scrollIntoView({block: "start"}); }
 })();
 </script>
 </body>

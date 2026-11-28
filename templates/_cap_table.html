@@ -1,10 +1,11 @@
-{% macro cap_table(items, vacio, sid='inv') %}
+{% macro cap_table(items, vacio, sid='inv', csrf='', puede_retirar=False, volver='') %}
 {% if not items %}<div class="empty">{{ vacio }}</div>{% else %}
 <ul class="inv-list" id="{{ sid }}-list">
 {% for it in items %}
   {% set fotos = it.fotos or [] %}
   <li class="inv-item">
-    <button type="button" class="inv-row" data-inm-toggle data-sid="{{ sid }}" data-i="{{ loop.index0 }}" aria-expanded="false" aria-controls="{{ sid }}-ficha-{{ loop.index0 }}">
+    {% if it.key %}<a class="inv-row" href="/inventario/ver?k={{ it.key|urlencode }}{% if volver %}&amp;volver={{ volver|urlencode }}{% endif %}">{% else %}
+    <button type="button" class="inv-row" data-inm-toggle data-sid="{{ sid }}" data-i="{{ loop.index0 }}" aria-expanded="false" aria-controls="{{ sid }}-ficha-{{ loop.index0 }}">{% endif %}
       <span class="inv-n" aria-hidden="true">{{ loop.index }}</span>
       <span class="inv-thumb">
         {% if fotos %}
@@ -15,9 +16,9 @@
       </span>
       <span class="inv-body">
         <span class="inv-title">{{ it.titulo or it.zona or it.codigo or 'Inmueble' }}{% if it.solo_cliente_directo %} <span class="badge">Solo cliente directo</span>{% endif %}</span>
-        <span class="inv-meta">{% if it.codigo %}<span class="inv-cod">{{ it.codigo }}</span>{% endif %}{% if it.operacion %}{% if it.codigo %}<span class="inv-dot">·</span>{% endif %}<span class="op{{ ' alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span>{% endif %}{% if it.precio %}<span class="inv-dot">·</span><span class="inv-price">{{ it.precio }}</span>{% endif %}{% if it.estado %}<span class="inv-dot">·</span><span>{{ it.estado }}</span>{% endif %}</span>
+        <span class="inv-meta">{% if it.codigo %}<span class="inv-cod">{{ cod_lbl(it) }} {{ it.codigo }}</span>{% endif %}{% if it.operacion %}{% if it.codigo %}<span class="inv-dot">·</span>{% endif %}<span class="op{{ ' alq' if it.operacion=='Alquiler' else '' }}">{{ it.operacion }}</span>{% endif %}{% if it.precio %}<span class="inv-dot">·</span><span class="inv-price">{{ it.precio }}</span>{% endif %}{% if it.estado %}<span class="inv-dot">·</span><span>{{ it.estado }}</span>{% endif %}</span>
       </span>
-    </button>
+    {% if it.key %}</a>{% else %}</button>{% endif %}
     <div class="inv-ficha-exp" id="{{ sid }}-ficha-{{ loop.index0 }}" hidden>
       {% if fotos %}
       <div class="inv-gal">
@@ -40,9 +41,31 @@
           <div><dt>Operación</dt><dd>{{ it.operacion or '—' }}</dd></div>
           <div><dt>Tipo</dt><dd>{{ it.tipo or '—' }}</dd></div>
           <div><dt>Zona</dt><dd>{{ it.zona or '—' }}</dd></div>
-          <div><dt>Código</dt><dd>{{ it.codigo or '—' }}</dd></div>
+          <div><dt>{{ cod_lbl(it) }}</dt><dd>{{ it.codigo or '—' }}</dd></div>
         </dl>
         {% if it.solo_cliente_directo %}<p class="inv-badge-wrap"><span class="badge">Solo cliente directo</span></p>{% endif %}
+        {% if it.key or (puede_retirar and it.codigo) %}
+        <div class="inv-acciones" aria-label="Acciones de esta captación">
+          {% if it.key %}
+          <a class="inv-accion" href="/inventario/ver?k={{ it.key|urlencode }}{% if volver %}&amp;volver={{ volver|urlencode }}{% endif %}">Ver inmueble</a>
+          {% endif %}
+          {% if puede_retirar and it.codigo %}
+          <details class="inv-retirar">
+            <summary class="inv-accion inv-accion-retiro">Retirar captación</summary>
+            <form class="inv-retirar-form" method="post" action="/mis-captaciones">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <input type="hidden" name="idem" value="{{ idem_token() }}">
+              <input type="hidden" name="accion" value="baja">
+              <input type="hidden" name="codigo" value="{{ it.codigo }}">
+              <input type="hidden" name="titulo" value="{{ it.titulo }}">
+              {% if it.origen %}<input type="hidden" name="origen" value="{{ it.origen }}">{% endif %}
+              <label>Motivo <textarea name="nota" maxlength="400" rows="3" placeholder="¿Por qué se retira?"></textarea></label>
+              <button type="submit" class="btn-sec">Solicitar retiro</button>
+            </form>
+          </details>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
     </div>
   </li>
@@ -71,7 +94,7 @@
   }
 
   list.addEventListener('click', function(e){
-    if (e.target.closest('.inv-gal-nav')) return;
+    if (e.target.closest('.inv-gal-nav, .inv-acciones')) return;
     var btn = e.target.closest('[data-inm-toggle]');
     if (!btn) return;
     var item = btn.closest('.inv-item');

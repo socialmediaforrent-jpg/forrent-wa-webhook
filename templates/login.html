@@ -8,31 +8,71 @@
 {% include '_head_icons.html' %}
 {% include '_brand.css.html' %}
 </head>
-<body class="login-body">
+<body class="login-body" style="--cool-foto:url('{{ static_v('caracas-hero.webp') }}')">
+{% from '_icons.html' import icon %}
 <main class="login-wrap">
   <div class="login-card">
     <a class="brand" href="/login" aria-label="For Rent Online">
       <picture>
-        <source srcset="{{ static_v('logo.webp') }} 1x, {{ static_v('logo-1200.webp') }} 2x" type="image/webp">
-        <img class="logo login-logo" src="{{ static_v('logo.png') }}" alt="For Rent Online" width="800" height="302">
+        <source srcset="{{ static_v('logo-blanco.webp') }}" type="image/webp">
+        <img class="logo login-logo" src="{{ static_v('logo-blanco.png') }}" alt="For Rent Online" width="800" height="302">
       </picture>
     </a>
     <h1 class="page">¡Bienvenido a For Rent Online!</h1>
-    <p class="lead">Ingresa con tu usuario y contraseña.</p>
+    <p class="lead">Gestiona tus inmuebles, clientes, operaciones y comisiones en un solo lugar.</p>
     {% if error %}
     <div class="alert err" role="alert">{{ error }}</div>
     {% endif %}
     <form class="login-form" method="post" action="/login" autocomplete="on">
       {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
       <label>Usuario
-        <input type="text" name="usuario" value="{{ usuario }}" required autofocus autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="username">
+        <span class="login-input">
+          <span class="login-ico" aria-hidden="true">{{ icon('user') }}</span>
+          <input type="text" name="usuario" value="{{ usuario }}" required autofocus autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="username">
+        </span>
       </label>
       <label>Contraseña
-        <input type="password" name="password" required autocomplete="current-password">
+        <span class="login-input">
+          <span class="login-ico" aria-hidden="true">{{ icon('lock') }}</span>
+          <input type="password" name="password" required autocomplete="current-password">
+          <button type="button" class="login-ojo" data-ojo aria-label="Mostrar contraseña">{{ icon('eye') }}{{ icon('eye-off') }}</button>
+        </span>
       </label>
+      <label class="login-recordar"><input type="checkbox" id="recordar-usuario"> Recordar mi usuario</label>
       <button type="submit">Iniciar sesión</button>
     </form>
   </div>
+  <p class="login-credito">Foto: Periodismodepaz · CC BY 4.0</p>
 </main>
+<script>
+(function(){
+  var KEY="forrent.usuario";
+  var form=document.querySelector(".login-form");
+  var user=form && form.querySelector("input[name=usuario]");
+  var cb=document.getElementById("recordar-usuario");
+  if (user && cb){
+    try{
+      var saved=localStorage.getItem(KEY) || "";
+      if (saved && !user.value) user.value=saved;
+      if (saved) cb.checked=true;
+    }catch(e){}
+    form.addEventListener("submit", function(){
+      try{
+        if (cb.checked) localStorage.setItem(KEY, (user.value||"").trim());
+        else localStorage.removeItem(KEY);
+      }catch(e){}
+    });
+  }
+  var btn=document.querySelector("[data-ojo]");
+  if (!btn) return;
+  var pass=form.querySelector("input[name=password]");
+  btn.addEventListener("click", function(){
+    var show=pass.type==="password";
+    pass.type=show ? "text" : "password";
+    btn.classList.toggle("on", show);
+    btn.setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña");
+  });
+})();
+</script>
 </body>
 </html>
