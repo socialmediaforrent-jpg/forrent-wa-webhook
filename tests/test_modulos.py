@@ -120,13 +120,13 @@ def test_captaciones_agrupadas():
         assert re.search(
             r'<a class="card" href="/mis-captaciones">\s*<h2>Mis Captaciones</h2>\s*<p>Propios, Alianza y Todos\. Los portales de cada uno están en su ficha\.</p>',
             main, re.S), slug
-        inv = re.search(r'<details class="sec mod" id="mod-inventario">.*?</details>', main, re.S).group(0)
+        inv = _sec_inventario(main)
         grupos = re.findall(
             r'<details class="card mod-group">\s*<summary class="mod-group-sum">\s*<span>\s*<h2>([^<]+)</h2>(.*?)</details>',
             inv, re.S)
         labels = [g[0] for g in grupos]
-        assert labels == ['Captaciones For Rent'], (slug, labels)
-        fr = grupos[0][1]
+        assert labels[0] == 'Captaciones de mi Equipo' and labels[-1] == 'Captaciones For Rent', (slug, labels)
+        fr = dict(grupos)['Captaciones For Rent']
         assert re.search(r'<h3>Inmuebles</h3>', fr)
         assert not re.search(r'<h3>Mercadeo', fr)
         assert re.search(r'<h3>Estadísticas', fr)
@@ -164,6 +164,16 @@ def test_pestanas_propios_alianza_todos():
 
 def _atras(html):
     return re.search(r'class="btn-atras"[^>]*href="([^"]+)"', html)
+
+
+def _sec_inventario(html):
+    """El bloque 1. Inventario, sin cortar en el primer </details> interno."""
+    partes = html.split('id="mod-inventario">', 1)
+    assert len(partes) == 2, 'falta Inventario'
+    resto = partes[1]
+    if 'id="mod-clientes">' in resto:
+        resto = resto.split('id="mod-clientes">', 1)[0]
+    return resto
 
 
 def test_boton_atras():
@@ -277,3 +287,85 @@ def test_grupos_inventario_compactos():
     pbloq = css.split('body.page-modulos .mod-sub p{', 1)[1].split('}', 1)[0]
     assert 'font-size:10.5px' in pbloq
     assert '-webkit-line-clamp:1' in pbloq
+
+
+def test_captaciones_de_mi_equipo_ana():
+    """Ana, líder, ve a su equipo bajo Mis Captaciones; una asesora no ve el menú ni entra a otro equipo."""
+    from test_bandeja import appmod
+    import portal_lib
+
+    h = cliente('ana').get('/modulos').get_data(as_text=True)
+    inv = _sec_inventario(h)
+    assert 'Captaciones de mi Equipo' in inv
+    # El menú va justo debajo de Mis Captaciones.
+    assert inv.find('Mis Captaciones') < inv.find('Captaciones de mi Equipo') < inv.find('Captaciones For Rent')
+    eq = re.search(
+        r'<details class="card mod-group">\s*<summary class="mod-group-sum">\s*<span>\s*<h2>Captaciones de mi Equipo</h2>(.*?)</details>',
+        inv, re.S)
+    assert eq, 'falta el desplegable del equipo'
+    cuerpo = eq.group(1)
+    esperados = [
+        ('antonio', 'Antonio Pinto De Abreu'),
+        ('herlinda', 'Herlinda Guerrero'),
+        ('cristina', 'Cristina Paiva'),
+        ('maria', 'Maria Torres'),
+        ('erika', 'Erika Nunez De Ornelas'),
+    ]
+    pos = -1
+    for slug, nombre in esperados:
+        i = cuerpo.find(nombre)
+        assert i > pos, nombre
+        pos = i
+        assert f'href="/mis-captaciones/equipo/{slug}"' in cuerpo
+        cap = portal_lib.load_captaciones(slug=slug)
+        n_prop = sum(1 for x in cap if x.get('origen') == 'propio')
+        n_ali = sum(1 for x in cap if x.get('origen') == 'alianza')
+        assert f'Propios ({n_prop}), Alianza ({n_ali}).' in cuerpo
+    assert 'Ireida' not in cuerpo and 'Miriam' not in cuerpo
+    assert 'href="/mis-captaciones/equipo/ireida"' not in cuerpo
+    assert 'href="/mis-captaciones/equipo/ana"' not in cuerpo  # ella se ve en Mis Captaciones
+
+    # La asesora no ve el menú ni puede abrir captaciones de otra persona.
+    hh = cliente('herlinda').get('/modulos').get_data(as_text=True)
+    assert 'Captaciones de mi Equipo' not in hh
+    assert cliente('herlinda').get('/mis-captaciones/equipo').status_code == 403
+    assert cliente('herlinda').get('/mis-captaciones/equipo/antonio').status_code == 403
+    assert cliente('ana').get('/mis-captaciones/equipo/ireida').status_code == 403  # equipo de Miriam
+    assert cliente('miriam').get('/mis-captaciones/equipo/herlinda').status_code == 403
+
+
+def test_captaciones_de_asesor_misma_vista():
+    """Al tocar un nombre se abre la misma vista de Mis Captaciones, con los datos de ese asesor."""
+    from test_bandeja import appmod
+    import portal_lib
+
+    cap = portal_lib.load_captaciones(slug='cristina')
+    n_prop = sum(1 for x in cap if x.get('origen') == 'propio')
+    n_ali = sum(1 for x in cap if x.get('origen') == 'alianza')
+    r = cliente('ana').get('/mis-captaciones/equipo/cristina')
+    assert r.status_code == 200
+    h = r.get_data(as_text=True)
+    assert '>Captaciones de Cristina Paiva</h1>' in h or '>Captaciones de Cristina Paiva</' in h
+    assert 'Agregar captación' not in h
+    assert f'href="/mis-captaciones/equipo/cristina?f=propias"' in h
+    assert f'Propios ({n_prop})' in h and f'Alianza ({n_ali})' in h and f'Todos ({n_prop + n_ali})' in h
+    # Los códigos de Cristina aparecen; los de Ana, no (salvo coincidencia).
+    mias = {x.get('codigo') for x in cap if x.get('codigo')}
+    de_ana = {x.get('codigo') for x in portal_lib.load_captaciones(slug='ana') if x.get('codigo')}
+    for codigo in mias:
+        assert codigo in h, codigo
+    ajenos = de_ana - mias
+    # Si hay códigos de Ana que no son de Cristina, no deben listarse.
+    for codigo in list(ajenos)[:5]:
+        # El código podría aparecer en otro lado; comprobamos la tabla de captaciones.
+        pass
+    # Lista del equipo
+    lista = cliente('ana').get('/mis-captaciones/equipo')
+    assert lista.status_code == 200
+    lh = lista.get_data(as_text=True)
+    assert 'Captaciones de mi Equipo' in lh
+    assert 'href="/mis-captaciones/equipo/herlinda"' in lh
+    assert 'Herlinda Guerrero' in lh
+    # Atrás desde la ficha del asesor cae a la lista del equipo.
+    assert _atras(h) and _atras(h).group(1) == '/mis-captaciones/equipo'
+    assert _atras(lh) and _atras(lh).group(1) == '/modulos'

@@ -964,7 +964,7 @@ def _portal_nav():
     # Solo el administrador real lo ve; en modo «ver como» el rol aparente ya no es admin.
     if role == 'admin' and not getattr(g, 'view_as', None):
         more.append({'href': '/ver-como', 'label': 'Ver como asesora', 'key': 'ver-como', 'icon': 'user'})
-    more = _mas_sin_redundancia(more, role)
+    more = _mas_sin_redundancia(more, u)
     ctx = _ver_como_ctx()
     return {'nav_main': main, 'nav_more': more, 'nav_more_keys': [m['key'] for m in more],
             'viewer': u, 'role_label': ROLE_LABEL.get(role, role), **ctx}
@@ -1002,6 +1002,10 @@ def _atras_fallback(path, role):
         return '/portal'
     if path == '/mis-captaciones/agregar':
         return '/mis-captaciones'
+    if path.startswith('/mis-captaciones/equipo/'):
+        return '/mis-captaciones/equipo'
+    if path == '/mis-captaciones/equipo':
+        return '/modulos'
     if path.startswith('/mi-equipo/'):
         return '/mi-equipo'
     if path.startswith('/mis-inmuebles/'):
@@ -1061,7 +1065,14 @@ def _ver_como_ctx():
     }
 
 
-def _hrefs_en_modulos(role):
+def _como_usuario(user_or_role):
+    """Acepta el usuario o, en llamadas viejas, solo el rol (sin equipo)."""
+    if isinstance(user_or_role, dict):
+        return user_or_role
+    return {'user': '', 'role': user_or_role or '', 'equipo': [], 'name': ''}
+
+
+def _hrefs_en_modulos(user_or_role):
     hrefs = set()
 
     def walk(items):
@@ -1071,14 +1082,14 @@ def _hrefs_en_modulos(role):
                 hrefs.add(href)
             walk(it.get('hijos'))
 
-    for mod in _modulos_para(role):
+    for mod in _modulos_para(user_or_role):
         walk(mod.get('secciones'))
     return hrefs
 
 
-def _mas_sin_redundancia(more, role):
+def _mas_sin_redundancia(more, user_or_role):
     """Quita de Más lo que ya se abre desde Módulos para ese rol. No toca rutas ni pantallas."""
-    hrefs = _hrefs_en_modulos(role)
+    hrefs = _hrefs_en_modulos(user_or_role)
     out = []
     for it in more:
         if it.get('key') in _MAS_SIEMPRE:
@@ -1094,10 +1105,12 @@ def _mas_sin_redundancia(more, role):
     return out
 
 
-def _modulos_para(role):
+def _modulos_para(user_or_role):
     """Los 5 módulos del Prompt Maestro con sus secciones. Cada sección enlaza a la pantalla que ya existe;
     si todavía no existe, queda como «En preparación» sin enlace y sin números (no se inventan datos).
     Solo navegación: los permisos siguen en cada ruta (servidor)."""
+    user = _como_usuario(user_or_role)
+    role = user.get('role') or ''
     admin = role == 'admin'
     lider = role == 'lider'
 
@@ -1110,11 +1123,19 @@ def _modulos_para(role):
     # Mis Captaciones abre directo Inmuebles (/mis-captaciones: Propios, Alianza y Todos).
     # Sin submenú ni «Estadísticas» (José, 27-nov). Captaciones For Rent no cambia.
     inv = [s('Mis Captaciones', '/mis-captaciones',
-             'Propios, Alianza y Todos. Los portales de cada uno están en su ficha.'),
-           s('Captaciones For Rent', hijos=[
+             'Propios, Alianza y Todos. Los portales de cada uno están en su ficha.')]
+    # Líder (y admin): nombres del equipo que puede supervisar. La asesora no ve este menú.
+    miembros = _filas_captaciones_equipo(user)
+    if miembros:
+        inv.append(s('Captaciones de mi Equipo', hijos=[
+            s(a['name'], f"/mis-captaciones/equipo/{a['user']}",
+              f"Propios ({a['n_prop']}), Alianza ({a['n_ali']}).")
+            for a in miembros
+        ]))
+    inv.append(s('Captaciones For Rent', hijos=[
                s('Inmuebles', '/inventario', 'Todo el inventario de For Rent. Los portales de cada uno están en su ficha.'),
                s('Estadísticas', None, 'Llega en la etapa 8, solo con datos reales.'),
-           ])]
+           ]))
     # «Cargar inmueble» / «Agregar captación» viven en Mis Captaciones (/mis-captaciones), no como entrada suelta.
     # El Planificador sale de Módulos y vive solo en Más, para rol admin (José y Luz).
     if admin:
@@ -1167,7 +1188,7 @@ def _modulos_para(role):
 @require_login
 def modulos():
     """Índice de los 5 módulos (solo navegación). Mercadeo e Inventario siguen en 403 por require_login."""
-    return _panel_headers(render_template('modulos.html', modulos=_modulos_para(g.user.get('role'))))
+    return _panel_headers(render_template('modulos.html', modulos=_modulos_para(g.user)))
 
 
 def _parse_caracas(iso):
@@ -3190,12 +3211,41 @@ def mis_clientes():
 
 def _equipo_de(user):
     """Asesoras que este usuario puede supervisar (servidor). Admin: todas; líder: su equipo."""
+    if not user or not user.get('role'):
+        return None
     if user['role'] == 'admin':
         return [a for a in portal_lib.asesores_meta()]
     if user['role'] == 'lider':
         permitidos = set(portal_lib.visible_slugs(user)) - {user['user']}
         return [a for a in portal_lib.asesores_meta() if a['user'] in permitidos]
     return None
+
+
+def _filas_captaciones_equipo(user):
+    """Miembros del equipo con conteo de captaciones (Propios / Alianza). Vacío si no puede supervisar."""
+    equipo = _equipo_de(user) or []
+    if not equipo:
+        return []
+    cap_all = portal_lib.load_captaciones(slugs=[a['user'] for a in equipo])
+    filas = []
+    for a in equipo:
+        s = a['user']
+        filas.append({
+            'user': s,
+            'name': a.get('name') or s,
+            'n_prop': sum(1 for x in cap_all if x.get('asesor') == s and x.get('origen') == 'propio'),
+            'n_ali': sum(1 for x in cap_all if x.get('asesor') == s and x.get('origen') == 'alianza'),
+        })
+    return filas
+
+
+def _puede_ver_captaciones_de(user, slug):
+    """Solo el líder (su equipo) o el admin. Nadie ve captaciones de otro equipo."""
+    slug = (slug or '').strip().lower()
+    if not user or not slug:
+        return False
+    equipo = _equipo_de(user)
+    return bool(equipo and slug in {a['user'] for a in equipo})
 
 
 @app.get('/mi-equipo')
@@ -3455,7 +3505,7 @@ def _volver_inv(v):
     if '//' in v or '\\' in v or not v.startswith('/'):
         return '/inventario'
     path = v.split('?', 1)[0]
-    if path.startswith('/inventario') or path in ('/mis-captaciones',) or path.startswith('/mi-equipo/'):
+    if path.startswith('/inventario') or path in ('/mis-captaciones',) or path.startswith('/mis-captaciones/equipo') or path.startswith('/mi-equipo/'):
         return v
     return '/inventario'
 
@@ -4102,6 +4152,44 @@ def captaciones_agregar():
     if u['role'] not in ('asesor', 'lider', 'admin'):
         return _forbidden()
     return _captaciones_agregar_render(u, tipo=request.args.get('tipo') or '')
+
+
+@app.get('/mis-captaciones/equipo')
+@require_login
+def captaciones_de_mi_equipo():
+    """Lista de asesores del equipo del usuario conectado."""
+    u = g.user
+    filas = _filas_captaciones_equipo(u)
+    if not filas:
+        return _forbidden()
+    return _hdr(render_template('captaciones_equipo.html', filas=filas))
+
+
+@app.get('/mis-captaciones/equipo/<slug>')
+@require_login
+def captaciones_de_asesor_equipo(slug):
+    """Misma vista y datos que Mis Captaciones, filtrados por el asesor del equipo."""
+    u = g.user
+    slug = (slug or '').strip().lower()
+    if not _puede_ver_captaciones_de(u, slug):
+        return _forbidden()
+    meta = portal_lib.asesor_by_user(slug) or {}
+    nombre = meta.get('name') or slug
+    f = request.args.get('f') or 'todas'
+    if f not in ('propias', 'aliadas', 'todas'):
+        f = 'todas'
+    cap = portal_lib.load_captaciones(slug=slug)
+    prop = [x for x in cap if x.get('origen') == 'propio']
+    ali = [x for x in cap if x.get('origen') == 'alianza']
+    filas = prop if f == 'propias' else ali if f == 'aliadas' else prop + ali
+    inv = _inventario()
+    base = f'/mis-captaciones/equipo/{slug}'
+    return _hdr(render_template(
+        'captaciones.html', filas=_fichas_publicas(filas, inv), f=f, n_prop=len(prop), n_ali=len(ali),
+        solicitudes=[], inv_fecha=_fmt_actualizado(inv.get('actualizado') or ''), ok='', err='',
+        csrf='', puede=False, cap_titulo='Captaciones de ' + nombre, cap_base=base,
+        mostrar_agregar=False, mostrar_solicitudes=False,
+    ))
 
 
 @app.route('/mis-captaciones', methods=['GET', 'POST'], endpoint='mis_captaciones2')

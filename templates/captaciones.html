@@ -1,27 +1,32 @@
-{% extends 'base.html' %}{% set nav='captaciones' %}{% block title %}Mis Captaciones{% endblock %}
+{% extends 'base.html' %}{% set nav='captaciones' %}
+{% set cap_titulo = cap_titulo|default('Mis Captaciones') %}
+{% set cap_base = cap_base|default('/mis-captaciones') %}
+{% set mostrar_agregar = mostrar_agregar if mostrar_agregar is defined else (viewer.role in ('asesor', 'lider', 'admin')) %}
+{% set mostrar_solicitudes = mostrar_solicitudes if mostrar_solicitudes is defined else True %}
+{% block title %}{{ cap_titulo }}{% endblock %}
 {% block body %}
 
 {% from '_cap_table.html' import cap_table %}
 <div class="page-row">
-  <h1 class="page">Mis Captaciones</h1>
-  {% if viewer.role in ('asesor', 'lider', 'admin') %}
+  <h1 class="page">{{ cap_titulo }}</h1>
+  {% if mostrar_agregar %}
   <a class="btn-carga" href="/mis-captaciones/agregar">Agregar captación</a>
   {% endif %}
 </div>
 {% if ok %}<div class="alert ok" role="status">{{ ok }}</div>{% endif %}
 {% if err %}<div class="alert err" role="alert">{{ err }}</div>{% endif %}
 <nav class="tabs" aria-label="Filtro">
-  <a href="/mis-captaciones?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propios ({{ n_prop }})</a>
-  <a href="/mis-captaciones?f=aliadas" class="{{ 'on' if f=='aliadas' else '' }}">Alianza ({{ n_ali }})</a>
-  <a href="/mis-captaciones?f=todas" class="{{ 'on' if f=='todas' else '' }}">Todos ({{ n_prop + n_ali }})</a>
+  <a href="{{ cap_base }}?f=propias" class="{{ 'on' if f=='propias' else '' }}">Propios ({{ n_prop }})</a>
+  <a href="{{ cap_base }}?f=aliadas" class="{{ 'on' if f=='aliadas' else '' }}">Alianza ({{ n_ali }})</a>
+  <a href="{{ cap_base }}?f=todas" class="{{ 'on' if f=='todas' else '' }}">Todos ({{ n_prop + n_ali }})</a>
 </nav>
-{{ cap_table(filas, 'No hay captaciones a tu nombre en este filtro.', sid='cap', csrf=csrf, puede_retirar=puede, volver='/mis-captaciones') }}
-{% set aprob = solicitudes|selectattr('estado','equalto','aprobada')|selectattr('accion','equalto','alta')|list %}
+{{ cap_table(filas, 'No hay captaciones a tu nombre en este filtro.', sid='cap', csrf=csrf, puede_retirar=puede, volver=cap_base) }}
+{% set aprob = solicitudes|selectattr('estado','equalto','aprobada')|selectattr('accion','equalto','alta')|list if mostrar_solicitudes else [] %}
 {% if aprob %}<section class="sec"><h2>Aprobadas, pendientes de cargar en inventario ({{ aprob|length }})</h2>
 <table class="inv"><thead><tr><th>Inmueble</th><th>Operación</th><th>Zona</th><th>Precio</th><th>Estado</th></tr></thead><tbody>
 {% for s in aprob %}<tr><td data-label="Inmueble"><b>{{ s.titulo }}</b></td><td data-label="Operación">{{ s.operacion or '—' }}</td><td data-label="Zona">{{ s.zona or '—' }}</td><td data-label="Precio">{{ s.precio or '—' }}</td><td data-label="Estado"><span class="pill">Aprobada, pendiente de cargar en inventario</span></td></tr>{% endfor %}
 </tbody></table></section>{% endif %}
-{% if puede and solicitudes %}
+{% if mostrar_solicitudes and puede and solicitudes %}
 <section class="sec">
   <h2>Tus solicitudes</h2>
   <table class="inv"><thead><tr><th>Fecha</th><th>Acción</th><th>Inmueble</th><th>Estado</th></tr></thead><tbody>
