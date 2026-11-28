@@ -2,7 +2,7 @@
 {% set n_pub = portales_casillas|selectattr('visible')|list|length %}
 {% set abierta = portales_ok or portales_err %}
 <div class="wz-sec">
-  <details class="wz-portales"{% if abierta %} open{% endif %}>
+  <details class="wz-fold wz-portales"{% if abierta %} open{% endif %}>
     <summary>Portales Inmobiliarios <span class="wz-pn">{{ n_pub }}/10</span> <span class="ch" aria-hidden="true">›</span></summary>
     {% if portales_ok %}<p class="wz-okmsg" style="margin-top:10px">{{ portales_ok }}</p>{% endif %}
     {% if portales_err %}<p class="wz-errmsg" style="margin-top:10px">{{ portales_err }}</p>{% endif %}
@@ -106,7 +106,7 @@
   function fallback(u){var ta=document.createElement('textarea');ta.value=u;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';d.appendChild(ta);ta.select();
     var ok=false;try{ok=document.execCommand('copy');}catch(e){}d.removeChild(ta);say(ok?'Enlace copiado.':'No se pudo copiar; mantén presionado el enlace de arriba para copiarlo.');}
   document.addEventListener('click',function(e){
-    var a=e.target.closest('a.pl[data-url]'); if(!a||!a.closest('.wz-portales'))return;
+    var a=e.target.closest('a.pl[data-url]'); if(!a||!a.closest('.wz-portales,.wz-redes'))return;
     e.preventDefault(); cur=a;
     document.getElementById('dlg-p').textContent=a.dataset.portal;
     document.getElementById('dlg-logo').src=a.dataset.logo;

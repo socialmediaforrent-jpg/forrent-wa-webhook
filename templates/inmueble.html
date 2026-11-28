@@ -75,6 +75,7 @@
   <div class="wz-pband"><span>Precio {{ f.operacion }}</span><b>{{ f.precio or 'Sin dato' }}{% if f.precio and f.operacion == 'Alquiler' %} <small style="font-size:12px">Mensual</small>{% endif %}</b></div>
 
   {% include '_portales_ficha.html' %}
+  {% include '_redes_ficha.html' %}
 
   {% if ver_encargado %}
   <div class="wz-sec">

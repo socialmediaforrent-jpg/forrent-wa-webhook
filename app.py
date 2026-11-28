@@ -59,6 +59,7 @@ import portales
 import bandeja
 import redes
 import marketplace
+import redes_inmueble
 import inmuebles
 import carga
 import planificador as planif
@@ -257,9 +258,13 @@ def init_db():
     except Exception:
         log.exception('portales.init')
     try:
-        marketplace.init(q, IS_PG)  # Redes Sociales: crm_marketplace_links + bitácora (aditivas)
+        marketplace.init(q, IS_PG)  # Facebook Marketplace por inmueble (aditiva)
     except Exception:
         log.exception('marketplace.init')
+    try:
+        redes_inmueble.init(q, IS_PG)  # Publicaciones en redes por inmueble (aditiva)
+    except Exception:
+        log.exception('redes_inmueble.init')
     try:
         carga.init(q, IS_PG)  # Carga única (PRUEBA): carga_inmuebles/carga_fotos/carga_log (aditivas)
     except Exception:
@@ -857,7 +862,7 @@ ROLES_VER_ENCARGADO = ('admin', 'mercadeo', 'inventario')
 
 # Rutas con sesión que el usuario de Mercadeo puede abrir. Todo lo demás le responde 403 (en el servidor).
 MERCADEO_ENDPOINTS = {'portal', 'mercadeo', 'mercadeo_forrent', 'mercadeo_link', 'mercadeo_verificar',
-                      'mercadeo_marketplace', 'mercadeo_planificador',
+                      'mercadeo_marketplace', 'mercadeo_redes', 'mercadeo_planificador',
                       'inventario', 'inventario_ver',
                       'planif_nuevo', 'planif_editar', 'planif_guardar', 'planif_duplicar', 'planif_borrar',
                       'planif_media'}
@@ -3390,14 +3395,20 @@ def inventario_ver():
     if not f:
         return _hdr(render_template('inmueble.html', f=None), 404)
     ctx = _portales_ficha_ctx(g.user, k)
-    ok = _MERCADEO_OK.get(request.args.get('ok') or '', '')
-    err = (request.args.get('portales_err') or '').strip()
-    if err and len(err) > 280:
-        err = err[:280]
+    ok_code = request.args.get('ok') or ''
+    ok = _MERCADEO_OK.get(ok_code, '')
+    portales_err = (request.args.get('portales_err') or '').strip()
+    redes_err = (request.args.get('redes_err') or '').strip()
+    if portales_err and len(portales_err) > 280:
+        portales_err = portales_err[:280]
+    if redes_err and len(redes_err) > 280:
+        redes_err = redes_err[:280]
+    es_red = ok_code in ('red', 'red_quitado', 'red_igual')
     return _hdr(render_template('inmueble.html', f=f, compartir=inmuebles.compartir_texto(f),
                                 ver_encargado=g.user['role'] in ROLES_VER_ENCARGADO,
                                 volver=_volver_inv(request.args.get('volver')),
-                                portales_ok=ok, portales_err=err, **ctx))
+                                portales_ok='' if es_red else ok, portales_err=portales_err,
+                                redes_ok=ok if es_red else '', redes_err=redes_err, **ctx))
 
 
 def _volver_inv(v):
@@ -3457,6 +3468,14 @@ def _portales_ficha_ctx(user, key):
             mp_hist = marketplace.historial(q, key)
     except Exception:
         log.exception('inmueble marketplace')
+    puede_redes = es_admin  # Presidencia y Mercadeo editan publicaciones en redes
+    red_cas, red_hist = redes_inmueble.casillas(None), []
+    try:
+        red_cas = redes_inmueble.casillas((redes_inmueble.links_por_key(q) or {}).get(key))
+        if puede_redes:
+            red_hist = redes_inmueble.historial(q, key)
+    except Exception:
+        log.exception('inmueble redes')
     return {
         'portales_casillas': cas,
         'portales_mp': mp,
@@ -3464,6 +3483,9 @@ def _portales_ficha_ctx(user, key):
         'mp_logo': marketplace.LOGO,
         'es_admin': es_admin,
         'puede_mp': puede_mp,
+        'puede_redes': puede_redes,
+        'redes_casillas': red_cas,
+        'redes_hist': red_hist,
         'portales_lista': portales.PORTALES,
         'portales_vuelta': '/inventario/ver?k=' + quote(key or '', safe=''),
         'csrf': portal_lib.csrf_token(user) if (es_admin or puede_mp) else '',
@@ -3489,10 +3511,10 @@ def _destino_portales(default='/inventario'):
     return default
 
 
-def _redir_portales(dest, ok='', err=''):
+def _redir_portales(dest, ok='', err='', err_key='portales_err'):
     sep = '&' if '?' in dest else '?'
     if err:
-        return redirect(dest + sep + 'portales_err=' + quote(err, safe=''))
+        return redirect(dest + sep + err_key + '=' + quote(err, safe=''))
     if ok:
         return redirect(dest + sep + 'ok=' + ok)
     return redirect(dest)
@@ -3598,6 +3620,8 @@ _MERCADEO_OK = {
     'verificando': 'Verificando todos los enlaces en segundo plano. Recarga en un minuto.',
     'mp': 'Enlace de Marketplace guardado.', 'mp_quitado': 'Enlace de Marketplace quitado.',
     'mp_igual': 'Ese enlace de Marketplace ya estaba guardado.',
+    'red': 'Enlace de red social guardado.', 'red_quitado': 'Enlace de red social quitado.',
+    'red_igual': 'Ese enlace de red social ya estaba guardado.',
 }
 
 
@@ -3677,6 +3701,35 @@ def mercadeo_marketplace():
         return _redir_portales(dest, err=e)
     res = marketplace.guardar(q, key=key, codigo=portales.codigo_de(it), url=url, por=g.user['user'], is_pg=IS_PG)
     return _redir_portales(dest, ok=('mp_igual' if res == 'sin_cambio' else 'mp'))
+
+
+@app.post('/mercadeo/redes')
+@require_roles(*ROLES_MERCADEO)
+def mercadeo_redes():
+    """Presidencia y Mercadeo agregan, cambian o quitan el enlace de una publicación en redes, por inmueble."""
+    dest = _destino_portales()
+    def redir(ok='', err=''):
+        return _redir_portales(dest, ok=ok, err=err, err_key='redes_err')
+    if not _csrf_ok():
+        return redir(err='La sesión expiró. Vuelve a intentar.')
+    f = request.form
+    key, red, accion = (f.get('key') or '').strip(), (f.get('red') or '').strip(), f.get('accion') or 'guardar'
+    if red not in redes_inmueble.REDES_KEYS:
+        return redir(err='Red no válida.')
+    _, items, _ = _mercadeo_items(g.user, alcance='forrent')
+    it = next((x for x in items if portales.key_de(x) == key), None)
+    if not it:
+        return redir(err='No encontramos ese inmueble en el inventario.')
+    if accion == 'quitar':
+        redes_inmueble.quitar(q, key=key, red=red, por=g.user['user'])
+        return redir(ok='red_quitado')
+    url, e = redes_inmueble.url_valida(red, f.get('url'))
+    if e:
+        return redir(err=e)
+    fuente = 'manual (Mercadeo)' if g.user['role'] == 'mercadeo' else 'manual (Presidencia)'
+    res = redes_inmueble.guardar(q, key=key, codigo=portales.codigo_de(it), red=red, url=url,
+                                 por=g.user['user'], fuente=fuente)
+    return redir(ok=('red_igual' if res == 'sin_cambio' else 'red'))
 
 
 @app.get('/mercadeo/planificador')

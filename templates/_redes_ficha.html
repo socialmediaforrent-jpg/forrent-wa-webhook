@@ -1,0 +1,46 @@
+{% set n_red = redes_casillas|selectattr('visible')|list|length %}
+{% set n_red_tot = redes_casillas|length %}
+{% set abierta_red = redes_ok or redes_err %}
+<div class="wz-sec">
+  <details class="wz-fold wz-redes"{% if abierta_red %} open{% endif %}>
+    <summary>Redes Sociales <span class="wz-pn">{{ n_red }}/{{ n_red_tot }}</span> <span class="ch" aria-hidden="true">›</span></summary>
+    {% if redes_ok %}<p class="wz-okmsg" style="margin-top:10px">{{ redes_ok }}</p>{% endif %}
+    {% if redes_err %}<p class="wz-errmsg" style="margin-top:10px">{{ redes_err }}</p>{% endif %}
+    <div class="mk-grid" role="list" aria-label="Redes sociales de {{ f.titulo }}">
+      {% for c in redes_casillas %}
+        {% if c.visible %}
+        <a role="listitem" class="pl" href="{{ c.url }}" target="_blank" rel="noopener noreferrer"
+           data-url="{{ c.url }}" data-portal="{{ c.nombre }}" data-logo="/static/{{ c.logo }}" data-title="{{ f.titulo }}"
+           title="{{ c.nombre }}: publicado">
+          <img src="/static/{{ c.logo }}" alt="" width="38" height="38" loading="lazy"><span class="sr">{{ c.nombre }}: publicado. Abrir opciones</span>
+        </a>
+        {% else %}
+        <span role="listitem" class="pl vacia" title="{{ c.nombre }}: sin publicación"><span class="sr">{{ c.nombre }}: sin publicación</span></span>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% if puede_redes %}
+    <details class="mk-edit">
+      <summary>Editar enlaces de redes</summary>
+      <form method="post" action="/mercadeo/redes">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="vuelta" value="{{ portales_vuelta }}"><input type="hidden" name="key" value="{{ f.key }}">
+        <select name="red" aria-label="Red">{% for p in redes_casillas %}<option value="{{ p.key }}">{{ p.nombre }}</option>{% endfor %}</select>
+        <input type="url" name="url" placeholder="https://… (publicación de este inmueble en esa red)" aria-label="Enlace" inputmode="url">
+        <button type="submit" name="accion" value="guardar">Guardar</button>
+        <button type="submit" name="accion" value="quitar" class="sec" formnovalidate>Quitar</button>
+      </form>
+      {% set con = redes_casillas|selectattr('url')|list %}
+      {% if con %}
+      <table><tbody>
+        {% for c in con %}<tr><td><b>{{ c.nombre }}</b></td><td>{% if c.fuente %}<span class="muted">Fuente: {{ c.fuente }}</span>{% endif %}{% if c.updated_at %}{% if c.fuente %}<br>{% endif %}{{ fmt(c.updated_at) }}{% endif %}</td><td><a href="{{ c.url }}" target="_blank" rel="noopener noreferrer">{{ c.url }}</a></td></tr>{% endfor %}
+      </tbody></table>
+      {% endif %}
+      {% if redes_hist %}
+      <table><tbody>
+        {% for h in redes_hist %}<tr><td><b>{{ {'alta':'Agregado','reemplazo':'Cambiado','baja':'Quitado'}.get(h.accion, h.accion) }}</b></td><td>{{ h.red }} · {{ h.por }} · {{ fmt(h.at) }}</td><td>{{ h.url_despues or h.url_antes }}</td></tr>{% endfor %}
+      </tbody></table>
+      {% endif %}
+    </details>
+    {% endif %}
+  </details>
+</div>

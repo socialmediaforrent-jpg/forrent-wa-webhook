@@ -153,7 +153,7 @@ def test_ficha_portales_plegable():
         url='https://www.mercadolibre.com.ve/inmueble-de-prueba-10542820',
         estado='ok', http_status=200, fuente='test', por='jose')
     h = html(cliente('ana').get('/inventario/ver?k=' + quote(key)))
-    m = re.search(r'<details class="wz-portales"(?P<attrs>[^>]*)>(?P<body>.*?)</details>', h, re.S)
+    m = re.search(r'<details class="[^"]*wz-portales[^"]*"(?P<attrs>[^>]*)>(?P<body>.*?)</details>', h, re.S)
     assert m, 'falta la barra Portales Inmobiliarios'
     assert 'open' not in (m.group('attrs') or '')
     assert 'Portales Inmobiliarios' in m.group(0)
@@ -175,6 +175,56 @@ def test_ficha_portales_plegable():
     # La lista sigue sin llevar esas URLs.
     lista = html(cliente('ana').get('/inventario'))
     assert 'mercadolibre.com.ve' not in lista
+
+
+def test_ficha_redes_plegable():
+    """La barra Redes Sociales va cerrada, con las 5 redes de redes.py, y solo se llena con una publicación real."""
+    import redes_inmueble
+    key = 'c:10542820'
+    it = next((x for xs in (INV['grupos']['propio'], INV['grupos']['alianza']) for x in xs
+               if appmod.portales.key_de(x) == key), None)
+    assert it
+    url, err = redes_inmueble.url_valida('instagram', 'https://www.instagram.com/reel/DdofgI6lTZM/')
+    assert err is None and url.endswith('/reel/DdofgI6lTZM/')
+    redes_inmueble.guardar(appmod.q, key=key, codigo='10542820', red='instagram', url=url, por='jose', fuente='test')
+    h = html(cliente('ana').get('/inventario/ver?k=' + quote(key)))
+    m = re.search(r'<details class="[^"]*wz-redes[^"]*"(?P<attrs>[^>]*)>(?P<body>.*?)</details>', h, re.S)
+    assert m, 'falta la barra Redes Sociales'
+    assert 'open' not in (m.group('attrs') or '')
+    assert 'Redes Sociales' in m.group(0)
+    assert '1/5' in m.group(0)
+    assert 'instagram.com/reel/DdofgI6lTZM' in m.group('body')
+    assert m.group('body').count('class="pl vacia"') == 4  # FB, TikTok, YouTube, LinkedIn vacías
+    # Ana no edita; Presidencia y Mercadeo sí.
+    assert 'Editar enlaces de redes' not in h
+    hj = html(cliente('jose').get('/inventario/ver?k=' + quote(key)))
+    assert 'Editar enlaces de redes' in hj
+    # La lista no lleva esas URLs.
+    assert 'instagram.com/reel' not in html(cliente('ana').get('/inventario'))
+    # No se acepta el perfil de For Rent como publicación del inmueble.
+    assert redes_inmueble.url_valida('instagram', 'https://www.instagram.com/forrent.grupoinmobiliario')[0] is None
+    assert redes_inmueble.url_valida('youtube', 'https://www.youtube.com/channel/UChfbVol9e7YtGsw_SqYR-qw')[0] is None
+
+
+def test_redes_inmueble_permisos_y_ruta():
+    """Una asesora no edita; Presidencia y Mercadeo sí, y vuelven a la ficha."""
+    import redes_inmueble
+    def csrf(slug):
+        return portal_lib.csrf_token(portal_lib.user_by_username(slug))
+    key = 'c:10542820'
+    data = {'key': key, 'red': 'tiktok', 'url': 'https://www.tiktok.com/@forrent.grupoinmo/video/7694300463755250951',
+            'csrf': csrf('ana'), 'vuelta': '/inventario/ver?k=' + key}
+    assert cliente('ana').post('/mercadeo/redes', data=data).status_code == 403
+    r = cliente('jose').post('/mercadeo/redes', data={**data, 'csrf': csrf('jose')})
+    assert r.status_code in (302, 303)
+    loc = r.headers['Location']
+    assert 'ok=red' in loc and '/inventario/ver' in loc
+    links = redes_inmueble.links_por_key(appmod.q).get(key) or {}
+    assert 'tiktok' in links and 'video/7694300463755250951' in links['tiktok']['url']
+    # URL inválida (perfil) no se guarda.
+    r = cliente('jose').post('/mercadeo/redes', data={**data, 'red': 'facebook',
+        'url': 'https://www.facebook.com/552585004598339', 'csrf': csrf('jose')})
+    assert r.status_code in (302, 303) and 'redes_err=' in r.headers['Location']
 
 
 # JPEG mínimo (1×1) para no depender de archivos grandes en el test.

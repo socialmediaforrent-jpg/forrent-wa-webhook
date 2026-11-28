@@ -308,6 +308,7 @@ def test_planificador_permisos():
 def test_asesora_sigue_sin_editar_enlaces():
     assert cliente('ana').post('/mercadeo/link', data={'csrf': csrf('ana')}).status_code == 403
     assert cliente('ana').post('/mercadeo/marketplace', data={'csrf': csrf('ana')}).status_code == 403
+    assert cliente('ana').post('/mercadeo/redes', data={'csrf': csrf('ana')}).status_code == 403
 
 
 # ------------------------------------------------------------ Redes Sociales y Marketplace
