@@ -50,9 +50,10 @@ def test_inicio_asesora_tiene_estilo_cool():
     assert 'logo-blanco.webp' in html
     assert 'Hola, Ana' in html
     assert '<em>Ana</em>, bienvenida a For Rent Online.' in main
-    assert 'Tu resumen' in main
-    assert 'Mis Clientes' in main
-    assert 'class="cool-kpis"' in main
+    assert 'cool-hero-full' in main
+    assert 'Tu resumen' not in main
+    assert 'Mis Clientes' not in main
+    assert 'class="cool-kpis"' not in main
     assert _botones(_bottomnav(html)) == ['Inicio', 'Módulos', 'Mensajes', 'Más']
     # Inicio está resaltado.
     assert re.search(r'href="/portal"[^>]*class="on"', _bottomnav(html))

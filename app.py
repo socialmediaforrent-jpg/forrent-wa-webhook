@@ -3097,22 +3097,9 @@ def volver_a_mi_cuenta():
 @app.get('/portal')
 @require_login
 def portal():
-    # Todos arrancan con la foto del equipo y el saludo. Presidencia no lleva
-    # resumen aquí (sigue en Módulos). Las demás ven su resumen debajo.
-    role = g.user['role']
-    if role == 'admin':
-        return _panel_headers(render_template('portal.html'))
-    if role == 'mercadeo':
-        return _panel_headers(render_template('inicio_seccion.html', inicio_cards=[
-            {'href': '/mercadeo', 'title': 'Mercadeo', 'lead': 'Portales, publicaciones y verificación.'},
-            {'href': '/mercadeo/planificador', 'title': 'Planificador de anuncios', 'lead': 'Calendario de redes sociales.'},
-        ]))
-    if role == 'inventario':
-        return _panel_headers(render_template('inicio_seccion.html', inicio_cards=[
-            {'href': '/inventario', 'title': 'Inmuebles', 'lead': 'Inventario en lectura.'},
-            {'href': '/inventario/cola', 'title': 'Por revisar', 'lead': 'Cargas pendientes de revisión.'},
-        ]))
-    return _render_asesor(g.user)
+    # Todos ven la foto completa del equipo y el saludo con su nombre.
+    # El resumen, los KPI y las tarjetas siguen en Mis Clientes y Módulos.
+    return _panel_headers(render_template('portal.html'))
 
 
 @app.get('/clientes-propios')

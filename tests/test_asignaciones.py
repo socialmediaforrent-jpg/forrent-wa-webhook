@@ -141,14 +141,18 @@ def _primera_tarjeta(html):
 
 
 def test_inicio_primer_boton_asesora():
+    """El inicio de la asesora es solo la bienvenida; el embudo sigue en /mis-clientes."""
     html = cliente('ana').get('/').get_data(as_text=True)
-    href, main = _primera_tarjeta(html)
-    assert href == '/mis-clientes'
-    assert 'Mis Clientes' in main and 'Mis Asignaciones' not in main
+    main = html.split('<main', 1)[-1]
+    assert '<em>Ana</em>, bienvenida a For Rent Online.' in main
+    assert 'inicio-equipo.webp' in main
+    assert 'Tu resumen' not in main
+    assert 'Mis Asignaciones' not in main
     assert 'Clientes por fase' not in main
-    # Las baldosas del embudo abren Mis Clientes con la fase elegida.
-    assert 'href="/mis-clientes?e=sin_estatus"' in main
-    assert main.find('Mis Clientes') < main.find('Mi Perfil')
+    assert 'href="/mis-clientes?e=sin_estatus"' not in main
+    asig = cliente('ana').get('/mis-clientes').get_data(as_text=True)
+    assert 'href="/mis-clientes?e=sin_estatus"' in asig
+    assert 'data-embudo-tile' in asig
 
 
 def test_inicio_primer_boton_admin():
