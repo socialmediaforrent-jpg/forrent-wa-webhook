@@ -15,11 +15,6 @@
 {% macro tile(lbl, val, suf='') %}<div>{{ lbl }}{% if val %}<b>{{ val }}{{ suf }}</b>{% else %}<b class="nd">Sin datos</b>{% endif %}</div>{% endmacro %}
 <main class="wrap-page">
 <div class="wz">
-  <div class="wz-bar wz-bar-marca">
-    <a class="back" href="{{ volver or '/inventario' }}" aria-label="Volver">‹</a>
-    <h1 class="c">Inmueble</h1>
-    <span style="width:38px"></span>
-  </div>
   {% if copia_prueba %}<div class="wz-proto">{{ copia_prueba }}</div>{% endif %}
   {% if not f %}
   <div class="wz-empty">Ese inmueble ya no está en el inventario. <a href="/inventario">Volver a Inmuebles</a></div>

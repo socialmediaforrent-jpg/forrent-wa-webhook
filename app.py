@@ -986,8 +986,8 @@ _ATRAS_RAICES = {
 
 def _atras_ya_tiene(path):
     """Pantallas que ya traen su propio atrás: no se duplica en el encabezado."""
-    if path == '/inventario/ver' or path.startswith('/inventario/ver/'):
-        return True
+    if path.startswith('/inventario/ver/'):
+        return True  # la ficha PDF no lleva encabezado de la app
     if path.startswith('/mercadeo/planificador'):
         return True
     if path.startswith('/mis-inmuebles/') and '/paso/' in path:
@@ -3407,6 +3407,7 @@ def inventario_ver():
     return _hdr(render_template('inmueble.html', f=f, compartir=inmuebles.compartir_texto(f),
                                 ver_encargado=g.user['role'] in ROLES_VER_ENCARGADO,
                                 volver=_volver_inv(request.args.get('volver')),
+                                back_fallback=_volver_inv(request.args.get('volver')),
                                 portales_ok='' if es_red else ok, portales_err=portales_err,
                                 redes_ok=ok if es_red else '', redes_err=redes_err, **ctx))
 

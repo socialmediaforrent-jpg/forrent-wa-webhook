@@ -493,15 +493,11 @@ def test_mis_captaciones_solo_titulo_y_pestanas():
     assert 'Inventario del' not in h
 
 
-def test_ficha_barra_naranja():
-    """La barra «Inmueble» de la ficha va en el naranja de For Rent con flecha blanca."""
-    import os
-    raiz = os.path.dirname(os.path.dirname(__file__))
-    css = open(os.path.join(raiz, 'static/inmuebles.css'), encoding='utf-8').read()
-    assert '.wz-bar.wz-bar-marca{background:#E55B01;color:#fff}' in css
-    assert '.wz-bar.wz-bar-marca a.back{color:#fff}' in css
-    tpl = open(os.path.join(raiz, 'templates/inmueble.html'), encoding='utf-8').read()
-    assert 'class="wz-bar wz-bar-marca"' in tpl
+def test_ficha_sin_barra_inmueble():
+    """La ficha ya no lleva la barra «Inmueble»; se vuelve con el «Atrás» del encabezado blanco."""
+    h = html(cliente('ana').get('/inventario/ver?k=' + quote('c:10542820')))
+    assert 'class="wz-bar' not in h and '<h1 class="c">Inmueble</h1>' not in h
+    assert 'class="btn-atras"' in h and 'href="/inventario"' in h
 
 
 def test_ficha_pdf_y_sin_correo():
