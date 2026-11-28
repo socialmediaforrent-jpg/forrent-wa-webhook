@@ -1039,7 +1039,7 @@ def _portal_atras():
 
 
 # Rutas de «Más» que no aparecen como href en Módulos, pero se abren desde una sección
-# que sí está ahí (misma función). «Agregar captación» vive en Mis Captaciones › Inmuebles.
+# que sí está ahí (misma función). «Agregar captación» vive en Mis Captaciones.
 _MAS_CUBIERTO_POR = {
     '/mis-inmuebles': '/mis-captaciones',
     '/mis-captaciones/agregar': '/mis-captaciones',
@@ -1107,15 +1107,15 @@ def _modulos_para(role):
             item['hijos'] = hijos
         return item
 
-    inv = [s('Mis Captaciones', hijos=[
-               s('Inmuebles', '/mis-captaciones', 'Propios, Alianza y Todos. Los portales de cada uno están en su ficha.'),
-               s('Estadísticas', None, 'Llega en la etapa 8, solo con datos reales.'),
-           ]),
+    # Mis Captaciones abre directo Inmuebles (/mis-captaciones: Propios, Alianza y Todos).
+    # Sin submenú ni «Estadísticas» (José, 27-nov). Captaciones For Rent no cambia.
+    inv = [s('Mis Captaciones', '/mis-captaciones',
+             'Propios, Alianza y Todos. Los portales de cada uno están en su ficha.'),
            s('Captaciones For Rent', hijos=[
                s('Inmuebles', '/inventario', 'Todo el inventario de For Rent. Los portales de cada uno están en su ficha.'),
                s('Estadísticas', None, 'Llega en la etapa 8, solo con datos reales.'),
            ])]
-    # «Cargar inmueble» vive dentro de Mis Captaciones › Inmuebles (/mis-captaciones), no como entrada suelta.
+    # «Cargar inmueble» / «Agregar captación» viven en Mis Captaciones (/mis-captaciones), no como entrada suelta.
     # El Planificador sale de Módulos y vive solo en Más, para rol admin (José y Luz).
     if admin:
         inv.append(s('Por revisar (carga)', '/inventario/cola'))
