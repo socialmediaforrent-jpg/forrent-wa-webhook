@@ -580,6 +580,7 @@ body.theme-cool .bottomnav>a:active,body.theme-cool .bottomnav summary:active,bo
 .cool-sheet.wrap-despues-bienvenida{padding-top:18px}
 
 .cool-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 16px;max-width:560px}
+.cool-kpis[hidden]{display:none!important}
 .cool-kpi{border-radius:16px;padding:12px 14px 14px;color:#fff;text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;min-height:86px;box-shadow:0 6px 18px rgba(17,17,17,.12);-webkit-tap-highlight-color:transparent}
 .cool-kpi-lab{font-size:12px;font-weight:700;line-height:1.25;opacity:.95}
 .cool-kpi-n{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-top:10px}

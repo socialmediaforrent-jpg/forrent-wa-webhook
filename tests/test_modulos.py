@@ -374,9 +374,12 @@ def test_captaciones_de_asesor_misma_vista():
 
 def test_mis_clientes_sin_cuadros_de_colores():
     """Mis Clientes: los 4 cuadros de arriba quedan ocultos; las filas del embudo siguen."""
+    from pathlib import Path
     h = cliente('ana').get('/mis-clientes').get_data(as_text=True)
     assert '<div class="cool-kpis" aria-label="Resumen del embudo" hidden>' in h
     assert 'embudo-fase' in h and 'Nuevas Asignaciones' in h
+    css = (Path(__file__).resolve().parents[1] / 'static/app.css').read_text()
+    assert '.cool-kpis[hidden]{display:none!important}' in css.replace(' ', '')
 
 
 def test_clientes_de_mi_equipo():
